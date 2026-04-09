@@ -1,0 +1,1928 @@
+# sipgate AI Flow API - LLM Reference
+
+> Complete reference for code generation LLMs (Claude, ChatGPT, Cursor, etc.)
+> This document contains all API and SDK knowledge in a single file for efficient code generation.
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Core Concepts](#core-concepts)
+3. [Authentication](#authentication)
+4. [Integration Methods](#integration-methods)
+5. [Event Types](#event-types)
+6. [Action Types](#action-types)
+7. [Barge-In Configuration](#barge-in-configuration)
+8. [TTS Providers](#tts-providers)
+9. [TypeScript SDK](#typescript-sdk)
+10. [Complete Examples](#complete-examples)
+
+---
+
+## Overview
+
+sipgate AI Flow is a voice assistant platform for building AI-powered voice applications with real-time speech processing. It supports:
+
+- **Language Agnostic**: Works with ANY programming language via HTTP/WebSocket with plain JSON
+- **TypeScript SDK**: Convenient SDK available for TypeScript/JavaScript developers
+- **Event-Driven**: Clean event-driven architecture for handling conversations
+- **Real-Time Speech**: Built-in speech-to-text and text-to-speech (Azure, ElevenLabs)
+- **Multiple Integration Methods**: HTTP webhooks, WebSocket, or TypeScript SDK
+
+### Architecture
+
+The platform uses an event-driven model:
+1. AI Flow Service receives phone calls
+2. Service sends events (JSON) to your application via HTTP or WebSocket
+3. Your application processes events and returns actions (JSON)
+4. Service executes actions (speak, transfer, hangup, etc.)
+
+```
+Phone Call → AI Flow Service → Your Application
+                              ↓
+                           Process Event
+                              ↓
+                           Return Action
+                              ↓
+AI Flow Service ← Execute Action
+      ↓
+Phone Call
+```
+
+---
+
+## Core Concepts
+
+### Event-Driven Architecture
+
+Your application receives events and responds with actions:
+
+**Events (Service → Your App):**
+- `session_start` - Call begins
+- `user_speak` - User speaks (after STT)
+- `assistant_speak` - Assistant speaks
+- `assistant_speech_ended` - Assistant finishes speaking
+- `user_barge_in` - User interrupts
+- `session_end` - Call ends
+
+**Actions (Your App → Service):**
+- `speak` - Speak text/SSML to user
+- `audio` - Play pre-recorded audio
+- `transfer` - Transfer call to another number
+- `hangup` - End the call
+- `barge_in` - Manually interrupt playback
+
+### Session Information
+
+All events include session information:
+
+```json
+{
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "account_id": "account-123",
+    "phone_number": "+1234567890",
+    "direction": "inbound",
+    "from_phone_number": "+9876543210",
+    "to_phone_number": "+1234567890"
+  }
+}
+```
+
+### Event Flow
+
+```
+session_start → user_speak → assistant_speak → assistant_speech_ended
+                     ↓              ↓
+                user_barge_in ←────┘
+                     ↓
+                session_end
+```
+
+---
+
+## Authentication
+
+### Shared Secret Authentication
+
+AI Flow can authenticate webhook requests using shared secrets sent in HTTP headers.
+
+**Request Headers:**
+- `X-API-TOKEN`: The shared secret you configured
+- `Content-Type`: `application/json`
+- `User-Agent`: Service identifier
+
+**Example Validation:**
+
+Python:
+```python
+SHARED_SECRET = os.environ.get('AI_FLOW_SHARED_SECRET')
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    provided_secret = request.headers.get('X-API-TOKEN')
+    if provided_secret != SHARED_SECRET:
+        abort(401)
+    # Process event...
+```
+
+Node.js:
+```javascript
+const SHARED_SECRET = process.env.AI_FLOW_SHARED_SECRET;
+
+app.post('/webhook', (req, res) => {
+  if (req.headers['x-api-token'] !== SHARED_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  // Process event...
+});
+```
+
+Go:
+```go
+sharedSecret := os.Getenv("AI_FLOW_SHARED_SECRET")
+
+func webhook(w http.ResponseWriter, r *http.Request) {
+    if r.Header.Get("X-API-TOKEN") != sharedSecret {
+        w.WriteHeader(http.StatusUnauthorized)
+        return
+    }
+    // Process event...
+}
+```
+
+---
+
+## Integration Methods
+
+### HTTP Webhooks
+
+**Best for:** Serverless functions, REST APIs, simple integrations
+
+Your webhook endpoint receives POST requests with JSON events.
+
+**Requirements:**
+1. Accept POST requests at a public URL
+2. Parse JSON from request body
+3. Return JSON actions or `204 No Content`
+4. Respond quickly (under 1 second recommended)
+5. Use HTTPS in production
+
+**Request Format:**
+```http
+POST /webhook HTTP/1.1
+Content-Type: application/json
+X-API-TOKEN: your-secret
+
+{
+  "type": "user_speak",
+  "text": "Hello",
+  "session": { ... }
+}
+```
+
+**Response Format (with action):**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "type": "speak",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "text": "Hello! How can I help you?"
+}
+```
+
+**Response Format (no action):**
+```http
+HTTP/1.1 204 No Content
+```
+
+**Python Example:**
+```python
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    event = request.json
+
+    if event['type'] == 'session_start':
+        return jsonify({
+            'type': 'speak',
+            'session_id': event['session']['id'],
+            'text': 'Welcome! How can I help you?'
+        })
+
+    if event['type'] == 'user_speak':
+        return jsonify({
+            'type': 'speak',
+            'session_id': event['session']['id'],
+            'text': f"You said: {event['text']}"
+        })
+
+    return '', 204
+```
+
+**Node.js Example:**
+```javascript
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+app.post('/webhook', (req, res) => {
+  const event = req.body;
+
+  if (event.type === 'session_start') {
+    return res.json({
+      type: 'speak',
+      session_id: event.session.id,
+      text: 'Welcome! How can I help you?'
+    });
+  }
+
+  if (event.type === 'user_speak') {
+    return res.json({
+      type: 'speak',
+      session_id: event.session.id,
+      text: `You said: ${event.text}`
+    });
+  }
+
+  res.status(204).send();
+});
+
+app.listen(3000);
+```
+
+**Go Example:**
+```go
+package main
+
+import (
+    "encoding/json"
+    "net/http"
+)
+
+type Event struct {
+    Type    string `json:"type"`
+    Text    string `json:"text,omitempty"`
+    Session Session `json:"session"`
+}
+
+type Session struct {
+    ID string `json:"id"`
+}
+
+func webhook(w http.ResponseWriter, r *http.Request) {
+    var event Event
+    json.NewDecoder(r.Body).Decode(&event)
+
+    if event.Type == "user_speak" {
+        action := map[string]interface{}{
+            "type":       "speak",
+            "session_id": event.Session.ID,
+            "text":       "You said: " + event.Text,
+        }
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(action)
+        return
+    }
+
+    w.WriteHeader(http.StatusNoContent)
+}
+
+func main() {
+    http.HandleFunc("/webhook", webhook)
+    http.ListenAndServe(":3000", nil)
+}
+```
+
+### WebSocket
+
+**Best for:** Real-time applications, lower latency, high-volume scenarios
+
+AI Flow Service initiates WebSocket connection to your server when calls start.
+
+**How it works:**
+1. AI Flow Service connects to your WebSocket server
+2. Service sends JSON events as text messages
+3. Your server processes events and sends JSON actions back
+4. Connection remains open for the duration of the call
+
+**Message Format (Receive Event):**
+```json
+{
+  "type": "user_speak",
+  "text": "Hello",
+  "session": { ... }
+}
+```
+
+**Message Format (Send Action):**
+```json
+{
+  "type": "speak",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "text": "Hello!"
+}
+```
+
+**Python Example:**
+```python
+import asyncio
+import websockets
+import json
+
+async def handle_message(websocket, path):
+    async for message in websocket:
+        event = json.loads(message)
+
+        if event['type'] == 'user_speak':
+            action = {
+                'type': 'speak',
+                'session_id': event['session']['id'],
+                'text': f"You said: {event['text']}"
+            }
+            await websocket.send(json.dumps(action))
+
+async def main():
+    async with websockets.serve(handle_message, "localhost", 8765):
+        await asyncio.Future()
+
+asyncio.run(main())
+```
+
+**Node.js Example:**
+```javascript
+const WebSocket = require('ws');
+
+const wss = new WebSocket.Server({ port: 8080 });
+
+wss.on('connection', (ws) => {
+  ws.on('message', (data) => {
+    const event = JSON.parse(data.toString());
+
+    if (event.type === 'user_speak') {
+      const action = {
+        type: 'speak',
+        session_id: event.session.id,
+        text: `You said: ${event.text}`
+      };
+      ws.send(JSON.stringify(action));
+    }
+  });
+
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+});
+```
+
+**Go Example:**
+```go
+package main
+
+import (
+    "encoding/json"
+    "github.com/gorilla/websocket"
+    "net/http"
+)
+
+var upgrader = websocket.Upgrader{
+    CheckOrigin: func(r *http.Request) bool {
+        return true
+    },
+}
+
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
+    conn, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        return
+    }
+    defer conn.Close()
+
+    for {
+        var event map[string]interface{}
+        err := conn.ReadJSON(&event)
+        if err != nil {
+            break
+        }
+
+        if event["type"] == "user_speak" {
+            session := event["session"].(map[string]interface{})
+            action := map[string]interface{}{
+                "type":       "speak",
+                "session_id": session["id"],
+                "text":       "You said: " + event["text"].(string),
+            }
+            conn.WriteJSON(action)
+        }
+    }
+}
+
+func main() {
+    http.HandleFunc("/ws", websocketHandler)
+    http.ListenAndServe(":8080", nil)
+}
+```
+
+---
+
+## Event Types
+
+### Base Event Structure
+
+All events include:
+- `type`: Event type identifier (string)
+- `session`: Session information object
+
+### 1. session_start
+
+Triggered when a new call session begins.
+
+**Structure:**
+```json
+{
+  "type": "session_start",
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "account_id": "account-123",
+    "phone_number": "+1234567890",
+    "direction": "inbound",
+    "from_phone_number": "+9876543210",
+    "to_phone_number": "+1234567890"
+  }
+}
+```
+
+**Fields:**
+- `type`: Always `"session_start"`
+- `session.id`: UUID - Unique session identifier
+- `session.account_id`: Account identifier
+- `session.phone_number`: Phone number for this flow session
+- `session.direction`: `"inbound"` or `"outbound"` (optional)
+- `session.from_phone_number`: Caller's phone number
+- `session.to_phone_number`: Callee's phone number
+
+**Response:** Can return any action or `204 No Content`
+
+**Example:**
+```python
+if event['type'] == 'session_start':
+    return {
+        'type': 'speak',
+        'session_id': event['session']['id'],
+        'text': 'Welcome! How can I help you today?'
+    }
+```
+
+### 2. user_speak
+
+Triggered when the user speaks (after speech-to-text completes).
+
+**Structure:**
+```json
+{
+  "type": "user_speak",
+  "text": "Hello, I need help",
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "account_id": "account-123",
+    "phone_number": "+1234567890"
+  }
+}
+```
+
+**Fields:**
+- `type`: Always `"user_speak"`
+- `text`: Recognized speech text (string)
+- `session`: Session information
+
+**Response:** Can return any action or `204 No Content`
+
+**Example:**
+```javascript
+if (event.type === 'user_speak') {
+  const userText = event.text.toLowerCase();
+
+  if (userText.includes('goodbye')) {
+    return {
+      type: 'hangup',
+      session_id: event.session.id
+    };
+  }
+
+  return {
+    type: 'speak',
+    session_id: event.session.id,
+    text: `You said: ${event.text}`
+  };
+}
+```
+
+### 3. assistant_speak
+
+Triggered after the assistant starts speaking. May be omitted for some TTS models.
+
+**Structure:**
+```json
+{
+  "type": "assistant_speak",
+  "text": "Hello! How can I help?",
+  "duration_ms": 2000,
+  "speech_started_at": 1234567890,
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+**Fields:**
+- `type`: Always `"assistant_speak"`
+- `text`: Text that was spoken (optional)
+- `ssml`: SSML that was used (optional)
+- `duration_ms`: Duration of speech in milliseconds (number)
+- `speech_started_at`: Unix timestamp in milliseconds when speech started (number)
+- `session`: Session information
+
+**Response:** Can return any action or `204 No Content`
+
+**Use for:** Tracking metrics, triggering next actions, logging
+
+### 4. assistant_speech_ended
+
+Triggered when the assistant finishes speaking.
+
+**Structure:**
+```json
+{
+  "type": "assistant_speech_ended",
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+**Fields:**
+- `type`: Always `"assistant_speech_ended"`
+- `session`: Session information
+
+**Response:** Can return any action or `204 No Content`
+
+### 5. user_barge_in
+
+Triggered when the user interrupts the assistant.
+
+**Structure:**
+```json
+{
+  "type": "user_barge_in",
+  "text": "Wait",
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+**Fields:**
+- `type`: Always `"user_barge_in"`
+- `text`: Speech text that triggered barge-in (string)
+- `session`: Session information
+
+**Response:** Can return any action or `204 No Content`
+
+**Example:**
+```python
+if event['type'] == 'user_barge_in':
+    return {
+        'type': 'speak',
+        'session_id': event['session']['id'],
+        'text': "I'm listening, please continue."
+    }
+```
+
+### 6. session_end
+
+Triggered when the call session ends.
+
+**Structure:**
+```json
+{
+  "type": "session_end",
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+**Fields:**
+- `type`: Always `"session_end"`
+- `session`: Session information
+
+**Response:** **NO ACTION ALLOWED** - Use only for cleanup
+
+**Example:**
+```javascript
+if (event.type === 'session_end') {
+  console.log(`Session ${event.session.id} ended`);
+  // Cleanup, logging, analytics only
+  // Do NOT return any action
+  return null;
+}
+```
+
+---
+
+## Action Types
+
+### Base Action Structure
+
+All actions require:
+- `session_id`: UUID from the event's `session.id` (string)
+- `type`: Action type identifier (string)
+
+### 1. speak
+
+Speak text or SSML to the user using text-to-speech.
+
+**Structure:**
+```json
+{
+  "type": "speak",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "text": "Hello! How can I help you?",
+  "tts": {
+    "provider": "azure",
+    "language": "en-US",
+    "voice": "en-US-JennyNeural"
+  },
+  "barge_in": {
+    "strategy": "minimum_characters",
+    "minimum_characters": 3
+  }
+}
+```
+
+**Fields:**
+- `type`: Always `"speak"` (required)
+- `session_id`: Session identifier (required)
+- `text`: Plain text to speak (required if `ssml` not provided)
+- `ssml`: SSML markup for advanced control (required if `text` not provided)
+- `tts`: TTS provider configuration (optional)
+- `barge_in`: Barge-in behavior configuration (optional)
+
+**Note:** Either `text` OR `ssml` is required (not both)
+
+**Simple Example:**
+```json
+{
+  "type": "speak",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "text": "Hello! How can I help you?"
+}
+```
+
+**SSML Example:**
+```json
+{
+  "type": "speak",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "ssml": "<speak><prosody rate=\"slow\">Please listen carefully.</prosody><break time=\"500ms\"/>Your account balance is <say-as interpret-as=\"currency\">$42.50</say-as></speak>"
+}
+```
+
+**With Custom TTS:**
+```json
+{
+  "type": "speak",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "text": "Hello in a different voice",
+  "tts": {
+    "provider": "eleven_labs",
+    "voice": {
+      "name": "Rachel"
+    }
+  }
+}
+```
+
+### 2. audio
+
+Play pre-recorded audio to the user.
+
+**Structure:**
+```json
+{
+  "type": "audio",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "audio": "UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=",
+  "barge_in": {
+    "strategy": "minimum_characters",
+    "minimum_characters": 3
+  }
+}
+```
+
+**Fields:**
+- `type`: Always `"audio"` (required)
+- `session_id`: Session identifier (required)
+- `audio`: Base64 encoded WAV audio data (required)
+- `barge_in`: Barge-in behavior configuration (optional)
+
+**Audio Format Requirements:**
+- **Format**: WAV
+- **Sample Rate**: 16kHz
+- **Channels**: Mono (single channel)
+- **Bit Depth**: 16-bit PCM
+- **Encoding**: Base64
+
+**Python Example:**
+```python
+import base64
+
+with open('hold-music.wav', 'rb') as audio_file:
+    audio_data = audio_file.read()
+    base64_audio = base64.b64encode(audio_data).decode('utf-8')
+
+action = {
+    'type': 'audio',
+    'session_id': event['session']['id'],
+    'audio': base64_audio
+}
+```
+
+**Converting Audio with FFmpeg:**
+```bash
+ffmpeg -i input.mp3 -ar 16000 -ac 1 -sample_fmt s16 -f wav output.wav
+```
+
+### 3. hangup
+
+End the call.
+
+**Structure:**
+```json
+{
+  "type": "hangup",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Fields:**
+- `type`: Always `"hangup"` (required)
+- `session_id`: Session identifier (required)
+
+**Example:**
+```python
+if 'goodbye' in event['text'].lower():
+    return {
+        'type': 'hangup',
+        'session_id': event['session']['id']
+    }
+```
+
+### 4. transfer
+
+Transfer the call to another phone number.
+
+**Structure:**
+```json
+{
+  "type": "transfer",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "target_phone_number": "+1234567890",
+  "caller_id_name": "Support Department",
+  "caller_id_number": "+1234567890"
+}
+```
+
+**Fields:**
+- `type`: Always `"transfer"` (required)
+- `session_id`: Session identifier (required)
+- `target_phone_number`: Phone number to transfer to, E.164 format recommended (required)
+- `caller_id_name`: Caller ID name to display (required)
+- `caller_id_number`: Caller ID number to display (required)
+
+**Example:**
+```javascript
+if (event.text.toLowerCase().includes('sales')) {
+  return {
+    type: 'transfer',
+    session_id: event.session.id,
+    target_phone_number: '+1234567890',
+    caller_id_name: 'Sales Department',
+    caller_id_number: '+1234567890'
+  };
+}
+```
+
+**Phone Number Format:**
+- Use E.164 format: `+1234567890` ✅
+- Avoid: `123-456-7890` ❌
+
+### 5. barge_in
+
+Manually trigger barge-in (interrupt current playback).
+
+**Structure:**
+```json
+{
+  "type": "barge_in",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Fields:**
+- `type`: Always `"barge_in"` (required)
+- `session_id`: Session identifier (required)
+
+---
+
+## Barge-In Configuration
+
+Control how users can interrupt the assistant while speaking.
+
+### Configuration Structure
+
+```json
+{
+  "barge_in": {
+    "strategy": "minimum_characters",
+    "minimum_characters": 3,
+    "allow_after_ms": 500
+  }
+}
+```
+
+### Strategies
+
+#### 1. none
+
+Disables barge-in completely. Audio plays fully without interruption.
+
+```json
+{
+  "barge_in": {
+    "strategy": "none"
+  }
+}
+```
+
+**Use cases:**
+- Critical information
+- Legal disclaimers
+- Emergency instructions
+
+#### 2. manual
+
+Allows manual barge-in via API only (no automatic detection).
+
+```json
+{
+  "barge_in": {
+    "strategy": "manual"
+  }
+}
+```
+
+**Use cases:**
+- Custom interruption logic
+- Button-triggered interruption
+- External event-based interruption
+
+#### 3. minimum_characters (Default)
+
+Automatically detects barge-in when user speech exceeds character threshold.
+
+```json
+{
+  "barge_in": {
+    "strategy": "minimum_characters",
+    "minimum_characters": 5,
+    "allow_after_ms": 500
+  }
+}
+```
+
+**Use cases:**
+- Natural conversation flow
+- Customer service scenarios
+- Interactive voice menus
+
+### Configuration Options
+
+**minimum_characters:**
+- Default: `3`
+- Range: `1` to `100`
+- Higher values require more speech before interruption
+
+**allow_after_ms:**
+- Default: `0` (immediate)
+- Range: `0` to `10000` (10 seconds)
+- Delay before barge-in is allowed (protection period)
+
+### Examples
+
+**Natural Conversation:**
+```json
+{
+  "type": "speak",
+  "session_id": "session-123",
+  "text": "I can help you with billing, support, or sales.",
+  "barge_in": {
+    "strategy": "minimum_characters",
+    "minimum_characters": 3
+  }
+}
+```
+
+**Critical Information (No Interruption):**
+```json
+{
+  "type": "speak",
+  "session_id": "session-123",
+  "text": "Your verification code is 1-2-3-4-5-6.",
+  "barge_in": {
+    "strategy": "none"
+  }
+}
+```
+
+**Protected Announcement:**
+```json
+{
+  "type": "speak",
+  "session_id": "session-123",
+  "text": "Your account number is 1234567890.",
+  "barge_in": {
+    "strategy": "minimum_characters",
+    "minimum_characters": 10,
+    "allow_after_ms": 2000
+  }
+}
+```
+
+---
+
+## TTS Providers
+
+Configure text-to-speech providers for different voices and languages.
+
+### Supported Providers
+
+1. **Azure Cognitive Services** - 400+ voices in 140+ languages
+2. **ElevenLabs** - Ultra-realistic conversational voices
+
+### Azure Cognitive Services
+
+**Configuration:**
+```json
+{
+  "tts": {
+    "provider": "azure",
+    "language": "en-US",
+    "voice": "en-US-JennyNeural"
+  }
+}
+```
+
+**Popular Voices:**
+
+| Language | Voice Name         | Gender | Description            |
+| -------- | ------------------ | ------ | ---------------------- |
+| en-US    | en-US-JennyNeural  | Female | Friendly, professional |
+| en-US    | en-US-GuyNeural    | Male   | Clear, neutral         |
+| en-GB    | en-GB-SoniaNeural  | Female | British, professional  |
+| en-GB    | en-GB-RyanNeural   | Male   | British, friendly      |
+| de-DE    | de-DE-KatjaNeural  | Female | Professional, clear    |
+| de-DE    | de-DE-ConradNeural | Male   | Deep, authoritative    |
+
+**Full Example:**
+```json
+{
+  "type": "speak",
+  "session_id": "session-123",
+  "text": "Hallo, wie kann ich Ihnen helfen?",
+  "tts": {
+    "provider": "azure",
+    "language": "de-DE",
+    "voice": "de-DE-KatjaNeural"
+  }
+}
+```
+
+### ElevenLabs
+
+**Configuration (by name):**
+```json
+{
+  "tts": {
+    "provider": "eleven_labs",
+    "voice": {
+      "name": "Rachel"
+    }
+  }
+}
+```
+
+**Configuration (by ID):**
+```json
+{
+  "tts": {
+    "provider": "eleven_labs",
+    "voice": {
+      "id": "21m00Tcm4TlvDq8ikWAM"
+    }
+  }
+}
+```
+
+**Popular Voices:**
+
+| Voice Name | ID                   | Description                |
+| ---------- | -------------------- | -------------------------- |
+| Rachel     | 21m00Tcm4TlvDq8ikWAM | Matter-of-fact, personable |
+| Sarah      | EXAVITQu4vr4xnSDxMaL | Confident and warm         |
+| George     | JBFqnCBsd6RMkjVDRZzb | Warm resonance             |
+| Thomas     | GBv7mTt0atIp3Br8iCZE | Soft and subdued           |
+
+**Full Example:**
+```json
+{
+  "type": "speak",
+  "session_id": "session-123",
+  "text": "Hello! How can I help you today?",
+  "tts": {
+    "provider": "eleven_labs",
+    "voice": {
+      "name": "Rachel"
+    }
+  }
+}
+```
+
+### Choosing a Provider
+
+**Use Azure when:**
+- You need many languages (140+)
+- You want consistent quality
+- You need regional accents
+- Budget is a concern
+
+**Use ElevenLabs when:**
+- You need the most natural voices
+- Conversational quality is critical
+- You're working with English/European languages
+- You want distinct personalities
+
+---
+
+## TypeScript SDK
+
+The `@sipgate/ai-flow-sdk` provides a convenient TypeScript/JavaScript SDK that wraps the API.
+
+### Installation
+
+```bash
+npm install @sipgate/ai-flow-sdk
+# or
+yarn add @sipgate/ai-flow-sdk
+# or
+pnpm add @sipgate/ai-flow-sdk
+```
+
+**Requirements:**
+- Node.js >= 22.0.0
+- TypeScript 5.x (recommended)
+
+### Basic Usage
+
+```typescript
+import { AiFlowAssistant } from "@sipgate/ai-flow-sdk";
+
+const assistant = AiFlowAssistant.create({
+  debug: true,
+
+  onSessionStart: async (event) => {
+    console.log(`Session started for ${event.session.phone_number}`);
+    return "Hello! How can I help you today?";
+  },
+
+  onUserSpeak: async (event) => {
+    console.log(`User said: ${event.text}`);
+    return `You said: ${event.text}`;
+  },
+
+  onSessionEnd: async (event) => {
+    console.log(`Session ${event.session.id} ended`);
+  },
+});
+```
+
+### AiFlowAssistant.create(options)
+
+Creates a new assistant instance.
+
+**Options:**
+
+```typescript
+interface AiFlowAssistantOptions {
+  // Optional API key for authentication
+  apiKey?: string;
+
+  // Enable debug logging
+  debug?: boolean;
+
+  // Event handlers
+  onSessionStart?: (event: AiFlowApiEventSessionStart) => Promise<InvocationResponseType>;
+  onUserSpeak?: (event: AiFlowApiEventUserSpeak) => Promise<InvocationResponseType>;
+  onAssistantSpeak?: (event: AiFlowApiEventAssistantSpeak) => Promise<InvocationResponseType>;
+  onAssistantSpeechEnded?: (event: AiFlowEventAssistantSpeechEnded) => Promise<InvocationResponseType>;
+  onSessionEnd?: (event: AiFlowApiEventSessionEnd) => Promise<InvocationResponseType>;
+  onUserBargeIn?: (event: AiFlowEventUserBargeIn) => Promise<InvocationResponseType>;
+}
+
+type InvocationResponseType = AiFlowApiAction | string | null | undefined;
+```
+
+### Response Types
+
+Event handlers can return three types:
+
+**1. Simple String (auto-converted to speak action):**
+```typescript
+onUserSpeak: async (event) => {
+  return "Hello, how can I help?";
+}
+```
+
+**2. Action Object (for advanced control):**
+```typescript
+onUserSpeak: async (event) => {
+  return {
+    type: "speak",
+    session_id: event.session.id,
+    text: "Hello!",
+    barge_in: {
+      strategy: "minimum_characters",
+      minimum_characters: 3
+    }
+  };
+}
+```
+
+**3. No Response (null/undefined):**
+```typescript
+onAssistantSpeak: async (event) => {
+  // Track metrics, no response needed
+  trackMetrics(event);
+  return null;
+}
+```
+
+### Express.js Integration
+
+```typescript
+import express from "express";
+import { AiFlowAssistant } from "@sipgate/ai-flow-sdk";
+
+const app = express();
+app.use(express.json());
+
+const assistant = AiFlowAssistant.create({
+  onSessionStart: async (event) => {
+    return "Welcome! How can I help you today?";
+  },
+
+  onUserSpeak: async (event) => {
+    return processUserInput(event.text);
+  },
+
+  onSessionEnd: async (event) => {
+    await cleanupSession(event.session.id);
+  },
+});
+
+// Webhook endpoint
+app.post("/webhook", assistant.express());
+
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`AI Flow assistant running on port ${PORT}`);
+});
+```
+
+### WebSocket Integration
+
+```typescript
+import WebSocket from "ws";
+import { AiFlowAssistant } from "@sipgate/ai-flow-sdk";
+
+const wss = new WebSocket.Server({
+  port: 8080,
+  perMessageDeflate: false,
+});
+
+const assistant = AiFlowAssistant.create({
+  onUserSpeak: async (event) => {
+    return "Hello from WebSocket!";
+  },
+});
+
+wss.on("connection", (ws, req) => {
+  console.log("New WebSocket connection");
+
+  ws.on("message", assistant.ws(ws));
+
+  ws.on("error", (error) => {
+    console.error("WebSocket error:", error);
+  });
+
+  ws.on("close", () => {
+    console.log("WebSocket connection closed");
+  });
+});
+
+console.log("WebSocket server listening on port 8080");
+```
+
+### Custom Integration
+
+```typescript
+import { AiFlowAssistant } from "@sipgate/ai-flow-sdk";
+
+const assistant = AiFlowAssistant.create({
+  onUserSpeak: async (event) => {
+    return "Hello!";
+  },
+});
+
+// Custom integration
+app.post("/custom-webhook", async (req, res) => {
+  const event = req.body;
+  const action = await assistant.onEvent(event);
+
+  if (action) {
+    res.json(action);
+  } else {
+    res.status(204).send();
+  }
+});
+```
+
+### Type Definitions
+
+All types are exported from the SDK:
+
+```typescript
+import type {
+  // Events
+  AiFlowApiEventSessionStart,
+  AiFlowApiEventUserSpeak,
+  AiFlowApiEventAssistantSpeak,
+  AiFlowEventAssistantSpeechEnded,
+  AiFlowApiEventSessionEnd,
+  AiFlowEventUserBargeIn,
+
+  // Actions
+  AiFlowApiAction,
+  AiFlowActionSpeak,
+  AiFlowActionAudio,
+  AiFlowActionHangup,
+  AiFlowActionTransfer,
+  AiFlowActionBargeIn,
+
+  // Session
+  SessionInfo,
+} from "@sipgate/ai-flow-sdk";
+
+onUserSpeak: async (event: AiFlowApiEventUserSpeak) => {
+  const text: string = event.text;
+  const sessionId: string = event.session.id;
+
+  return {
+    type: "speak",
+    session_id: sessionId,
+    text: `You said: ${text}`,
+  } as AiFlowApiAction;
+}
+```
+
+### SDK Action Types (TypeScript)
+
+All SDK action types with full TypeScript definitions:
+
+```typescript
+// Speak Action
+interface AiFlowActionSpeak {
+  type: "speak";
+  session_id: string;
+  text?: string;
+  ssml?: string;
+  tts?: {
+    provider: "azure" | "eleven_labs";
+    language?: string;
+    voice?: string | { name?: string; id?: string };
+  };
+  barge_in?: {
+    strategy: "none" | "manual" | "minimum_characters";
+    minimum_characters?: number;
+    allow_after_ms?: number;
+  };
+}
+
+// Audio Action
+interface AiFlowActionAudio {
+  type: "audio";
+  session_id: string;
+  audio: string; // Base64 encoded WAV
+  barge_in?: {
+    strategy: "none" | "manual" | "minimum_characters";
+    minimum_characters?: number;
+    allow_after_ms?: number;
+  };
+}
+
+// Hangup Action
+interface AiFlowActionHangup {
+  type: "hangup";
+  session_id: string;
+}
+
+// Transfer Action
+interface AiFlowActionTransfer {
+  type: "transfer";
+  session_id: string;
+  target_phone_number: string;
+  caller_id_name: string;
+  caller_id_number: string;
+}
+
+// Barge-In Action
+interface AiFlowActionBargeIn {
+  type: "barge_in";
+  session_id: string;
+}
+```
+
+### SDK Event Types (TypeScript)
+
+All SDK event types with full TypeScript definitions:
+
+```typescript
+// Session Info (included in all events)
+interface SessionInfo {
+  id: string;
+  account_id: string;
+  phone_number: string;
+  direction?: "inbound" | "outbound";
+  from_phone_number: string;
+  to_phone_number: string;
+}
+
+// Session Start Event
+interface AiFlowApiEventSessionStart {
+  type: "session_start";
+  session: SessionInfo;
+}
+
+// User Speak Event
+interface AiFlowApiEventUserSpeak {
+  type: "user_speak";
+  text: string;
+  session: SessionInfo;
+}
+
+// Assistant Speak Event
+interface AiFlowApiEventAssistantSpeak {
+  type: "assistant_speak";
+  text?: string;
+  ssml?: string;
+  duration_ms: number;
+  speech_started_at: number;
+  session: SessionInfo;
+}
+
+// Assistant Speech Ended Event
+interface AiFlowEventAssistantSpeechEnded {
+  type: "assistant_speech_ended";
+  session: SessionInfo;
+}
+
+// Session End Event
+interface AiFlowApiEventSessionEnd {
+  type: "session_end";
+  session: SessionInfo;
+}
+
+// User Barge In Event
+interface AiFlowEventUserBargeIn {
+  type: "user_barge_in";
+  text: string;
+  session: SessionInfo;
+}
+```
+
+---
+
+## Complete Examples
+
+### Complete Python (Flask) Example
+
+```python
+from flask import Flask, request, jsonify, abort
+import os
+
+app = Flask(__name__)
+
+# Configuration
+SHARED_SECRET = os.environ.get('AI_FLOW_SHARED_SECRET')
+
+# Session state (use database in production)
+sessions = {}
+
+def authenticate():
+    provided_secret = request.headers.get('X-API-TOKEN')
+    if provided_secret != SHARED_SECRET:
+        abort(401)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    authenticate()
+
+    try:
+        event = request.json
+        if not event or 'type' not in event:
+            return jsonify({'error': 'Invalid event'}), 400
+
+        session_id = event['session']['id']
+        event_type = event['type']
+
+        # Session Start
+        if event_type == 'session_start':
+            sessions[session_id] = {
+                'started_at': time.time(),
+                'phone_number': event['session']['phone_number']
+            }
+            return jsonify({
+                'type': 'speak',
+                'session_id': session_id,
+                'text': 'Welcome to AI Flow! How can I help you today?',
+                'barge_in': {
+                    'strategy': 'minimum_characters',
+                    'minimum_characters': 3
+                }
+            })
+
+        # User Speak
+        elif event_type == 'user_speak':
+            user_text = event['text'].lower()
+
+            # Handle goodbye
+            if 'goodbye' in user_text or 'bye' in user_text:
+                return jsonify({
+                    'type': 'speak',
+                    'session_id': session_id,
+                    'text': 'Goodbye! Have a great day!'
+                })
+
+            # Handle transfer request
+            if 'transfer' in user_text or 'agent' in user_text:
+                return jsonify({
+                    'type': 'transfer',
+                    'session_id': session_id,
+                    'target_phone_number': '+1234567890',
+                    'caller_id_name': 'Support Team',
+                    'caller_id_number': '+1234567890'
+                })
+
+            # Echo response
+            return jsonify({
+                'type': 'speak',
+                'session_id': session_id,
+                'text': f"You said: {event['text']}. How else can I help?",
+                'tts': {
+                    'provider': 'azure',
+                    'language': 'en-US',
+                    'voice': 'en-US-JennyNeural'
+                }
+            })
+
+        # Assistant Speak
+        elif event_type == 'assistant_speak':
+            print(f"Assistant spoke for {event['duration_ms']}ms")
+            return '', 204
+
+        # Session End
+        elif event_type == 'session_end':
+            if session_id in sessions:
+                duration = time.time() - sessions[session_id]['started_at']
+                print(f"Session {session_id} ended after {duration:.2f} seconds")
+                del sessions[session_id]
+            return '', 204
+
+        # User Barge In
+        elif event_type == 'user_barge_in':
+            return jsonify({
+                'type': 'speak',
+                'session_id': session_id,
+                'text': "I'm listening, please continue."
+            })
+
+        return '', 204
+
+    except Exception as e:
+        print(f"Error processing webhook: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok'})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=3000, debug=True)
+```
+
+### Complete Node.js (Express) Example
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+// Configuration
+const SHARED_SECRET = process.env.AI_FLOW_SHARED_SECRET;
+
+// Session state (use database in production)
+const sessions = new Map();
+
+// Authentication middleware
+const authenticate = (req, res, next) => {
+  const providedSecret = req.headers['x-api-token'];
+  if (providedSecret !== SHARED_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+};
+
+app.post('/webhook', authenticate, (req, res) => {
+  try {
+    const event = req.body;
+
+    if (!event || !event.type) {
+      return res.status(400).json({ error: 'Invalid event' });
+    }
+
+    const sessionId = event.session.id;
+    const eventType = event.type;
+
+    // Session Start
+    if (eventType === 'session_start') {
+      sessions.set(sessionId, {
+        startedAt: Date.now(),
+        phoneNumber: event.session.phone_number
+      });
+
+      return res.json({
+        type: 'speak',
+        session_id: sessionId,
+        text: 'Welcome to AI Flow! How can I help you today?',
+        barge_in: {
+          strategy: 'minimum_characters',
+          minimum_characters: 3
+        }
+      });
+    }
+
+    // User Speak
+    if (eventType === 'user_speak') {
+      const userText = event.text.toLowerCase();
+
+      // Handle goodbye
+      if (userText.includes('goodbye') || userText.includes('bye')) {
+        return res.json({
+          type: 'speak',
+          session_id: sessionId,
+          text: 'Goodbye! Have a great day!'
+        });
+      }
+
+      // Handle transfer request
+      if (userText.includes('transfer') || userText.includes('agent')) {
+        return res.json({
+          type: 'transfer',
+          session_id: sessionId,
+          target_phone_number: '+1234567890',
+          caller_id_name: 'Support Team',
+          caller_id_number: '+1234567890'
+        });
+      }
+
+      // Echo response
+      return res.json({
+        type: 'speak',
+        session_id: sessionId,
+        text: `You said: ${event.text}. How else can I help?`,
+        tts: {
+          provider: 'azure',
+          language: 'en-US',
+          voice: 'en-US-JennyNeural'
+        }
+      });
+    }
+
+    // Assistant Speak
+    if (eventType === 'assistant_speak') {
+      console.log(`Assistant spoke for ${event.duration_ms}ms`);
+      return res.status(204).send();
+    }
+
+    // Session End
+    if (eventType === 'session_end') {
+      const session = sessions.get(sessionId);
+      if (session) {
+        const duration = (Date.now() - session.startedAt) / 1000;
+        console.log(`Session ${sessionId} ended after ${duration.toFixed(2)} seconds`);
+        sessions.delete(sessionId);
+      }
+      return res.status(204).send();
+    }
+
+    // User Barge In
+    if (eventType === 'user_barge_in') {
+      return res.json({
+        type: 'speak',
+        session_id: sessionId,
+        text: "I'm listening, please continue."
+      });
+    }
+
+    res.status(204).send();
+
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`AI Flow webhook server running on port ${PORT}`);
+});
+```
+
+### Complete TypeScript SDK Example
+
+```typescript
+import express from "express";
+import { AiFlowAssistant } from "@sipgate/ai-flow-sdk";
+import type {
+  AiFlowApiEventSessionStart,
+  AiFlowApiEventUserSpeak,
+  AiFlowApiEventAssistantSpeak,
+  AiFlowApiEventSessionEnd,
+  AiFlowEventUserBargeIn,
+} from "@sipgate/ai-flow-sdk";
+
+const app = express();
+app.use(express.json());
+
+// Session state (use database in production)
+interface SessionData {
+  startedAt: number;
+  phoneNumber: string;
+  conversationHistory: string[];
+}
+
+const sessions = new Map<string, SessionData>();
+
+// Create assistant
+const assistant = AiFlowAssistant.create({
+  debug: true,
+  apiKey: process.env.AI_FLOW_API_KEY,
+
+  onSessionStart: async (event: AiFlowApiEventSessionStart) => {
+    const sessionId = event.session.id;
+
+    // Initialize session
+    sessions.set(sessionId, {
+      startedAt: Date.now(),
+      phoneNumber: event.session.phone_number,
+      conversationHistory: [],
+    });
+
+    console.log(`Session ${sessionId} started for ${event.session.phone_number}`);
+
+    // Return greeting
+    return {
+      type: "speak",
+      session_id: sessionId,
+      text: "Welcome to AI Flow! How can I help you today?",
+      tts: {
+        provider: "azure",
+        language: "en-US",
+        voice: "en-US-JennyNeural",
+      },
+      barge_in: {
+        strategy: "minimum_characters",
+        minimum_characters: 3,
+      },
+    };
+  },
+
+  onUserSpeak: async (event: AiFlowApiEventUserSpeak) => {
+    const sessionId = event.session.id;
+    const userText = event.text;
+
+    // Add to conversation history
+    const session = sessions.get(sessionId);
+    if (session) {
+      session.conversationHistory.push(`User: ${userText}`);
+    }
+
+    console.log(`User said: ${userText}`);
+
+    // Handle goodbye
+    if (userText.toLowerCase().includes('goodbye') || userText.toLowerCase().includes('bye')) {
+      return {
+        type: "speak",
+        session_id: sessionId,
+        text: "Goodbye! Have a great day!",
+      };
+    }
+
+    // Handle transfer request
+    if (userText.toLowerCase().includes('transfer') || userText.toLowerCase().includes('agent')) {
+      return {
+        type: "transfer",
+        session_id: sessionId,
+        target_phone_number: "+1234567890",
+        caller_id_name: "Support Team",
+        caller_id_number: "+1234567890",
+      };
+    }
+
+    // Echo response
+    const response = `You said: ${userText}. How else can I help?`;
+
+    if (session) {
+      session.conversationHistory.push(`Assistant: ${response}`);
+    }
+
+    return response; // Simple string response
+  },
+
+  onAssistantSpeak: async (event: AiFlowApiEventAssistantSpeak) => {
+    console.log(`Assistant spoke for ${event.duration_ms}ms`);
+
+    // Track metrics
+    // trackMetrics({
+    //   sessionId: event.session.id,
+    //   duration: event.duration_ms,
+    //   text: event.text,
+    // });
+
+    return null; // No response needed
+  },
+
+  onSessionEnd: async (event: AiFlowApiEventSessionEnd) => {
+    const sessionId = event.session.id;
+    const session = sessions.get(sessionId);
+
+    if (session) {
+      const duration = (Date.now() - session.startedAt) / 1000;
+      console.log(`Session ${sessionId} ended after ${duration.toFixed(2)} seconds`);
+      console.log('Conversation history:', session.conversationHistory);
+
+      // Cleanup
+      sessions.delete(sessionId);
+    }
+
+    return null; // No action allowed on session_end
+  },
+
+  onUserBargeIn: async (event: AiFlowEventUserBargeIn) => {
+    console.log(`User interrupted with: ${event.text}`);
+    return "I'm listening, please continue.";
+  },
+});
+
+// Webhook endpoint
+app.post("/webhook", assistant.express());
+
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", sessions: sessions.size });
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`AI Flow assistant running on port ${PORT}`);
+});
+```
+
+---
+
+## Best Practices
+
+### General Guidelines
+
+1. **Respond Quickly**: Keep response times under 1 second for optimal user experience
+2. **Handle All Events**: Even if you don't need to respond, implement all event handlers
+3. **Use Type Safety**: Leverage TypeScript types when using the SDK
+4. **Error Handling**: Always handle errors gracefully and return fallback responses
+5. **State Management**: Use databases for session state in production, not in-memory maps
+6. **Logging**: Log all events and actions for debugging and analytics
+7. **Testing**: Test with real phone calls before deploying to production
+
+### Security
+
+1. **Use HTTPS**: Always use HTTPS in production
+2. **Validate Shared Secrets**: Always verify the shared secret sent by AI Flow
+3. **Store Secrets Securely**: Use environment variables or secret management services
+4. **Use Strong Secrets**: Generate cryptographically secure random secrets
+5. **Rate Limiting**: Implement rate limiting to prevent abuse
+6. **Input Validation**: Validate all incoming events
+
+### Performance
+
+1. **Async Processing**: Process long-running tasks asynchronously
+2. **Caching**: Cache frequently used data (audio files, responses)
+3. **Database Connection Pooling**: Use connection pooling for database operations
+4. **Minimize External API Calls**: Batch requests when possible
+
+### Barge-In Configuration
+
+1. **Use `none` sparingly**: Only for truly critical information
+2. **Default to `minimum_characters`**: Provides natural conversation flow
+3. **Set protection periods**: For important announcements
+4. **Test with users**: Find the right balance for your use case
+
+### TTS Provider Selection
+
+1. **Choose based on use case**: Azure for multi-language, ElevenLabs for quality
+2. **Test voices**: Try different voices to find the best fit
+3. **Consider latency**: ElevenLabs may have higher latency
+4. **Monitor costs**: Track TTS usage and costs
+
+### Session Management
+
+1. **Initialize state on session_start**: Set up any required session tracking
+2. **Clean up on session_end**: Always clean up resources
+3. **Track conversation history**: Log interactions for analytics
+4. **Handle disconnections**: Be prepared for unexpected disconnections
+
+---
+
+## Quick Reference
+
+### HTTP Status Codes
+
+| Code | Meaning            | When to Use                    |
+| ---- | ------------------ | ------------------------------ |
+| 200  | OK                 | Returning an action            |
+| 204  | No Content         | No action needed               |
+| 400  | Bad Request        | Invalid event format           |
+| 401  | Unauthorized       | Invalid or missing credentials |
+| 500  | Internal Error     | Server error                   |
+
+### Event Response Matrix
+
+| Event Type        | Can Return Action? | Common Responses           |
+| ----------------- | ------------------ | -------------------------- |
+| session_start     | ✅ Yes              | speak, audio               |
+| user_speak        | ✅ Yes              | speak, transfer, hangup    |
+| assistant_speak   | ✅ Yes              | Usually none (track only)  |
+| assistant_speech_ended | ✅ Yes              | Usually none (track only)  |
+| user_barge_in     | ✅ Yes              | speak (acknowledge)        |
+| session_end       | ❌ No               | None (cleanup only)        |
+
+### Audio Format Checklist
+
+- [ ] Format: WAV
+- [ ] Sample Rate: 16kHz
+- [ ] Channels: Mono
+- [ ] Bit Depth: 16-bit PCM
+- [ ] Encoding: Base64
+
+### Phone Number Format
+
+- ✅ E.164 format: `+1234567890`
+- ❌ Formatted: `(123) 456-7890`
+- ❌ Dashes: `123-456-7890`
+
+---
+
+This reference document contains all essential information for building applications with sipgate AI Flow API. For the latest updates and additional information, refer to the official documentation at https://sipgate.github.io/sipgate-ai-flow-api/

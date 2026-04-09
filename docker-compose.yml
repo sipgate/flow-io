@@ -1,0 +1,340 @@
+name: flow-io
+
+# ==============================================================================
+# Full self-hosted stack: Supabase + Flow-IO app
+#
+# Quick start:
+#   cp .env.docker.example .env.docker
+#   # Edit .env.docker — fill in your API keys (OpenAI, ElevenLabs, sipgate)
+#   docker compose --env-file .env.docker up -d
+#
+# Supabase Studio:  http://localhost:8000  (login: DASHBOARD_USERNAME/PASSWORD)
+# Flow-IO app:       http://localhost:3000
+# Email test inbox: http://localhost:54324 (when no real SMTP is configured)
+# ==============================================================================
+
+services:
+
+  # ============================================================
+  # PostgreSQL (includes pgvector, Supabase schemas & roles)
+  # ============================================================
+  db:
+    image: supabase/postgres:17.4.1.078
+    restart: unless-stopped
+    healthcheck:
+      test: pg_isready -U postgres -h 127.0.0.1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: 5432
+      POSTGRES_PORT: 5432
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: postgres
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: ${JWT_EXPIRY:-3600}
+
+  # ============================================================
+  # Database migrations (runs once after db is healthy)
+  # ============================================================
+  migrations:
+    image: supabase/postgres:17.4.1.078
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./supabase/migrations:/migrations:ro
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGHOST: db
+      PGUSER: postgres
+      PGDATABASE: postgres
+    command: >
+      bash -c "
+        echo 'Running Flow-IO migrations...';
+        for f in $$(ls /migrations/*.sql | sort); do
+          echo \"  → $$(basename $$f)\";
+          psql -v ON_ERROR_STOP=1 -f $$f || { echo \"FAILED: $$f\"; exit 1; };
+        done;
+        echo 'All migrations applied.'
+      "
+
+  # ============================================================
+  # Supabase Auth (GoTrue)
+  # ============================================================
+  auth:
+    image: supabase/gotrue:v2.164.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP:-true}
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS:-false}
+      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-true}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-noreply@example.com}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-inbucket}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-2500}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-fake}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-fake}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-Flow-IO}
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${ENABLE_GOOGLE_AUTH:-false}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${API_EXTERNAL_URL:-http://localhost:8000}/auth/v1/callback
+
+  # ============================================================
+  # Supabase REST (PostgREST)
+  # ============================================================
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+    command: postgrest
+
+  # ============================================================
+  # Supabase Realtime
+  # ============================================================
+  realtime:
+    image: supabase/realtime:v2.34.47
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -sSfL
+        - --head
+        - -o
+        - /dev/null
+        - -H
+        - "Authorization: Bearer ${ANON_KEY}"
+        - http://localhost:4000/api/tenants/realtime-dev/health
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: SET search_path TO _realtime
+      DB_ENC_KEY: supabaseencryptedkey
+      API_JWT_SECRET: ${JWT_SECRET}
+      FLY_ALLOC_ID: fly123
+      FLY_APP_NAME: realtime
+      SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
+      ERL_AFLAGS: -proto_dist inet_tcp
+      ENABLE_TAILSCALE: "false"
+      DNS_NODES: "''"
+    command: >
+      sh -c "/app/bin/migrate && /app/bin/realtime eval 'Realtime.Release.seeds(Realtime.Repo)' && /app/bin/server"
+
+  # ============================================================
+  # Supabase Storage
+  # ============================================================
+  storage:
+    image: supabase/storage-api:v1.13.2
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - storage-data:/var/lib/storage
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+
+  # ============================================================
+  # Postgres Meta (required by Studio)
+  # ============================================================
+  meta:
+    image: supabase/postgres-meta:v0.84.4
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+  # ============================================================
+  # Supabase Studio (database GUI)
+  # ============================================================
+  studio:
+    image: supabase/studio:20250120-83c9420
+    restart: unless-stopped
+    depends_on:
+      meta:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/api/profile').then(r => { if(r.status !== 200) throw new Error(r.status) })"
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DEFAULT_ORGANIZATION_NAME: Flow-IO
+      DEFAULT_PROJECT_NAME: Flow-IO
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+
+  # ============================================================
+  # Kong API Gateway
+  # Routes: /auth/v1, /rest/v1, /realtime/v1, /storage/v1 + Studio
+  # ============================================================
+  kong:
+    image: kong:2.8.1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${KONG_HTTP_PORT:-8000}:8000/tcp"
+      - "${KONG_HTTPS_PORT:-8443}:8443/tcp"
+    volumes:
+      - ./docker/kong.yml:/home/kong/temp.yml:ro
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-supabase}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-change-me-please}
+    command:
+      - bash
+      - -c
+      - |
+        eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml
+        /docker-entrypoint.sh kong docker-start
+
+  # ============================================================
+  # Inbucket — email test inbox
+  # View sent emails at http://localhost:54324
+  # Remove this service when a real SMTP server is configured
+  # ============================================================
+  inbucket:
+    image: inbucket/inbucket:stable
+    restart: unless-stopped
+    ports:
+      - "54324:9000"
+
+  # ============================================================
+  # Flow-IO App
+  # ============================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    restart: unless-stopped
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      auth:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      SIPGATE_OAUTH_CLIENT_ID: ${SIPGATE_OAUTH_CLIENT_ID}
+      SIPGATE_OAUTH_CLIENT_SECRET: ${SIPGATE_OAUTH_CLIENT_SECRET}
+      SIPGATE_WEBHOOK_SECRET: ${SIPGATE_WEBHOOK_SECRET}
+      SIPGATE_API_KEY: ${SIPGATE_API_KEY:-}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      SIGNUP_ALLOWED_EMAIL_DOMAIN: ${SIGNUP_ALLOWED_EMAIL_DOMAIN:-}
+
+volumes:
+  db-data:
+  storage-data:

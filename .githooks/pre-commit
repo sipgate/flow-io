@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pre-commit hook: Design System Compliance + vollständiger Lint
+# Automatisch aktiv nach `npm install` (via prepare-Script in package.json).
+
+set -e
+
+echo "🔍 Design System Compliance (23 Regeln)..."
+npx vitest run tests/unit/design-system-compliance.test.ts --reporter=verbose 2>&1 | tail -5
+
+echo "🔍 ESLint..."
+npm run lint -- --quiet
+# --quiet: nur errors ausgeben, warnings (no-hardcoded-jsx-text etc.) unterdrücken
+# exits 1 bei errors → commit wird geblockt
+
+echo "✅ Alle Checks bestanden."

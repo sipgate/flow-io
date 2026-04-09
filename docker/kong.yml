@@ -1,0 +1,167 @@
+_format_version: "1.1"
+
+###
+### Consumers (API key holders)
+###
+consumers:
+  - username: anon
+    keyauth_credentials:
+      - key: $SUPABASE_ANON_KEY
+  - username: service_role
+    keyauth_credentials:
+      - key: $SUPABASE_SERVICE_KEY
+
+###
+### Access Control Lists
+###
+acls:
+  - consumer: anon
+    group: anon
+  - consumer: service_role
+    group: admin
+
+###
+### API Routes
+###
+services:
+
+  ## Open Auth endpoints (no key required — OAuth callbacks, magic links)
+  - name: auth-v1-open
+    url: http://auth:9999/verify
+    routes:
+      - name: auth-v1-open
+        strip_path: true
+        paths:
+          - /auth/v1/verify
+    plugins:
+      - name: cors
+
+  - name: auth-v1-open-callback
+    url: http://auth:9999/callback
+    routes:
+      - name: auth-v1-open-callback
+        strip_path: true
+        paths:
+          - /auth/v1/callback
+    plugins:
+      - name: cors
+
+  - name: auth-v1-open-authorize
+    url: http://auth:9999/authorize
+    routes:
+      - name: auth-v1-open-authorize
+        strip_path: true
+        paths:
+          - /auth/v1/authorize
+    plugins:
+      - name: cors
+
+  ## Auth — requires API key
+  - name: auth-v1
+    url: http://auth:9999/
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  ## REST (PostgREST)
+  - name: rest-v1
+    url: http://rest:3000/
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  ## GraphQL (via PostgREST)
+  - name: graphql-v1
+    url: http://rest:3000/rpc/graphql
+    routes:
+      - name: graphql-v1-all
+        strip_path: true
+        paths:
+          - /graphql/v1
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - Content-Profile:graphql_public
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  ## Realtime
+  - name: realtime-v1
+    url: http://realtime:4000/socket/
+    routes:
+      - name: realtime-v1-all
+        strip_path: true
+        paths:
+          - /realtime/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  ## Storage (public — storage handles its own auth internally)
+  - name: storage-v1
+    url: http://storage:5000/
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1/
+    plugins:
+      - name: cors
+
+  ## Supabase Studio (protected by HTTP basic auth)
+  - name: studio
+    url: http://studio:3000/
+    routes:
+      - name: studio-all
+        strip_path: true
+        paths:
+          - /
+    plugins:
+      - name: cors
+      - name: basic-auth
+        config:
+          hide_credentials: true
