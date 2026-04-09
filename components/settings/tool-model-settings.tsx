@@ -71,7 +71,7 @@ export function ToolModelSettings({ organizationId, currentSettings, canEdit }: 
             <SelectContent>
               {providers.map((p) => (
                 <SelectItem key={p} value={p}>
-                  {p}
+                  {t(`providers.${p}`)}
                 </SelectItem>
               ))}
             </SelectContent>

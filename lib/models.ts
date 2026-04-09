@@ -22,27 +22,30 @@ export interface ModelDefinition {
 // - Gemini 3 Flash Preview: 2.9s TTFT — not voice-eligible
 // - Mistral Large/Medium: 1.2–1.4s TTFT — not voice-eligible
 export const ALL_MODELS: ModelDefinition[] = [
-  // OpenAI — gpt-5.4-mini/nano are the current voice-capable OpenAI models (March 2026)
-  { provider: 'openai', model: 'gpt-5.4-mini', label: 'GPT-5.4 Mini', voiceEligible: true, toolEligible: true },
+  // ── OpenAI ──────────────────────────────────────────────────────────
+  // Voice-eligible (fast TTFT)
   { provider: 'openai', model: 'gpt-5.4-nano', label: 'GPT-5.4 Nano', voiceEligible: true, toolEligible: true },
-  { provider: 'openai', model: 'gpt-4o-mini', label: 'GPT-4o Mini', voiceEligible: true, toolEligible: true },
-  { provider: 'openai', model: 'gpt-4o', label: 'GPT-4o', voiceEligible: true, toolEligible: true },
-  // gpt-5 uses extended reasoning — 78s+ TTFT, not suitable for voice
-  { provider: 'openai', model: 'gpt-5', label: 'GPT-5', hideFromComparison: true },
+  { provider: 'openai', model: 'gpt-5.4-mini', label: 'GPT-5.4 Mini', voiceEligible: true, toolEligible: true },
+  // Tool-only (extended reasoning — slow but most capable)
+  { provider: 'openai', model: 'gpt-5', label: 'GPT-5', toolEligible: true, hideFromComparison: true },
 
-  // Google — recommended for voice AI
-  // gemini-2.5-flash-lite: 330–381ms TTFT, $0.10/$0.40/MTok — default for voice
+  // ── Google ──────────────────────────────────────────────────────────
+  // Voice-eligible (fast TTFT)
   { provider: 'google', model: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', voiceEligible: true, toolEligible: true },
   { provider: 'google', model: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', voiceEligible: true, supportsThinking: true, toolEligible: true },
-  { provider: 'google', model: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', voiceEligible: true, toolEligible: true },
-  // gemini-3-flash-preview: 2.9s TTFT — not voice-eligible, still in preview
-  { provider: 'google', model: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', supportsThinking: true, hideFromComparison: true },
+  // Tool-only (slower but more capable)
+  { provider: 'google', model: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', supportsThinking: true, toolEligible: true },
+  // Preview models — not for voice, useful for testing
+  { provider: 'google', model: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite', voiceEligible: true, toolEligible: true, hideFromComparison: true },
+  { provider: 'google', model: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', supportsThinking: true, toolEligible: true, hideFromComparison: true },
+  { provider: 'google', model: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', supportsThinking: true, toolEligible: true, hideFromComparison: true },
 
-  // Mistral — only Small is borderline voice-eligible (~660ms TTFT)
-  { provider: 'mistral', model: 'mistral-small-latest', label: 'Mistral Small', voiceEligible: true, toolEligible: true },
-  // Medium: 1.24s TTFT, Large: 1.44s TTFT — both too slow for voice
-  { provider: 'mistral', model: 'mistral-medium-latest', label: 'Mistral Medium', hideFromComparison: true },
-  { provider: 'mistral', model: 'mistral-large-latest', label: 'Mistral Large', hideFromComparison: true },
+  // ── Mistral ─────────────────────────────────────────────────────────
+  // Voice-eligible
+  { provider: 'mistral', model: 'mistral-small-latest', label: 'Mistral Small 4', voiceEligible: true, toolEligible: true },
+  // Tool-only (1.2–1.4s TTFT — too slow for voice, good for tools)
+  { provider: 'mistral', model: 'mistral-medium-latest', label: 'Mistral Medium 3.1', toolEligible: true },
+  { provider: 'mistral', model: 'mistral-large-latest', label: 'Mistral Large 3', toolEligible: true },
 ]
 
 /** Default model for voice assistants (fastest, cheapest, voice-eligible) */
@@ -54,7 +57,7 @@ export const DEFAULT_ASSISTANT_MODEL = {
 /** Default model for internal tool functions */
 export const DEFAULT_TOOL_MODEL = {
   provider: 'openai' as LLMProviderType,
-  model: 'gpt-4o-mini',
+  model: 'gpt-5.4-mini',
 }
 
 export function getModelsByProvider(provider: LLMProviderType): ModelDefinition[] {

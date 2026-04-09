@@ -1222,7 +1222,12 @@
       "description": "The AI model used for internal helper functions (e.g. generate transfer instruction, AI setup wizard).",
       "provider": "Provider",
       "model": "Model",
-      "saved": "Tool model saved"
+      "saved": "Tool model saved",
+      "providers": {
+        "openai": "OpenAI",
+        "google": "Google Gemini",
+        "mistral": "Mistral AI"
+      }
     }
   },
   "phonemeSets": {

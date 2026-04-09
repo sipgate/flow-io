@@ -12,9 +12,9 @@
   },
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-http-header-size=32768' tsx server.ts",
+    "dev": "NODE_OPTIONS='--max-http-header-size=65536' tsx server.ts",
     "build": "next build",
-    "start": "NODE_ENV=production tsx server.ts",
+    "start": "NODE_OPTIONS='--max-http-header-size=65536' NODE_ENV=production tsx server.ts",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
     "prepare": "git config core.hooksPath .githooks || true",

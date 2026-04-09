@@ -1222,7 +1222,12 @@
       "description": "Das KI-Modell, das für interne Hilfsfunktionen verwendet wird (z. B. Transfer-Instruction generieren, KI-Setup-Assistent).",
       "provider": "Anbieter",
       "model": "Modell",
-      "saved": "Tool-Modell gespeichert"
+      "saved": "Tool-Modell gespeichert",
+      "providers": {
+        "openai": "OpenAI",
+        "google": "Google Gemini",
+        "mistral": "Mistral AI"
+      }
     }
   },
   "phonemeSets": {

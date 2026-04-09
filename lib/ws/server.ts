@@ -24,8 +24,7 @@ export function setupWebSocketServer(server: Server): void {
   server.on('upgrade', (req: IncomingMessage, socket, head) => {
     const match = req.url?.match(/^\/ws\/([^/?]+)/)
     if (!match) {
-      socket.write('HTTP/1.1 404 Not Found\r\n\r\n')
-      socket.destroy()
+      // Let Next.js handle non-/ws/ upgrades (e.g. HMR WebSocket)
       return
     }
 

@@ -1024,7 +1024,19 @@
     }
   },
   "settingsPage": {
-    "phonemeSets": "Conjuntos de pronunciación"
+    "phonemeSets": "Conjuntos de pronunciación",
+    "toolModel": {
+      "title": "Modelo de herramienta",
+      "description": "El modelo de IA utilizado para funciones auxiliares internas (p.ej. generar instrucciones de transferencia, asistente de configuración IA).",
+      "provider": "Proveedor",
+      "model": "Modelo",
+      "saved": "Modelo de herramienta guardado",
+      "providers": {
+        "openai": "OpenAI",
+        "google": "Google Gemini",
+        "mistral": "Mistral AI"
+      }
+    }
   },
   "phonemeSets": {
     "title": "Conjuntos de pronunciación",
