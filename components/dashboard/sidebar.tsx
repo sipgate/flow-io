@@ -171,7 +171,7 @@ export function DashboardSidebar({ organization, userRole, hasPhoneNumbers, hasT
               className="flex items-center min-w-0 flex-1"
             >
               <Image
-                src="/flow-io-logomark-white.png"
+                src="/flow-io-logomark-white.svg"
                 alt="Flow-IO"
                 width={28}
                 height={28}

@@ -49,7 +49,7 @@ export default async function AuthLayout({
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-xl tracking-tight font-medium hover:text-amber-400 transition-colors duration-300">
             <Image
-              src="/flow-io-logomark-gold.png"
+              src="/flow-io-logomark-gold.svg"
               alt="Flow-IO"
               width={28}
               height={28}

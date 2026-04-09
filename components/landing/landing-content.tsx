@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl'
 import { VoiceSphere } from './voice-sphere'
 import { LanguageSwitcherCompact } from '@/components/language-switcher'
 
-const GITHUB_URL = 'https://github.com/your-org/flow-io'
+const GITHUB_URL = 'https://github.com/sipgate/flow-io'
 
 export function LandingContent() {
   const t = useTranslations('landing')
@@ -48,7 +48,7 @@ export function LandingContent() {
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-5 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-xl tracking-tight font-medium">
             <Image
-              src="/flow-io-logomark-gold.png"
+              src="/flow-io-logomark-gold.svg"
               alt="Flow-IO"
               width={28}
               height={28}

@@ -51,21 +51,21 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copy built Next.js output
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Copy source files needed by the custom server at runtime
-COPY --from=builder /app/server.ts ./
-COPY --from=builder /app/next.config.ts ./
-COPY --from=builder /app/tsconfig.json ./
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/lib ./lib
-COPY --from=builder /app/app ./app
-COPY --from=builder /app/types ./types
-COPY --from=builder /app/messages ./messages
-COPY --from=builder /app/i18n ./i18n
+COPY --from=builder --chown=nextjs:nodejs /app/server.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
+COPY --from=builder --chown=nextjs:nodejs /app/app ./app
+COPY --from=builder --chown=nextjs:nodejs /app/types ./types
+COPY --from=builder --chown=nextjs:nodejs /app/messages ./messages
+COPY --from=builder --chown=nextjs:nodejs /app/i18n ./i18n
 
 # Full node_modules (includes tsx, ws, all runtime deps)
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 USER nextjs
 

@@ -141,7 +141,7 @@ export function CSATAnalyticsSection({ overview, byDay }: CSATAnalyticsSectionPr
               {t('trend')}
             </h4>
             <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-neutral-200 dark:stroke-neutral-700" />
                   <XAxis
