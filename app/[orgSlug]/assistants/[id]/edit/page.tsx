@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { getOrganizationBySlug } from '@/lib/actions/organizations'
-import { getAssistant } from '@/lib/actions/assistants'
+import { getAssistant, getAssistantScenarioLinks } from '@/lib/actions/assistants'
 import { AssistantForm } from '@/components/assistants/assistant-form'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Phone } from 'lucide-react'
 
 export default async function EditAssistantPage({
   params,
@@ -35,7 +36,10 @@ export default async function EditAssistantPage({
     redirect(`/${orgSlug}/assistants`)
   }
 
-  const t = await getTranslations('assistants')
+  const [t, scenarioLinks] = await Promise.all([
+    getTranslations('assistants'),
+    getAssistantScenarioLinks(id),
+  ])
 
   // Type assertion for assistant
   const typedAssistant = assistant as unknown as {
@@ -72,7 +76,18 @@ export default async function EditAssistantPage({
         </div>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{t('edit.title')}</h1>
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <h1 className="text-3xl font-bold">{t('edit.title')}</h1>
+            {scenarioLinks.map((link) => (
+              <Link key={link.scenarioId} href={`/${orgSlug}/scenarios/${link.scenarioId}`}>
+                <Badge variant="secondary" className="text-sm gap-1.5 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700">
+                  <Phone className="h-3.5 w-3.5" />
+                  <span className="font-mono">{link.phoneNumbers.join(', ') || '—'}</span>
+                  <span className="text-muted-foreground font-normal">· {link.scenarioName}</span>
+                </Badge>
+              </Link>
+            ))}
+          </div>
           <p className="text-neutral-600 dark:text-neutral-400">
             {t('edit.description')}
           </p>

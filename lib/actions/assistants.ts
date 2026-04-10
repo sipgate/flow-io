@@ -96,6 +96,54 @@ export async function getAssistant(assistantId: string) {
   return { assistant }
 }
 
+export interface AssistantScenarioLink {
+  scenarioId: string
+  scenarioName: string
+  phoneNumbers: string[]
+}
+
+/**
+ * Find all scenarios where this assistant is the entry agent, with their phone numbers.
+ */
+export async function getAssistantScenarioLinks(assistantId: string): Promise<AssistantScenarioLink[]> {
+  const supabase = await createClient()
+
+  const { data: scenarios } = await supabase
+    .from('call_scenarios')
+    .select('id, name, nodes')
+    .not('nodes', 'eq', '[]')
+
+  if (!scenarios) return []
+
+  const matchingScenarioIds: { id: string; name: string }[] = []
+  for (const scenario of scenarios) {
+    const nodes = scenario.nodes as Array<{ type?: string; data?: { assistant_id?: string } }>
+    const isEntryAgent = nodes.some(
+      (n) => n.type === 'entry_agent' && n.data?.assistant_id === assistantId
+    )
+    if (isEntryAgent) {
+      matchingScenarioIds.push({ id: scenario.id, name: scenario.name as string })
+    }
+  }
+
+  if (matchingScenarioIds.length === 0) return []
+
+  const { data: phoneData } = await supabase
+    .from('phone_numbers')
+    .select('phone_number, scenario_id')
+    .in('scenario_id', matchingScenarioIds.map((s) => s.id))
+    .eq('is_active', true)
+    .order('phone_number')
+
+  return matchingScenarioIds.map((s) => ({
+    scenarioId: s.id,
+    scenarioName: s.name,
+    phoneNumbers: (phoneData ?? [])
+      .filter((p) => p.scenario_id === s.id)
+      .map((p) => p.phone_number),
+  }))
+}
+
 export async function createAssistant(orgId: string, data: {
   name: string
   description?: string
