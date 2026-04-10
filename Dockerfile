@@ -61,7 +61,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./
 COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/app ./app
 COPY --from=builder --chown=nextjs:nodejs /app/types ./types
-COPY --from=builder --chown=nextjs:nodejs /app/messages ./messages
 COPY --from=builder --chown=nextjs:nodejs /app/i18n ./i18n
 
 # Full node_modules (includes tsx, ws, all runtime deps)
