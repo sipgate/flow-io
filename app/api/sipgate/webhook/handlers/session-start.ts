@@ -20,6 +20,7 @@ import type { SessionStartEvent } from './lib/types'
  */
 export async function handleSessionStart(event: SessionStartEvent, organizationId: string) {
   debug('📞 Session Start:', event)
+  console.log('[SessionStart] session object:', JSON.stringify(event.session))
 
   const { to_phone_number, from_phone_number, id: sessionId, direction } = event.session
 

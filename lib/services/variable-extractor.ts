@@ -124,10 +124,16 @@ export async function extractAndDeliverVariables(
       // Check if there were required variables that are now missing
       const requiredDefinitions = definitions.filter((d) => d.required)
       if (requiredDefinitions.length > 0) {
+        const { data: currentSession } = await supabase
+          .from('call_sessions')
+          .select('metadata')
+          .eq('id', callSessionId)
+          .single()
         await supabase
           .from('call_sessions')
           .update({
             metadata: {
+              ...(currentSession?.metadata as Record<string, unknown> ?? {}),
               extraction_status: 'incomplete',
               missing_required_variables: requiredDefinitions.map((d) => d.name),
             },
@@ -157,12 +163,18 @@ export async function extractAndDeliverVariables(
     const extractedNames = new Set(variablesToStore.map((v) => v.name))
     const missingRequired = requiredDefinitions.filter((d) => !extractedNames.has(d.name))
 
-    // Update call session metadata with extraction status
+    // Update call session metadata with extraction status (merge, don't overwrite)
     const extractionStatus = missingRequired.length === 0 ? 'complete' : 'incomplete'
+    const { data: currentSession } = await supabase
+      .from('call_sessions')
+      .select('metadata')
+      .eq('id', callSessionId)
+      .single()
     await supabase
       .from('call_sessions')
       .update({
         metadata: {
+          ...(currentSession?.metadata as Record<string, unknown> ?? {}),
           extraction_status: extractionStatus,
           missing_required_variables: missingRequired.map((d) => d.name),
         },

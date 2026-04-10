@@ -41,9 +41,19 @@ export async function generateScenarioGreeting(
 /** Persist active node ID to DB so it survives across serverless instances */
 export async function persistActiveNodeId(sipgateSessionId: string, activeNodeId: string): Promise<void> {
   const supabase = createServiceRoleClient()
+  const { data: current } = await supabase
+    .from('call_sessions')
+    .select('metadata')
+    .eq('session_id', sipgateSessionId)
+    .single()
   await supabase
     .from('call_sessions')
-    .update({ metadata: { scenario_active_node_id: activeNodeId } })
+    .update({
+      metadata: {
+        ...(current?.metadata as Record<string, unknown> ?? {}),
+        scenario_active_node_id: activeNodeId,
+      },
+    })
     .eq('session_id', sipgateSessionId)
 }
 
