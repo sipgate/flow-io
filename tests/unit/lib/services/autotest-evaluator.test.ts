@@ -36,8 +36,8 @@ function makeMockLLM(responseContent: string) {
 }
 
 const sampleContext: ConversationLogEntry[] = [
-  { role: 'user', content: 'Hallo' },
-  { role: 'assistant', content: 'Wie kann ich helfen?' },
+  { role: 'user', content: 'Hallo', timestamp: new Date().toISOString() },
+  { role: 'assistant', content: 'Wie kann ich helfen?', timestamp: new Date().toISOString() },
 ]
 
 const sampleTurnEvals: TurnEvaluation[] = [

@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createHmac } from 'crypto'
 
 // ─── Handler mocks ────────────────────────────────────────────────────────────
@@ -218,12 +218,12 @@ describe('user_speak Serialisierung', () => {
     let resolveFirst!: () => void
 
     vi.mocked(handleUserSpeak)
-      .mockImplementationOnce(() => new Promise<Response>(res => {
-        resolveFirst = () => { callOrder.push(1); res(new Response(null, { status: 200 })) }
+      .mockImplementationOnce(() => new Promise<NextResponse>(res => {
+        resolveFirst = () => { callOrder.push(1); res(NextResponse.json(null, { status: 200 })) }
       }))
       .mockImplementationOnce(() => {
         callOrder.push(2)
-        return Promise.resolve(new Response(null, { status: 200 }))
+        return Promise.resolve(NextResponse.json(null, { status: 200 }))
       })
 
     const event = { type: 'user_speak', session: makeSession('sess-lock'), text: 'Hallo' }

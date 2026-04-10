@@ -730,6 +730,8 @@ export async function getOverallTestStatus(organizationId: string) {
     `)
     .eq('organization_id', organizationId)
     .eq('is_active', true)
+    .order('created_at', { referencedTable: 'test_runs', ascending: false })
+    .limit(1, { referencedTable: 'test_runs' })
 
   if (casesError) {
     console.error('Error fetching test cases for status:', casesError)
@@ -750,10 +752,7 @@ export async function getOverallTestStatus(organizationId: string) {
     const runs = tc.test_runs as Array<{ status: string; created_at: string }> | null
     if (runs && runs.length > 0) {
       hasAnyRuns = true
-      // Sort by created_at descending and get the latest
-      const latestRun = runs.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )[0]
+      const latestRun = runs[0]
       if (latestRun.status === 'partial') {
         hasPartial = true
         allPassed = false

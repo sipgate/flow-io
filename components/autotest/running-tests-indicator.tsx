@@ -30,8 +30,8 @@ export function RunningTestsIndicator({ organizationId }: RunningTestsIndicatorP
     // Check immediately
     checkStatus()
 
-    // Poll every 3 seconds
-    const interval = setInterval(checkStatus, 3000)
+    // Poll every 10 seconds
+    const interval = setInterval(checkStatus, 10_000)
 
     return () => {
       mounted = false

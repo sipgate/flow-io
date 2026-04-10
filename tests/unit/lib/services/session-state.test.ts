@@ -155,13 +155,13 @@ describe('SessionStateManager', () => {
     })
 
     it('stores and retrieves replacements', () => {
-      const replacements = [{ word: 'GmbH', phoneme: 'G-m-b-H', alias: '' }]
+      const replacements = [{ word: 'GmbH', phoneme: 'G-m-b-H' }]
       mgr.setPhonemeReplacements('s1', replacements)
       expect(mgr.getPhonemeReplacements('s1')).toEqual(replacements)
     })
 
     it('is removed by cleanup()', () => {
-      mgr.setPhonemeReplacements('s1', [{ word: 'test', phoneme: 't-e-s-t', alias: '' }])
+      mgr.setPhonemeReplacements('s1', [{ word: 'test', phoneme: 't-e-s-t' }])
       mgr.cleanup('s1')
       expect(mgr.getPhonemeReplacements('s1')).toEqual([])
     })
@@ -200,7 +200,7 @@ describe('SessionStateManager', () => {
       mgr.setPendingAction('s1', { type: 'hangup' })
       mgr.setBargeInConfig('s1', makeBargeInConfig())
       mgr.setScenarioState('s1', makeScenarioState())
-      mgr.setPhonemeReplacements('s1', [{ word: 'x', phoneme: 'y', alias: '' }])
+      mgr.setPhonemeReplacements('s1', [{ word: 'x', phoneme: 'y' }])
       mgr.setBargeInOccurred('s1')
 
       // Session s2 — should be unaffected
