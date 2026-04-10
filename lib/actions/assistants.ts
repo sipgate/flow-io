@@ -188,7 +188,11 @@ export async function createAssistant(orgId: string, data: {
       const scenarioResult = await createScenario(orgId, {
         name: data.name,
         description: data.description,
+        skipPhoneNumberCheck: true,
       })
+      if (scenarioResult.error) {
+        console.warn('[createAssistant] Auto scenario creation returned error:', scenarioResult.error)
+      }
       if (scenarioResult.scenario) {
         scenarioId = scenarioResult.scenario.id
         const entryNode: ScenarioNode = {

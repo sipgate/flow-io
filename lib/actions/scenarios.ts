@@ -85,7 +85,7 @@ export async function getScenarioByIdServiceRole(...args: Parameters<typeof _get
 
 export async function createScenario(
   orgId: string,
-  input: { name: string; description?: string }
+  input: { name: string; description?: string; skipPhoneNumberCheck?: boolean }
 ): Promise<{ scenario: CallScenario | null; error: string | null; noPhoneNumbers?: boolean }> {
   const supabase = await createClient()
 
@@ -93,16 +93,18 @@ export async function createScenario(
   if (!user.user) return { scenario: null, error: 'Unauthorized' }
 
   // Check if any unassigned phone numbers are available
-  const { data: availableNumbers } = await supabase
-    .from('phone_numbers')
-    .select('id')
-    .eq('organization_id', orgId)
-    .is('scenario_id', null)
-    .eq('is_active', true)
-    .limit(1)
+  if (!input.skipPhoneNumberCheck) {
+    const { data: availableNumbers } = await supabase
+      .from('phone_numbers')
+      .select('id')
+      .eq('organization_id', orgId)
+      .is('scenario_id', null)
+      .eq('is_active', true)
+      .limit(1)
 
-  if (!availableNumbers || availableNumbers.length === 0) {
-    return { scenario: null, error: 'NO_PHONE_NUMBERS', noPhoneNumbers: true }
+    if (!availableNumbers || availableNumbers.length === 0) {
+      return { scenario: null, error: 'NO_PHONE_NUMBERS', noPhoneNumbers: true }
+    }
   }
 
   const { data, error } = await supabase
