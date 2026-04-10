@@ -35,6 +35,14 @@ const eslintConfig = defineConfig([
         },
       ],
       "@typescript-eslint/no-explicit-any": "error",
+      "no-console": ["error", { allow: ["warn", "error"] }],
+    },
+  },
+  // Allow console.log in files that legitimately need it
+  {
+    files: ["lib/utils/logger.ts", "server.ts", "scripts/**"],
+    rules: {
+      "no-console": "off",
     },
   },
 ]);

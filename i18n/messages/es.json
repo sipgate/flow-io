@@ -956,6 +956,17 @@
     "leaveConfirmDescription": "Tienes cambios que aún no han sido desplegados. Si sales ahora, estarán guardados pero no activos.",
     "leaveAndDeploy": "Desplegar y salir",
     "leaveWithoutDeploy": "Salir sin desplegar",
+    "settings": "Configuraciones",
+    "settingsConfig": {
+      "title": "Configuraciones del escenario",
+      "csatTitle": "Satisfacción del cliente (CSAT)",
+      "csatLabel": "Activar CSAT",
+      "csatDescription": "Evaluar automáticamente la satisfacción del cliente después de cada llamada en este escenario.",
+      "criteriaTitle": "Criterios de llamada",
+      "criterionDialogDescription": "Define un criterio que se evaluará para todas las llamadas en este escenario.",
+      "orgCriteria": "Estándares de la organización",
+      "noCriteria": "Aún no se han configurado criterios de llamada."
+    },
     "history": "Versiones",
     "historyTitle": "Historial de despliegues",
     "historyEmpty": "Aún sin despliegues",

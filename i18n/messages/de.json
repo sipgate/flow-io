@@ -1148,6 +1148,17 @@
     "leaveConfirmDescription": "Du hast Änderungen, die noch nicht deployed wurden. Verlässt du jetzt, sind sie zwar gespeichert, aber noch nicht aktiv.",
     "leaveAndDeploy": "Deployen & Verlassen",
     "leaveWithoutDeploy": "Trotzdem verlassen",
+    "settings": "Einstellungen",
+    "settingsConfig": {
+      "title": "Szenario-Einstellungen",
+      "csatTitle": "Kundenzufriedenheit (CSAT)",
+      "csatLabel": "CSAT aktivieren",
+      "csatDescription": "Kundenzufriedenheit nach jedem Anruf in diesem Szenario automatisch bewerten.",
+      "criteriaTitle": "Anrufkriterien",
+      "criterionDialogDescription": "Definiere ein Kriterium, das für alle Anrufe in diesem Szenario ausgewertet wird.",
+      "orgCriteria": "Organisation-Standards",
+      "noCriteria": "Noch keine Anrufkriterien konfiguriert."
+    },
     "history": "Versionen",
     "historyTitle": "Deploy-Verlauf",
     "historyEmpty": "Noch kein Deploy",

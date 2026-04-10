@@ -1,5 +1,6 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { createLLMProvider } from '@/lib/llm/provider'
 import type { GeneratedTestSuggestion, ConversationTurn } from '@/types/autotest'
@@ -187,7 +188,7 @@ IMPORTANT: ${languageInstruction}`
         evaluation_criteria: String(s.evaluation_criteria || ''),
       }))
 
-    console.log('[Autotest Generator] Generated tests:', {
+    debug('[Autotest Generator] Generated tests:', {
       assistantId,
       requested: count,
       generated: suggestions.length,

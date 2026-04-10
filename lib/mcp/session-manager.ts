@@ -3,6 +3,7 @@
  * Manages MCP client sessions per call, with caching and cleanup
  */
 
+import { debug } from '@/lib/utils/logger'
 import { MCPClient, createMCPClient } from './client'
 import type { MCPServerConfig, MCPSession, MCPTool } from './types'
 
@@ -42,7 +43,7 @@ export class MCPSessionManager {
         createdAt: new Date(),
       })
 
-      console.log('[MCP Session Manager] Client initialized:', {
+      debug('[MCP Session Manager] Client initialized:', {
         server: config.name,
         serverId: config.id,
         sessionId: client.getSessionId(),
@@ -178,7 +179,7 @@ export class MCPSessionManager {
     this.sessions.clear()
     this.toolsCache.clear()
 
-    console.log('[MCP Session Manager] All sessions closed')
+    debug('[MCP Session Manager] All sessions closed')
   }
 
   /**

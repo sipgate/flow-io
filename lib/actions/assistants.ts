@@ -1,29 +1,13 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { revalidatePath } from 'next/cache'
 import { DEFAULT_ELEVENLABS_VOICE_ID } from '@/lib/constants/voices'
 import { redirect } from 'next/navigation'
-import { autoAssignPhoneNumber } from './phone-numbers'
 import { createPromptVersion } from './prompt-versions'
 import { generateAssistantAvatar } from '@/lib/services/avatar-generator'
-
-interface PhoneNumber {
-  id: string
-  phone_number: string
-  is_active: boolean
-}
-
-interface AssistantWithPhone {
-  id: string
-  organization_id: string
-  name: string
-  is_active: boolean
-  created_at: string
-  phone_numbers: PhoneNumber[]
-  [key: string]: unknown
-}
 
 interface Assistant {
   id: string
@@ -57,17 +41,10 @@ export async function getOrganizationAssistants(orgId: string) {
     return { assistants: [] }
   }
 
-  // Fetch assistants with phone numbers
+  // Fetch assistants
   const { data: assistants, error } = await supabase
     .from('assistants')
-    .select(`
-      *,
-      phone_numbers:phone_numbers!assistant_id (
-        id,
-        phone_number,
-        is_active
-      )
-    `)
+    .select('*')
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
 
@@ -76,14 +53,7 @@ export async function getOrganizationAssistants(orgId: string) {
     return { assistants: [] }
   }
 
-  // Flatten phone_numbers array to a single object
-  const typedAssistants = assistants as unknown as AssistantWithPhone[]
-  const assistantsWithPhone = typedAssistants?.map((a) => ({
-    ...a,
-    phone_number: a.phone_numbers?.[0]?.phone_number || null,
-  }))
-
-  return { assistants: assistantsWithPhone || [] }
+  return { assistants: (assistants as unknown as Assistant[]) || [] }
 }
 
 export async function getAssistant(assistantId: string) {
@@ -137,7 +107,6 @@ export async function createAssistant(orgId: string, data: {
   system_prompt?: string
   opening_message?: string
   is_active?: boolean
-  enable_csat?: boolean
   enable_hesitation?: boolean
   barge_in_strategy?: string
   barge_in_allow_after_ms?: number
@@ -181,7 +150,6 @@ export async function createAssistant(orgId: string, data: {
       system_prompt: data.system_prompt || null,
       opening_message: data.opening_message || null,
       is_active: data.is_active ?? true,
-      enable_csat: data.enable_csat ?? false,
       enable_hesitation: data.enable_hesitation ?? false,
     })
     .select()
@@ -194,17 +162,6 @@ export async function createAssistant(orgId: string, data: {
 
   const typedAssistant = assistant as unknown as Assistant
 
-  // Automatically assign a phone number to the new assistant
-  const { phoneNumber, error: phoneError } = await autoAssignPhoneNumber(
-    typedAssistant.id,
-    orgId
-  )
-
-  if (phoneError) {
-    console.warn('Could not auto-assign phone number:', phoneError)
-    // Don't fail the assistant creation if phone assignment fails
-  }
-
   // Generate avatar in background (don't await to not block the response)
   generateAssistantAvatar(data.name, data.description).then(async ({ url, error: avatarError }) => {
     if (url) {
@@ -213,7 +170,7 @@ export async function createAssistant(orgId: string, data: {
         .from('assistants')
         .update({ avatar_url: url })
         .eq('id', typedAssistant.id)
-      console.log('[Assistant] Avatar generated for:', data.name)
+      debug('[Assistant] Avatar generated for:', data.name)
     } else if (avatarError) {
       console.warn('Could not generate avatar:', avatarError)
     }
@@ -222,7 +179,7 @@ export async function createAssistant(orgId: string, data: {
   })
 
   revalidatePath('/', 'layout')
-  return { assistant: typedAssistant, phoneNumber }
+  return { assistant: typedAssistant }
 }
 
 export async function updateAssistant(
@@ -239,7 +196,6 @@ export async function updateAssistant(
     system_prompt?: string
     opening_message?: string
     is_active?: boolean
-    enable_csat?: boolean
     enable_hesitation?: boolean
   }
 ) {
@@ -332,7 +288,7 @@ export async function deployAssistant(id: string): Promise<{ error: string | nul
 
   const { data: assistant, error: fetchError } = await supabase
     .from('assistants')
-    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_csat, enable_hesitation, deployed_version')
+    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, deployed_version')
     .eq('id', id)
     .single()
 
@@ -354,7 +310,6 @@ export async function deployAssistant(id: string): Promise<{ error: string | nul
     voice_id: raw.voice_id as string | null,
     voice_language: raw.voice_language as string | null,
     opening_message: raw.opening_message as string | null,
-    enable_csat: raw.enable_csat as boolean | null,
     enable_hesitation: raw.enable_hesitation as boolean | null,
     deployed_at: now,
     created_by: user.id,
@@ -374,7 +329,7 @@ export async function revertAssistant(id: string): Promise<{ error: string | nul
 
   const { data: latestVersion, error: fetchError } = await supabase
     .from('assistant_versions')
-    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_csat, enable_hesitation')
+    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation')
     .eq('assistant_id', id)
     .order('version', { ascending: false })
     .limit(1)
@@ -392,7 +347,6 @@ export async function revertAssistant(id: string): Promise<{ error: string | nul
     voice_id: v.voice_id as string | undefined,
     voice_language: v.voice_language as string | undefined,
     opening_message: v.opening_message as string | undefined,
-    enable_csat: v.enable_csat as boolean | undefined,
     enable_hesitation: v.enable_hesitation as boolean | undefined,
   })
   if ('error' in result && result.error) return { error: result.error }
@@ -421,7 +375,7 @@ export async function restoreAssistantVersion(
 
   const { data: version, error: fetchError } = await supabase
     .from('assistant_versions')
-    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_csat, enable_hesitation')
+    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation')
     .eq('id', versionId)
     .single()
 
@@ -437,7 +391,6 @@ export async function restoreAssistantVersion(
     voice_id: v.voice_id as string | undefined,
     voice_language: v.voice_language as string | undefined,
     opening_message: v.opening_message as string | undefined,
-    enable_csat: v.enable_csat as boolean | undefined,
     enable_hesitation: v.enable_hesitation as boolean | undefined,
   })
   if ('error' in result && result.error) return { error: result.error }

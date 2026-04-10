@@ -1,5 +1,6 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import { createLLMProvider } from '@/lib/llm/provider'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
@@ -119,19 +120,23 @@ export async function evaluateCallCSAT(params: EvaluateCSATParams): Promise<{
   const { callSessionId } = params
   const supabase = createServiceRoleClient()
 
-  console.log(`[CSAT Evaluator] Starting evaluation for call ${callSessionId}`)
+  debug(`[CSAT Evaluator] Starting evaluation for call ${callSessionId}`)
 
   try {
-    // Get call session with assistant info and transcript
+    // Get call session with scenario and assistant info
     const { data: session, error: sessionError } = await supabase
       .from('call_sessions')
       .select(`
         id,
         assistant_id,
+        scenario_id,
         csat_score,
-        assistants (
+        call_scenarios:scenario_id (
           id,
-          enable_csat,
+          enable_csat
+        ),
+        assistants:assistant_id (
+          id,
           voice_language
         )
       `)
@@ -144,17 +149,18 @@ export async function evaluateCallCSAT(params: EvaluateCSATParams): Promise<{
     }
 
     // Type assertion for the joined data
-    const assistant = (session as unknown as { assistants: { id: string; enable_csat: boolean | null; voice_language: string | null } | null }).assistants
+    const scenario = (session as unknown as { call_scenarios: { id: string; enable_csat: boolean } | null }).call_scenarios
+    const assistant = (session as unknown as { assistants: { id: string; voice_language: string | null } | null }).assistants
 
-    // Check if CSAT is enabled for this assistant
-    if (!assistant?.enable_csat) {
-      console.log(`[CSAT Evaluator] CSAT not enabled for assistant ${session.assistant_id}`)
+    // Check if CSAT is enabled on the scenario
+    if (!scenario?.enable_csat) {
+      debug(`[CSAT Evaluator] CSAT not enabled for scenario ${session.scenario_id}`)
       return { success: true, score: null, error: null }
     }
 
     // Skip if already evaluated
     if (session.csat_score !== null) {
-      console.log(`[CSAT Evaluator] Call ${callSessionId} already has CSAT score: ${session.csat_score}`)
+      debug(`[CSAT Evaluator] Call ${callSessionId} already has CSAT score: ${session.csat_score}`)
       return { success: true, score: session.csat_score, error: null }
     }
 
@@ -171,7 +177,7 @@ export async function evaluateCallCSAT(params: EvaluateCSATParams): Promise<{
     }
 
     if (!messages || messages.length === 0) {
-      console.log(`[CSAT Evaluator] No transcript found for call ${callSessionId}`)
+      debug(`[CSAT Evaluator] No transcript found for call ${callSessionId}`)
       return { success: true, score: null, error: null }
     }
 
@@ -181,7 +187,7 @@ export async function evaluateCallCSAT(params: EvaluateCSATParams): Promise<{
       .join('\n')
 
     // Determine locale from assistant's voice language
-    const locale = assistant.voice_language?.startsWith('de') ? 'de' : 'en'
+    const locale = assistant?.voice_language?.startsWith('de') ? 'de' : 'en'
 
     // Evaluate CSAT
     const result = await evaluateCSATFromTranscript(transcript, locale)
@@ -201,7 +207,7 @@ export async function evaluateCallCSAT(params: EvaluateCSATParams): Promise<{
       return { success: false, score: result.score, error: 'Failed to store result' }
     }
 
-    console.log(`[CSAT Evaluator] Call ${callSessionId} evaluated: CSAT ${result.score}`)
+    debug(`[CSAT Evaluator] Call ${callSessionId} evaluated: CSAT ${result.score}`)
     return { success: true, score: result.score, error: null }
   } catch (error) {
     console.error('[CSAT Evaluator] Unexpected error:', error)
@@ -244,7 +250,7 @@ export async function forceEvaluateCallCSAT(callSessionId: string): Promise<{
 }> {
   const supabase = createServiceRoleClient()
 
-  console.log(`[CSAT Evaluator] Force evaluation for call ${callSessionId}`)
+  debug(`[CSAT Evaluator] Force evaluation for call ${callSessionId}`)
 
   try {
     // Get call session with assistant info (for locale detection only)
@@ -253,7 +259,7 @@ export async function forceEvaluateCallCSAT(callSessionId: string): Promise<{
       .select(`
         id,
         assistant_id,
-        assistants (
+        assistants:assistant_id (
           voice_language
         )
       `)
@@ -278,7 +284,7 @@ export async function forceEvaluateCallCSAT(callSessionId: string): Promise<{
     }
 
     if (!messages || messages.length === 0) {
-      console.log(`[CSAT Evaluator] No transcript found for call ${callSessionId}`)
+      debug(`[CSAT Evaluator] No transcript found for call ${callSessionId}`)
       return { success: false, score: null, error: 'No transcript available' }
     }
 
@@ -309,7 +315,7 @@ export async function forceEvaluateCallCSAT(callSessionId: string): Promise<{
       return { success: false, score: result.score, error: 'Failed to store result' }
     }
 
-    console.log(`[CSAT Evaluator] Call ${callSessionId} force evaluated: CSAT ${result.score}`)
+    debug(`[CSAT Evaluator] Call ${callSessionId} force evaluated: CSAT ${result.score}`)
     return { success: true, score: result.score, error: null }
   } catch (error) {
     console.error('[CSAT Evaluator] Unexpected error:', error)

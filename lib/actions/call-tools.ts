@@ -1,5 +1,6 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type { CallToolConfig, CallToolConfigInput, CallNote, CallNoteInput } from '@/types/call-tools'
@@ -174,7 +175,7 @@ export async function createCallNote(
     .limit(1)
 
   if (existing && existing.length > 0) {
-    console.log('[CallTools] Duplicate note detected, skipping')
+    debug('[CallTools] Duplicate note detected, skipping')
     return { note: null, error: null } // Silent skip, not an error
   }
 

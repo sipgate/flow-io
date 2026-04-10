@@ -1,3 +1,4 @@
+import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { getScenarioByIdServiceRole } from '@/lib/repositories/scenarios.repository'
 import { generateLLMResponse } from '@/lib/services/llm-conversation'
@@ -72,6 +73,6 @@ export async function rebuildScenarioState(
     edges: scenario.edges,
   }
   sessionState.setScenarioState(sipgateSessionId, state)
-  console.log(`[ScenarioState] Rebuilt from DB: scenarioId=${scenario.id} activeNodeId=${activeNodeId}`)
+  debug(`[ScenarioState] Rebuilt from DB: scenarioId=${scenario.id} activeNodeId=${activeNodeId}`)
   return state
 }

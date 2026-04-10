@@ -6,7 +6,8 @@
 export interface CallCriterion {
   id: string
   organization_id: string
-  assistant_id: string | null  // null = org-level default
+  assistant_id: string | null  // null = org-level default (if scenario_id also null)
+  scenario_id: string | null   // null = not scenario-scoped
   name: string
   description: string
   is_active: boolean | null
@@ -29,6 +30,7 @@ export interface CallCriteriaResult {
 export interface CallCriterionInput {
   organization_id: string
   assistant_id?: string | null
+  scenario_id?: string | null
   name: string
   description: string
   is_active?: boolean

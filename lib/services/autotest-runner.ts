@@ -1,5 +1,6 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { generateLLMResponse } from './llm-conversation'
 import { evaluateTurn, evaluateOverall } from './autotest-evaluator'
@@ -233,7 +234,7 @@ export async function runTestCase(params: RunTestCaseParams): Promise<RunTestCas
       return { run: runData as TestRun, error: updateError.message }
     }
 
-    console.log('[Autotest Runner] Test completed:', {
+    debug('[Autotest Runner] Test completed:', {
       testCaseId: testCase.id,
       status,
       durationMs,

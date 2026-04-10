@@ -1,3 +1,5 @@
+import { debug } from '@/lib/utils/logger'
+
 /**
  * Pending MCP State Manager
  *
@@ -67,7 +69,7 @@ export function startPendingMCP(
   promise: Promise<MCPResult>,
   userMessage: string
 ): void {
-  console.log(`[PendingMCP] Starting async MCP call for session ${sessionId}`)
+  debug(`[PendingMCP] Starting async MCP call for session ${sessionId}`)
   pendingMCPStates.set(sessionId, {
     promise,
     startedAt: Date.now(),
@@ -110,7 +112,7 @@ export async function checkPendingMCPComplete(
     const result = await Promise.race([state.promise, timeoutPromise])
     if (result !== null) {
       // MCP call completed - clean up and return result
-      console.log(
+      debug(
         `[PendingMCP] MCP call completed for session ${sessionId} after ${Date.now() - state.startedAt}ms`
       )
       pendingMCPStates.delete(sessionId)
@@ -136,7 +138,7 @@ export async function waitForMCPWithTimeout(
   const state = pendingMCPStates.get(sessionId)
   if (!state) return null
 
-  console.log(`[PendingMCP] Waiting up to ${WAIT_BEFORE_RESPONSE_MS}ms for MCP to complete...`)
+  debug(`[PendingMCP] Waiting up to ${WAIT_BEFORE_RESPONSE_MS}ms for MCP to complete...`)
 
   // Wait for either the MCP to complete or the timeout
   const timeoutPromise = new Promise<null>((resolve) => {
@@ -148,7 +150,7 @@ export async function waitForMCPWithTimeout(
 
     if (result !== null) {
       // MCP completed within timeout
-      console.log(
+      debug(
         `[PendingMCP] MCP completed within wait period for session ${sessionId} after ${Date.now() - state.startedAt}ms`
       )
       pendingMCPStates.delete(sessionId)
@@ -156,7 +158,7 @@ export async function waitForMCPWithTimeout(
     }
 
     // Timeout reached, MCP still pending
-    console.log(`[PendingMCP] Wait timeout reached, MCP still pending for session ${sessionId}`)
+    debug(`[PendingMCP] Wait timeout reached, MCP still pending for session ${sessionId}`)
     return null
   } catch (error) {
     console.error(`[PendingMCP] MCP call failed during wait for session ${sessionId}:`, error)
@@ -184,7 +186,7 @@ export async function waitForPendingMCP(
 
   try {
     const result = await Promise.race([state.promise, timeoutPromise])
-    console.log(
+    debug(
       `[PendingMCP] MCP call finished for session ${sessionId} after ${Date.now() - state.startedAt}ms`
     )
     pendingMCPStates.delete(sessionId)
@@ -217,7 +219,7 @@ export function getNextHoldMessage(sessionId: string, language: string = 'de'): 
  */
 export function cancelPendingMCP(sessionId: string): void {
   if (pendingMCPStates.has(sessionId)) {
-    console.log(`[PendingMCP] Cancelling MCP call for session ${sessionId}`)
+    debug(`[PendingMCP] Cancelling MCP call for session ${sessionId}`)
     pendingMCPStates.delete(sessionId)
   }
 }
@@ -235,6 +237,6 @@ export function getPendingMCPElapsedMs(sessionId: string): number {
  * Clean up all pending MCP states (useful for testing or shutdown)
  */
 export function clearAllPendingMCP(): void {
-  console.log(`[PendingMCP] Clearing all pending MCP states (${pendingMCPStates.size} states)`)
+  debug(`[PendingMCP] Clearing all pending MCP states (${pendingMCPStates.size} states)`)
   pendingMCPStates.clear()
 }

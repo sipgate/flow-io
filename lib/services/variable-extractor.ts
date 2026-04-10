@@ -90,7 +90,8 @@ export async function extractAndDeliverVariables(
           collected.webhookValid !== false &&
           collected.confirmed !== false
         ) {
-          console.log(`[VariableExtractor] Using pre-collected fallback for ${ev.name}: "${collected.value}"`)
+          debug(`[VariableExtractor] Using pre-collected fallback for ${ev.name}: "${collected.value}"`)
+
           return { ...ev, value: collected.value, confidence: 0.9 }
         }
       }

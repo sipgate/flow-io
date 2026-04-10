@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Download } from 'lucide-react'
+import { debug } from '@/lib/utils/logger'
 import { createClient } from '@/lib/supabase/client'
 import { CallsTable } from './calls-table'
 import { CallsAnalytics } from './calls-analytics'
@@ -150,7 +151,7 @@ export function CallsRealtimeWrapper({
           filter: `organization_id=eq.${organizationId}`,
         },
         async (payload) => {
-          console.log('[Calls] Real-time session update:', payload.eventType)
+          debug('[Calls] Real-time session update:', payload.eventType)
 
           if (payload.eventType === 'INSERT') {
             // Fetch the complete call data with relations
@@ -206,7 +207,7 @@ export function CallsRealtimeWrapper({
           filter: `organization_id=eq.${organizationId}`,
         },
         async (payload) => {
-          console.log('[Calls] Real-time variable extracted:', payload.new)
+          debug('[Calls] Real-time variable extracted:', payload.new)
           // Refetch the call to get updated variables
           if (payload.new.call_session_id) {
             await refetchCall(payload.new.call_session_id)

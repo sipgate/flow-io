@@ -27,19 +27,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Card } from '@/components/ui/card'
-import { Phone, Pencil, Loader2, GitBranch, User, X, Plus, Trash2, ChevronRight } from 'lucide-react'
+import { Phone, Pencil, Loader2, GitBranch, X, Plus, Trash2, ChevronRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { formatPhoneNumber } from '@/lib/utils/format-phone'
-import { addPhoneNumber, addPhoneNumberBlock, deletePhoneNumber, deletePhoneNumberBlock, assignPhoneNumber, assignPhoneNumberToFlow, unassignPhoneNumber, getSipgateNumbersForSelection } from '@/lib/actions/phone-numbers'
-import { getOrganizationAssistants } from '@/lib/actions/assistants'
+import { addPhoneNumber, addPhoneNumberBlock, deletePhoneNumber, deletePhoneNumberBlock, assignPhoneNumberToFlow, unassignPhoneNumber, getSipgateNumbersForSelection } from '@/lib/actions/phone-numbers'
 import { getScenarios } from '@/lib/actions/scenarios'
 import type { ScenarioSummary } from '@/types/scenarios'
 import { toast } from 'sonner'
-
-interface AssistantOption {
-  id: string
-  name: string
-}
 
 interface PhoneNumber {
   id: string
@@ -47,10 +41,6 @@ interface PhoneNumber {
   block_id: string | null
   is_active: boolean | null
   assigned_at?: string | null
-  assistants: {
-    id: string
-    name: string
-  } | null
   call_scenarios: {
     id: string
     name: string
@@ -63,8 +53,6 @@ interface PhoneNumbersListProps {
   orgSlug: string
   hasTelephonyAccount?: boolean
 }
-
-type AssignTab = 'assistant' | 'flow'
 
 type DisplayItem =
   | { kind: 'single'; num: PhoneNumber }
@@ -155,8 +143,6 @@ export function PhoneNumbersList({
   const locale = useLocale()
   const router = useRouter()
   const [openPopover, setOpenPopover] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<AssignTab>('assistant')
-  const [assistants, setAssistants] = useState<AssistantOption[]>([])
   const [scenarios, setScenarios] = useState<ScenarioSummary[]>([])
   const [loading, setLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -280,24 +266,12 @@ export function PhoneNumbersList({
     popoverFetchingRef.current = true
     setLoading(true)
     try {
-      const [assistantsResult, scenariosResult] = await Promise.all([
-        getOrganizationAssistants(organizationId),
-        getScenarios(organizationId),
-      ])
-      setAssistants((assistantsResult.assistants || []).map((a: { id: string; name: string }) => ({ id: a.id, name: a.name })))
+      const scenariosResult = await getScenarios(organizationId)
       setScenarios(scenariosResult.scenarios || [])
       setLoading(false)
     } finally {
       popoverFetchingRef.current = false
     }
-  }
-
-  const handleAssignAssistant = async (phoneNumberId: string, assistantId: string) => {
-    const { error } = await assignPhoneNumber(phoneNumberId, assistantId)
-    if (error) { toast.error(error); return }
-    setOpenPopover(null)
-    toast.success(t('assignSuccess'))
-    startTransition(() => router.refresh())
   }
 
   const handleAssignScenario = async (phoneNumberId: string, scenarioId: string) => {
@@ -395,7 +369,7 @@ export function PhoneNumbersList({
     <Popover
       open={openPopover === phoneNumber.id}
       onOpenChange={(open) => {
-        if (open) { setActiveTab('assistant'); handleOpenPopover(phoneNumber.id) }
+        if (open) { handleOpenPopover(phoneNumber.id) }
         else setOpenPopover(null)
       }}
     >
@@ -405,52 +379,14 @@ export function PhoneNumbersList({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="end">
-        <div className="flex border-b border-neutral-200 dark:border-neutral-700">
-          <button
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
-              activeTab === 'assistant'
-                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
-            }`}
-            onClick={() => setActiveTab('assistant')}
-          >
-            <User className="h-3.5 w-3.5" />{t('tabAssistant')}
-          </button>
-          <button
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
-              activeTab === 'flow'
-                ? 'border-b-2 border-violet-500 text-violet-600 dark:text-violet-400'
-                : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
-            }`}
-            onClick={() => setActiveTab('flow')}
-          >
-            <GitBranch className="h-3.5 w-3.5" />{t('tabScenario')}
-          </button>
+        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-neutral-200 dark:border-neutral-700 text-xs font-medium text-neutral-500">
+          <GitBranch className="h-3.5 w-3.5" />{t('tabScenario')}
         </div>
         <div className="p-2">
           {loading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
             </div>
-          ) : activeTab === 'assistant' ? (
-            assistants.length === 0 ? (
-              <p className="text-sm text-neutral-400 px-2 py-3 text-center">{t('noAssistantsAvailable')}</p>
-            ) : (
-              <div className="space-y-1 max-h-52 overflow-y-auto">
-                {assistants.map((a) => (
-                  <Button
-                    key={a.id}
-                    variant={phoneNumber.assistants?.id === a.id ? 'secondary' : 'ghost'}
-                    size="sm"
-                    className="w-full justify-start text-sm"
-                    disabled={isPending}
-                    onClick={() => handleAssignAssistant(phoneNumber.id, a.id)}
-                  >
-                    {a.name}
-                  </Button>
-                ))}
-              </div>
-            )
           ) : scenarios.length === 0 ? (
             <p className="text-sm text-neutral-400 px-2 py-3 text-center">{t('noScenariosAvailable')}</p>
           ) : (
@@ -469,7 +405,7 @@ export function PhoneNumbersList({
               ))}
             </div>
           )}
-          {(phoneNumber.assistants || phoneNumber.call_scenarios) && (
+          {phoneNumber.call_scenarios && (
             <div className="mt-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
               <Button
                 variant="ghost"
@@ -677,7 +613,7 @@ export function PhoneNumbersList({
             <p className="text-sm text-neutral-600 dark:text-neutral-400">{t('activePhoneNumbers')}</p>
             <p className="text-2xl font-bold">{phoneNumbers.length}</p>
             <p className="text-xs text-neutral-400 mt-0.5">
-              {phoneNumbers.filter(p => !p.assistants && !p.call_scenarios).length} {t('unassigned')}
+              {phoneNumbers.filter(p => !p.call_scenarios).length} {t('unassigned')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -715,7 +651,7 @@ export function PhoneNumbersList({
               displayItems.map((item) => {
                 if (item.kind === 'block-header') {
                   const isExpanded = expandedBlocks.has(item.blockId)
-                  const assigned = item.numbers.filter(n => n.assistants || n.call_scenarios).length
+                  const assigned = item.numbers.filter(n => n.call_scenarios).length
                   return (
                     <TableRow
                       key={`block-${item.blockId}`}
@@ -770,11 +706,6 @@ export function PhoneNumbersList({
                         <div className="flex items-center gap-1.5">
                           <GitBranch className="h-3.5 w-3.5 text-violet-500" />
                           <span className="text-sm">{phoneNumber.call_scenarios.name}</span>
-                        </div>
-                      ) : phoneNumber.assistants ? (
-                        <div className="flex items-center gap-1.5">
-                          <User className="h-3.5 w-3.5 text-blue-500" />
-                          <span className="text-sm">{phoneNumber.assistants.name}</span>
                         </div>
                       ) : (
                         <span className="text-sm text-neutral-400">-</span>

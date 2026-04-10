@@ -24,6 +24,7 @@ export interface CallScenario {
   version: number
   is_published: boolean
   deployed_at: string | null
+  enable_csat: boolean
   phone_number: string | null
   created_at: string
   updated_at: string

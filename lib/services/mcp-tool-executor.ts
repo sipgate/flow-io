@@ -1,3 +1,4 @@
+import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import {
   createMCPSessionManager,
@@ -63,7 +64,7 @@ export class MCPToolExecutor {
     }
 
     if (!assignments || assignments.length === 0) {
-      console.log('[MCP Tool Executor] No MCP servers assigned to assistant:', assistantId)
+      debug('[MCP Tool Executor] No MCP servers assigned to assistant:', assistantId)
       return { tools: [], errors: [] }
     }
 
@@ -110,7 +111,7 @@ export class MCPToolExecutor {
           tools: server.cached_tools,
         })
 
-        console.log('[MCP Tool Executor] Using cached tools from server:', {
+        debug('[MCP Tool Executor] Using cached tools from server:', {
           server: server.name,
           toolCount: server.cached_tools.length,
           cachedAt: server.tools_fetched_at,
@@ -133,7 +134,7 @@ export class MCPToolExecutor {
     this.toolsDiscovered = convertMCPToolsToLLMTools(serverToolsList)
     this.initialized = true
 
-    console.log('[MCP Tool Executor] Initialization complete (using cached tools):', {
+    debug('[MCP Tool Executor] Initialization complete (using cached tools):', {
       totalTools: this.toolsDiscovered.length,
       servers: serverToolsList.length,
       errors: errors.length,

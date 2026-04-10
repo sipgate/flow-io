@@ -1,5 +1,6 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import OpenAI from 'openai'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
@@ -31,7 +32,7 @@ export async function generateAssistantAvatar(
       description ? `The assistant's purpose: ${description}. ` : ''
     }Style: Modern, minimalist, circular avatar suitable for a business application. Use soft gradients and a friendly appearance. The avatar should feel approachable and trustworthy. Do not include any text.`
 
-    console.log('[Avatar Generator] Generating avatar for:', assistantName)
+    debug('[Avatar Generator] Generating avatar for:', assistantName)
 
     // Generate image using GPT Image 1 (cheapest option)
     // Note: gpt-image-1 only supports 1024x1024, 1024x1536, 1536x1024, or 'auto'
@@ -48,7 +49,7 @@ export async function generateAssistantAvatar(
       return { url: null, error: 'No image data returned from OpenAI' }
     }
 
-    console.log('[Avatar Generator] Image generated, uploading to storage...')
+    debug('[Avatar Generator] Image generated, uploading to storage...')
 
     // Convert base64 to Uint8Array
     const imageData = Uint8Array.from(atob(imageB64), c => c.charCodeAt(0))
@@ -57,7 +58,7 @@ export async function generateAssistantAvatar(
     const supabase = createServiceRoleClient()
     const fileName = `avatars/${Date.now()}-${assistantName.toLowerCase().replace(/\s+/g, '-')}.png`
 
-    console.log('[Avatar Generator] Uploading to storage:', fileName)
+    debug('[Avatar Generator] Uploading to storage:', fileName)
 
     const { error: uploadError } = await supabase.storage
       .from('assistants')
@@ -76,7 +77,7 @@ export async function generateAssistantAvatar(
       .from('assistants')
       .getPublicUrl(fileName)
 
-    console.log('[Avatar Generator] Avatar created:', publicUrlData.publicUrl)
+    debug('[Avatar Generator] Avatar created:', publicUrlData.publicUrl)
 
     return { url: publicUrlData.publicUrl, error: null }
   } catch (error) {
@@ -109,7 +110,7 @@ export async function generateMissingAvatars(): Promise<{
     return { generated: 0, failed: 0, errors: [] }
   }
 
-  console.log(`[Avatar Generator] Generating avatars for ${assistants.length} assistants`)
+  debug(`[Avatar Generator] Generating avatars for ${assistants.length} assistants`)
 
   let generated = 0
   let failed = 0
@@ -134,7 +135,7 @@ export async function generateMissingAvatars(): Promise<{
         errors.push(`Failed to update ${assistant.name}: ${updateError.message}`)
       } else {
         generated++
-        console.log(`[Avatar Generator] Generated avatar for: ${assistant.name}`)
+        debug(`[Avatar Generator] Generated avatar for: ${assistant.name}`)
       }
     } else {
       failed++

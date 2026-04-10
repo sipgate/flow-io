@@ -1,3 +1,4 @@
+import { debug } from '@/lib/utils/logger'
 import type { ScenarioTransferNode } from '@/lib/llm/tools/scenario-transfer-tool'
 
 /**
@@ -28,7 +29,7 @@ const hesitationStates = new Map<string, HesitationParams>()
 
 export function startHesitation(sessionId: string, params: HesitationParams): void {
   hesitationStates.set(sessionId, params)
-  console.log(`[HesitationState] Started for session ${sessionId}`)
+  debug(`[HesitationState] Started for session ${sessionId}`)
 }
 
 export function getHesitationState(sessionId: string): HesitationParams | undefined {
@@ -42,6 +43,6 @@ export function hasHesitationState(sessionId: string): boolean {
 export function clearHesitation(sessionId: string): void {
   if (hesitationStates.has(sessionId)) {
     hesitationStates.delete(sessionId)
-    console.log(`[HesitationState] Cleared for session ${sessionId}`)
+    debug(`[HesitationState] Cleared for session ${sessionId}`)
   }
 }

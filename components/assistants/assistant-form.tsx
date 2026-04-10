@@ -273,7 +273,6 @@ interface AssistantFormProps {
     opening_message: string | null
     is_active: boolean | null
     avatar_url: string | null
-    enable_csat: boolean | null
     enable_hesitation: boolean | null
     deployed_at: string | null
     updated_at: string
@@ -336,7 +335,6 @@ export function AssistantForm({
     assistant?.opening_message || defaultValues?.opening_message || ''
   )
   const [isActive, setIsActive] = useState(assistant?.is_active ?? true)
-  const [enableCsat, setEnableCsat] = useState(assistant?.enable_csat ?? false)
   const [enableHesitation, setEnableHesitation] = useState(assistant?.enable_hesitation ?? false)
 
   const handleProviderChange = (provider: string) => {
@@ -358,7 +356,6 @@ export function AssistantForm({
     systemPrompt: assistant?.system_prompt || defaultValues?.system_prompt || '',
     openingMessage: assistant?.opening_message || defaultValues?.opening_message || '',
     isActive: assistant?.is_active ?? true,
-    enableCsat: assistant?.enable_csat ?? false,
     enableHesitation: assistant?.enable_hesitation ?? false,
   })
 
@@ -375,7 +372,6 @@ export function AssistantForm({
     systemPrompt !== initialValuesRef.current.systemPrompt ||
     openingMessage !== initialValuesRef.current.openingMessage ||
     isActive !== initialValuesRef.current.isActive ||
-    enableCsat !== initialValuesRef.current.enableCsat ||
     enableHesitation !== initialValuesRef.current.enableHesitation
 
   // ── beforeunload guard ──────────────────────────────────────────────────────
@@ -437,7 +433,6 @@ export function AssistantForm({
     setSystemPrompt(init.systemPrompt)
     setOpeningMessage(init.openingMessage)
     setIsActive(init.isActive)
-    setEnableCsat(init.enableCsat)
     setEnableHesitation(init.enableHesitation)
   }
 
@@ -504,7 +499,7 @@ export function AssistantForm({
         voice_provider: voiceProvider, voice_id: voiceId, voice_language: voiceLanguage,
         llm_provider: llmProvider, llm_model: llmModel, llm_temperature: llmTemperature,
         system_prompt: systemPrompt || undefined, opening_message: openingMessage || undefined,
-        is_active: isActive, enable_csat: enableCsat, enable_hesitation: enableHesitation,
+        is_active: isActive, enable_hesitation: enableHesitation,
       }
       await updateAssistant(assistant!.id, data)
     }
@@ -714,7 +709,6 @@ export function AssistantForm({
       system_prompt: systemPrompt || undefined,
       opening_message: openingMessage || undefined,
       is_active: isActive,
-      enable_csat: enableCsat,
       enable_hesitation: enableHesitation,
     }
 
@@ -743,7 +737,6 @@ export function AssistantForm({
           systemPrompt,
           openingMessage,
           isActive,
-          enableCsat,
           enableHesitation,
         }
         setHasUndeployedChanges(true)
@@ -926,7 +919,6 @@ export function AssistantForm({
             preview={
               <PreviewChips items={[
                 ...(isActive ? [t('activeCanReceiveCalls').replace(' (kann Anrufe empfangen)', '')] : []),
-                ...(enableCsat ? ['CSAT'] : []),
                 ...(enableHesitation ? ['Tool-Ankündigung'] : []),
               ]} />
             }
@@ -943,20 +935,6 @@ export function AssistantForm({
                   id="is_active"
                   checked={isActive}
                   onCheckedChange={setIsActive}
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <Label htmlFor="enable_csat" className="font-medium cursor-pointer">
-                    {t('enableCsat')}
-                  </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t('csatDescription')}</p>
-                </div>
-                <Switch
-                  id="enable_csat"
-                  checked={enableCsat}
-                  onCheckedChange={setEnableCsat}
                   disabled={isLoading}
                 />
               </div>

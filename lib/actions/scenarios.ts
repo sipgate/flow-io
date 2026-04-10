@@ -97,7 +97,6 @@ export async function createScenario(
     .from('phone_numbers')
     .select('id')
     .eq('organization_id', orgId)
-    .is('assistant_id', null)
     .is('scenario_id', null)
     .eq('is_active', true)
     .limit(1)
@@ -284,4 +283,26 @@ export async function restoreScenarioVersion(
     version.nodes as unknown as ScenarioNode[],
     version.edges as unknown as ScenarioEdge[]
   )
+}
+
+/**
+ * Update scenario settings (enable_csat, etc.)
+ */
+export async function updateScenarioSettings(
+  scenarioId: string,
+  settings: { enable_csat?: boolean }
+): Promise<{ error: string | null }> {
+  const supabase = await createClient()
+
+  const updates: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  }
+  if (settings.enable_csat !== undefined) updates.enable_csat = settings.enable_csat
+
+  const { error } = await supabase
+    .from('call_scenarios')
+    .update(updates)
+    .eq('id', scenarioId)
+
+  return { error: error?.message || null }
 }

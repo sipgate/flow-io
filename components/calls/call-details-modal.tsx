@@ -26,6 +26,7 @@ import { createClient } from '@/lib/supabase/client'
 import { findVoiceName } from '@/lib/constants/voices'
 import type { ExtractedVariable } from '@/types/variables'
 import type { CallNote } from '@/types/call-tools'
+import { debug } from '@/lib/utils/logger'
 import { toast } from 'sonner'
 
 interface CallDetailsModalProps {
@@ -209,7 +210,7 @@ export function CallDetailsModal({
   useEffect(() => {
     if (!open || !callSessionId) return
 
-    console.log('[CallDetails] Setting up realtime subscriptions for:', callSessionId)
+    debug('[CallDetails] Setting up realtime subscriptions for:', callSessionId)
 
     // Subscribe to call_sessions updates (status changes)
     const sessionsChannel = supabase
@@ -223,7 +224,7 @@ export function CallDetailsModal({
           filter: `id=eq.${callSessionId}`,
         },
         (payload) => {
-          console.log('[CallDetails] Session updated:', payload)
+          debug('[CallDetails] Session updated:', payload)
           setSession((prev) => prev ? { ...prev, ...payload.new as Partial<CallSessionDetail> } : prev)
           // If CSAT score was updated, stop the evaluation spinner
           if (payload.new.csat_score !== null && payload.new.csat_score !== undefined) {
@@ -235,7 +236,7 @@ export function CallDetailsModal({
         }
       )
       .subscribe((status) => {
-        console.log('[CallDetails] Sessions channel status:', status)
+        debug('[CallDetails] Sessions channel status:', status)
       })
 
     // Subscribe to new transcripts
@@ -250,12 +251,12 @@ export function CallDetailsModal({
           filter: `call_session_id=eq.${callSessionId}`,
         },
         (payload) => {
-          console.log('[CallDetails] New transcript:', payload)
+          debug('[CallDetails] New transcript:', payload)
           setTranscripts((prev) => [...prev, payload.new as unknown as CallTranscriptDetail])
         }
       )
       .subscribe((status) => {
-        console.log('[CallDetails] Transcripts channel status:', status)
+        debug('[CallDetails] Transcripts channel status:', status)
       })
 
     // Subscribe to extracted variables
@@ -270,7 +271,7 @@ export function CallDetailsModal({
           filter: `call_session_id=eq.${callSessionId}`,
         },
         (payload) => {
-          console.log('[CallDetails] Variable change:', payload.eventType, payload)
+          debug('[CallDetails] Variable change:', payload.eventType, payload)
           if (payload.eventType === 'INSERT') {
             setExtractedVariables((prev) => [...prev, payload.new as unknown as ExtractedVariable])
           } else if (payload.eventType === 'DELETE') {
@@ -287,7 +288,7 @@ export function CallDetailsModal({
         }
       )
       .subscribe((status) => {
-        console.log('[CallDetails] Variables channel status:', status)
+        debug('[CallDetails] Variables channel status:', status)
       })
 
     // Subscribe to call notes
@@ -302,12 +303,12 @@ export function CallDetailsModal({
           filter: `call_session_id=eq.${callSessionId}`,
         },
         (payload) => {
-          console.log('[CallDetails] New note added:', payload)
+          debug('[CallDetails] New note added:', payload)
           setCallNotes((prev) => [...prev, payload.new as unknown as CallNote])
         }
       )
       .subscribe((status) => {
-        console.log('[CallDetails] Notes channel status:', status)
+        debug('[CallDetails] Notes channel status:', status)
       })
 
     // Subscribe to criteria results (for real-time evaluation updates)
@@ -322,7 +323,7 @@ export function CallDetailsModal({
           filter: `call_session_id=eq.${callSessionId}`,
         },
         (payload) => {
-          console.log('[CallDetails] Criteria result changed:', payload)
+          debug('[CallDetails] Criteria result changed:', payload)
           // Reload all criteria results to get joined criterion data
           getCallCriteriaResults(callSessionId).then(({ results, error }) => {
             if (!error) {
@@ -342,11 +343,11 @@ export function CallDetailsModal({
         }
       )
       .subscribe((status) => {
-        console.log('[CallDetails] Criteria channel status:', status)
+        debug('[CallDetails] Criteria channel status:', status)
       })
 
     return () => {
-      console.log('[CallDetails] Cleaning up realtime subscriptions')
+      debug('[CallDetails] Cleaning up realtime subscriptions')
       supabase.removeChannel(sessionsChannel)
       supabase.removeChannel(transcriptsChannel)
       supabase.removeChannel(variablesChannel)

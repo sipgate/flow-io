@@ -141,7 +141,7 @@ export async function sendVariableWebhook(
     .single()
 
   if (webhookError || !webhook) {
-    console.log('[Webhook] No enabled webhook for assistant:', assistantId)
+    debug('[Webhook] No enabled webhook for assistant:', assistantId)
     return
   }
 

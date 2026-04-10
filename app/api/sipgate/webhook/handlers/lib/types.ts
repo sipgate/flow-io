@@ -55,8 +55,7 @@ export type SipgateEvent =
 export interface PhoneNumberRouting {
   id: string
   phone_number: string
-  assistant_id: string | null
-  scenario_id: string | null
+  scenario_id: string
 }
 
 export interface AssistantConfig {

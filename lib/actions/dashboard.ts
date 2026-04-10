@@ -284,7 +284,7 @@ export async function getFeatureFlags(organizationId: string): Promise<FeatureFl
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', organizationId),
     supabase
-      .from('assistants')
+      .from('call_scenarios')
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', organizationId)
       .eq('enable_csat', true),

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, XCircle, Sparkles } from 'lucide-react'
 import { getOverallTestStatus } from '@/lib/actions/autotest'
 
@@ -14,16 +14,23 @@ export function RunningTestsIndicator({ organizationId }: RunningTestsIndicatorP
   const [status, setStatus] = useState<TestStatus>('none')
   const [runningCount, setRunningCount] = useState(0)
   const [hasCustomPrompt, setHasCustomPrompt] = useState(false)
+  const fetchingRef = useRef(false)
 
   useEffect(() => {
     let mounted = true
 
     const checkStatus = async () => {
-      const result = await getOverallTestStatus(organizationId)
-      if (mounted) {
-        setStatus(result.status)
-        setRunningCount(result.runningCount)
-        setHasCustomPrompt(result.hasCustomPrompt)
+      if (fetchingRef.current) return
+      fetchingRef.current = true
+      try {
+        const result = await getOverallTestStatus(organizationId)
+        if (mounted) {
+          setStatus(result.status)
+          setRunningCount(result.runningCount)
+          setHasCustomPrompt(result.hasCustomPrompt)
+        }
+      } finally {
+        fetchingRef.current = false
       }
     }
 

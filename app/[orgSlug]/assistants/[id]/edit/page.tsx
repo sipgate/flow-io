@@ -53,7 +53,6 @@ export default async function EditAssistantPage({
     opening_message: string | null
     is_active: boolean | null
     avatar_url: string | null
-    enable_csat: boolean | null
     enable_hesitation: boolean | null
     deployed_at: string | null
     updated_at: string

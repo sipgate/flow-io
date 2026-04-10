@@ -15,7 +15,7 @@ import type { SessionStartEvent } from './lib/types'
 
 /**
  * Handle SessionStart event - called when a call begins.
- * Routes the call to an assistant or flow, creates the call session,
+ * Routes the call through a scenario, creates the call session,
  * fetches context data, and returns the opening message.
  */
 export async function handleSessionStart(event: SessionStartEvent, organizationId: string) {
@@ -34,57 +34,44 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     })
   }
 
-  let { assistant } = routing
   const { phoneNumber, scenario } = routing
 
-  // If scenario routing: find entry node and load its assistant
-  if (scenario) {
-    const entryNode = scenario.nodes.find((n) => n.type === 'entry_agent')
-    if (!entryNode?.data.assistant_id) {
-      console.error('[SessionStart] Scenario has no entry agent node:', scenario.id)
-      return NextResponse.json({
-        type: 'speak',
-        session_id: sessionId,
-        text: 'This call scenario is not configured correctly. Please try again later.',
-        tts: { provider: DEFAULT_TTS_PROVIDER, voice: DEFAULT_ELEVENLABS_VOICE_ID },
-      })
-    }
-    const entryAssistant = await loadAssistantConfig(entryNode.data.assistant_id)
-    if (!entryAssistant) {
-      console.error('[SessionStart] Entry agent not found:', entryNode.data.assistant_id)
-      return NextResponse.json({
-        type: 'speak',
-        session_id: sessionId,
-        text: 'The entry agent for this scenario could not be loaded.',
-        tts: { provider: DEFAULT_TTS_PROVIDER, voice: DEFAULT_ELEVENLABS_VOICE_ID },
-      })
-    }
-    assistant = entryAssistant
-
-    sessionState.setScenarioState(sessionId, {
-      scenarioId: scenario.id,
-      activeNodeId: entryNode.id,
-      entryNodeId: entryNode.id,
-      entryVoiceConfig: {
-        voice_provider: entryAssistant.voice_provider,
-        voice_id: entryAssistant.voice_id,
-        voice_language: entryAssistant.voice_language,
-      },
-      nodes: scenario.nodes,
-      edges: scenario.edges,
-    })
-    debug(`[SessionStart] Scenario routing: scenarioId=${scenario.id} entryNode=${entryNode.id} assistant=${entryAssistant.name}`)
-  }
-
-  // Guard: should not happen since routeCallToAssistant guarantees one of the two paths
-  if (!assistant) {
+  // Find entry node and load its assistant
+  const entryNode = scenario.nodes.find((n) => n.type === 'entry_agent')
+  if (!entryNode?.data.assistant_id) {
+    console.error('[SessionStart] Scenario has no entry agent node:', scenario.id)
     return NextResponse.json({
       type: 'speak',
       session_id: sessionId,
-      text: 'This number is not currently configured. Please try again later.',
+      text: 'This call scenario is not configured correctly. Please try again later.',
       tts: { provider: DEFAULT_TTS_PROVIDER, voice: DEFAULT_ELEVENLABS_VOICE_ID },
     })
   }
+
+  const assistant = await loadAssistantConfig(entryNode.data.assistant_id)
+  if (!assistant) {
+    console.error('[SessionStart] Entry agent not found:', entryNode.data.assistant_id)
+    return NextResponse.json({
+      type: 'speak',
+      session_id: sessionId,
+      text: 'The entry agent for this scenario could not be loaded.',
+      tts: { provider: DEFAULT_TTS_PROVIDER, voice: DEFAULT_ELEVENLABS_VOICE_ID },
+    })
+  }
+
+  sessionState.setScenarioState(sessionId, {
+    scenarioId: scenario.id,
+    activeNodeId: entryNode.id,
+    entryNodeId: entryNode.id,
+    entryVoiceConfig: {
+      voice_provider: assistant.voice_provider,
+      voice_id: assistant.voice_id,
+      voice_language: assistant.voice_language,
+    },
+    nodes: scenario.nodes,
+    edges: scenario.edges,
+  })
+  debug(`[SessionStart] Scenario routing: scenarioId=${scenario.id} entryNode=${entryNode.id} assistant=${assistant.name}`)
 
   if (!assistant.is_active) {
     return NextResponse.json({
@@ -100,7 +87,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     organization_id: assistant.organization_id,
     assistant_id: assistant.id,
     phone_number_id: phoneNumber.id,
-    scenario_id: scenario?.id ?? null,
+    scenario_id: scenario.id,
     caller_number: from_phone_number,
     metadata: event,
   }) as { session: { id: string; organization_id: string; assistant_id: string } | null }

@@ -75,6 +75,29 @@ export async function getOrgLevelCriteria(orgId: string): Promise<{
     .select('*')
     .eq('organization_id', orgId)
     .is('assistant_id', null)
+    .is('scenario_id', null)
+    .order('position', { ascending: true })
+
+  if (error) {
+    return { criteria: [], error: error.message }
+  }
+
+  return { criteria: (data || []) as unknown as CallCriterion[], error: null }
+}
+
+/**
+ * Get criteria specific to a scenario
+ */
+export async function getScenarioCriteria(scenarioId: string): Promise<{
+  criteria: CallCriterion[]
+  error: string | null
+}> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('call_criteria')
+    .select('*')
+    .eq('scenario_id', scenarioId)
     .order('position', { ascending: true })
 
   if (error) {
@@ -144,6 +167,7 @@ export async function createCallCriterion(input: CallCriterionInput): Promise<{
     .insert({
       organization_id: input.organization_id,
       assistant_id: input.assistant_id || null,
+      scenario_id: input.scenario_id || null,
       name: input.name,
       description: input.description,
       is_active: input.is_active ?? true,
@@ -419,7 +443,7 @@ export async function triggerCallEvaluation(callSessionId: string): Promise<{
 
 /**
  * Trigger CSAT evaluation for a call (runs in background)
- * This uses forceEvaluateCallCSAT which ignores the assistant's enable_csat setting
+ * This uses forceEvaluateCallCSAT which ignores the scenario's enable_csat setting
  */
 export async function triggerCSATEvaluation(callSessionId: string): Promise<{
   success: boolean

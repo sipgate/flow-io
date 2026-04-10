@@ -1,5 +1,6 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import { createLLMProvider } from '@/lib/llm/provider'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type { CallCriterion, CriterionEvaluationResult } from '@/types/call-criteria'
@@ -147,10 +148,10 @@ export async function evaluateCallCriteria(params: EvaluateCallParams): Promise<
   const supabase = createServiceRoleClient()
 
   try {
-    // 1. Fetch the call session to get organization_id and assistant_id
+    // 1. Fetch the call session to get organization_id, assistant_id, and scenario_id
     const { data: callSession, error: sessionError } = await supabase
       .from('call_sessions')
-      .select('id, organization_id, assistant_id')
+      .select('id, organization_id, assistant_id, scenario_id')
       .eq('id', callSessionId)
       .single()
 
@@ -179,13 +180,21 @@ export async function evaluateCallCriteria(params: EvaluateCallParams): Promise<
       .join('\n')
 
     // 3. Fetch applicable criteria
-    // Get org-level criteria (assistant_id IS NULL) + assistant-specific criteria
+    // Merge: org-level defaults + scenario-level + assistant-level (additive)
+    const orParts: string[] = ['assistant_id.is.null,scenario_id.is.null']  // Org-level defaults
+    if (callSession.scenario_id) {
+      orParts.push(`scenario_id.eq.${callSession.scenario_id}`)
+    }
+    if (callSession.assistant_id) {
+      orParts.push(`assistant_id.eq.${callSession.assistant_id}`)
+    }
+
     let criteriaQuery = supabase
       .from('call_criteria')
       .select('*')
       .eq('organization_id', callSession.organization_id)
       .eq('is_active', true)
-      .or(`assistant_id.is.null,assistant_id.eq.${callSession.assistant_id}`)
+      .or(orParts.join(','))
       .order('position', { ascending: true })
 
     // If specific criteria IDs provided, filter to those
@@ -210,7 +219,7 @@ export async function evaluateCallCriteria(params: EvaluateCallParams): Promise<
     const results: CriterionEvaluationResult[] = []
 
     for (const criterion of criteria) {
-      console.log(`[Call Criteria Evaluator] Evaluating criterion: ${criterion.name}`)
+      debug(`[Call Criteria Evaluator] Evaluating criterion: ${criterion.name}`)
       const result = await evaluateCriterion({
         criterion,
         transcript: transcriptText,
@@ -239,7 +248,7 @@ export async function evaluateCallCriteria(params: EvaluateCallParams): Promise<
       await new Promise(resolve => setTimeout(resolve, 200))
     }
 
-    console.log(`[Call Criteria Evaluator] Completed evaluation of ${results.length} criteria for call ${callSessionId}`)
+    debug(`[Call Criteria Evaluator] Completed evaluation of ${results.length} criteria for call ${callSessionId}`)
 
     return { results, error: null }
   } catch (error) {

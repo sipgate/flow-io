@@ -3,6 +3,7 @@
  * Implements JSON-RPC 2.0 over HTTP for Model Context Protocol
  */
 
+import { debug } from '@/lib/utils/logger'
 import type {
   MCPServerConfig,
   MCPJSONRPCRequest,
@@ -52,7 +53,7 @@ export class MCPClient {
     this.initialized = true
     this.capabilities = result.capabilities
 
-    console.log('[MCP Client] Initialized:', {
+    debug('[MCP Client] Initialized:', {
       server: this.config.name,
       sessionId: this.sessionId,
       serverInfo: result.serverInfo,
@@ -75,7 +76,7 @@ export class MCPClient {
 
     const result = await this.request<MCPToolsListResult>('tools/list', {})
 
-    console.log('[MCP Client] Tools discovered:', {
+    debug('[MCP Client] Tools discovered:', {
       server: this.config.name,
       toolCount: result.tools.length,
       tools: result.tools.map(t => t.name),
@@ -112,7 +113,7 @@ export class MCPClient {
 
       const duration = Date.now() - startTime
 
-      console.log('[MCP Client] Tool call succeeded:', {
+      debug('[MCP Client] Tool call succeeded:', {
         server: this.config.name,
         tool: name,
         duration,
@@ -326,7 +327,7 @@ export class MCPClient {
    */
   async close(): Promise<void> {
     if (this.sessionId) {
-      console.log('[MCP Client] Closing session:', {
+      debug('[MCP Client] Closing session:', {
         server: this.config.name,
         sessionId: this.sessionId,
       })

@@ -1148,6 +1148,17 @@
     "leaveConfirmDescription": "You have changes that haven't been deployed yet. If you leave now, they are saved but not yet active.",
     "leaveAndDeploy": "Deploy & Leave",
     "leaveWithoutDeploy": "Leave without deploying",
+    "settings": "Settings",
+    "settingsConfig": {
+      "title": "Scenario Settings",
+      "csatTitle": "Customer Satisfaction (CSAT)",
+      "csatLabel": "Enable CSAT",
+      "csatDescription": "Automatically evaluate customer satisfaction after each call in this scenario.",
+      "criteriaTitle": "Call Criteria",
+      "criterionDialogDescription": "Define a criterion that will be evaluated for all calls in this scenario.",
+      "orgCriteria": "Organization Defaults",
+      "noCriteria": "No call criteria configured yet."
+    },
     "history": "Versions",
     "historyTitle": "Deploy History",
     "historyEmpty": "No deploys yet",

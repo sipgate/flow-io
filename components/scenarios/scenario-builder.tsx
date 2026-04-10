@@ -14,7 +14,7 @@ import {
   type NodeMouseHandler,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Plus, Loader2, ArrowLeft, Zap, Check, RotateCcw, History } from 'lucide-react'
+import { Plus, Loader2, ArrowLeft, Zap, Check, RotateCcw, History, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -22,6 +22,7 @@ import type { ScenarioNode, ScenarioEdge, CallScenario } from '@/types/scenarios
 import { ScenarioNodeComponent, PhoneNumberNodeComponent } from './scenario-node'
 import { ScenarioNodeConfig } from './scenario-node-config'
 import { ScenarioHistorySheet } from './scenario-history-sheet'
+import { ScenarioSettingsSheet } from './scenario-settings-sheet'
 import { updateScenario, deployScenario, revertScenario } from '@/lib/actions/scenarios'
 import type { ToolModelConfig } from '@/lib/tool-model'
 import {
@@ -91,6 +92,7 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
   const [showRevertConfirm, setShowRevertConfirm] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [hasUndeployedChanges, setHasUndeployedChanges] = useState<boolean>(
     !scenario.deployed_at ||
     new Date(scenario.updated_at) > new Date(scenario.deployed_at)
@@ -427,6 +429,14 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings className="h-4 w-4 mr-1" />
+            {t('settings')}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setHistoryOpen(true)}
           >
             <History className="h-4 w-4 mr-1" />
@@ -508,6 +518,16 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Settings */}
+      <ScenarioSettingsSheet
+        scenarioId={scenario.id}
+        organizationId={scenario.organization_id}
+        enableCsat={scenario.enable_csat}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onSettingsChange={() => router.refresh()}
+      />
 
       {/* Deploy history */}
       <ScenarioHistorySheet

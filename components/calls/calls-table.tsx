@@ -28,6 +28,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { CallDetailsModal } from './call-details-modal'
 import { formatPhoneNumber } from '@/lib/utils/format-phone'
+import { debug } from '@/lib/utils/logger'
 import { createClient } from '@/lib/supabase/client'
 
 interface ExtractedVar {
@@ -140,7 +141,7 @@ export function CallsTable({ calls }: CallsTableProps) {
           // Check if this update is for one of our visible calls
           const changedCallId = (payload.new as { call_session_id?: string })?.call_session_id || (payload.old as { call_session_id?: string })?.call_session_id
           if (changedCallId && callIds.includes(changedCallId)) {
-            console.log('[CallsTable] Criteria result changed, refreshing summaries')
+            debug('[CallsTable] Criteria result changed, refreshing summaries')
             // Refresh summaries for all visible calls
             getCallsCriteriaSummaries(callIds).then(({ summaries, error }) => {
               if (!error) {
@@ -151,7 +152,7 @@ export function CallsTable({ calls }: CallsTableProps) {
         }
       )
       .subscribe((status) => {
-        console.log('[CallsTable] Criteria realtime channel status:', status)
+        debug('[CallsTable] Criteria realtime channel status:', status)
       })
 
     return () => {

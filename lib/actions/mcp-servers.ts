@@ -1,5 +1,6 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { createMCPClient, validateMCPServerURL } from '@/lib/mcp'
@@ -259,7 +260,7 @@ export async function testMCPServer(serverId: string) {
       })
       .eq('id', serverId)
 
-    console.log(`[MCP] Cached ${tools.length} tools for server ${typedServer.name}`)
+    debug(`[MCP] Cached ${tools.length} tools for server ${typedServer.name}`)
 
     return {
       success: true,

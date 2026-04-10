@@ -27,7 +27,6 @@ interface PhoneNumber {
   id: string
   organization_id: string
   phone_number: string
-  assistant_id: string | null
   scenario_id: string | null
   block_id: string | null
   is_active: boolean | null
@@ -38,11 +37,10 @@ interface PhoneNumber {
   updated_at: string | null
 }
 
-interface PhoneNumberWithAssistant {
+interface PhoneNumberWithScenario {
   id: string
   organization_id: string
   phone_number: string
-  assistant_id: string | null
   scenario_id: string | null
   block_id: string | null
   is_active: boolean | null
@@ -51,10 +49,6 @@ interface PhoneNumberWithAssistant {
   provider_config?: Record<string, unknown>
   created_at: string | null
   updated_at: string | null
-  assistants: {
-    id: string
-    name: string
-  } | null
   call_scenarios: {
     id: string
     name: string
@@ -298,7 +292,6 @@ export async function getAvailablePhoneNumbers(orgId: string) {
     .from('phone_numbers')
     .select('*')
     .eq('organization_id', orgId)
-    .is('assistant_id', null)
     .is('scenario_id', null)
     .eq('is_active', true)
     .order('phone_number')
@@ -329,16 +322,11 @@ export async function getOrganizationPhoneNumbers(orgId: string) {
     return { error: 'Unauthorized', phoneNumbers: [] }
   }
 
-  // Get all active phone numbers for this organization with their assignments
+  // Get all active phone numbers for this organization with their scenario assignments
   const { data, error } = await supabase
     .from('phone_numbers')
     .select(`
       *,
-      assistants:assistant_id (
-        id,
-        name,
-        organization_id
-      ),
       call_scenarios:scenario_id (
         id,
         name,
@@ -354,82 +342,7 @@ export async function getOrganizationPhoneNumbers(orgId: string) {
     return { error: error.message, phoneNumbers: [] }
   }
 
-  return { phoneNumbers: data as unknown as PhoneNumberWithAssistant[], error: null }
-}
-
-/**
- * Get phone number assigned to a specific assistant
- */
-export async function getAssistantPhoneNumber(assistantId: string) {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('phone_numbers')
-    .select('*')
-    .eq('assistant_id', assistantId)
-    .single()
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      // No rows returned - no phone number assigned
-      return { phoneNumber: null, error: null }
-    }
-    console.error('Error fetching assistant phone number:', error)
-    return { phoneNumber: null, error: error.message }
-  }
-
-  return { phoneNumber: data as unknown as PhoneNumber, error: null }
-}
-
-/**
- * Manually assign a phone number to an assistant
- */
-export async function assignPhoneNumber(
-  phoneNumberId: string,
-  assistantId: string
-) {
-  const supabase = await createClient()
-  const serviceRoleClient = createServiceRoleClient()
-
-  // Get phone number to verify organization
-  const { data: phoneNumber } = await supabase
-    .from('phone_numbers')
-    .select('organization_id')
-    .eq('id', phoneNumberId)
-    .single()
-
-  if (!phoneNumber) {
-    return { error: 'Phone number not found' }
-  }
-
-  // Verify user is admin/owner of the organization
-  const { data: membership } = await supabase
-    .from('organization_members')
-    .select('role')
-    .eq('organization_id', phoneNumber.organization_id)
-    .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
-    .single()
-
-  if (!membership || !['owner', 'admin'].includes(membership.role)) {
-    return { error: 'Unauthorized' }
-  }
-
-  // Use service role client for the update to bypass RLS
-  const { error } = await serviceRoleClient
-    .from('phone_numbers')
-    .update({
-      assistant_id: assistantId,
-      assigned_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', phoneNumberId)
-
-  if (error) {
-    console.error('Error assigning phone number:', error)
-    return { error: error.message }
-  }
-
-  return { error: null }
+  return { phoneNumbers: data as unknown as PhoneNumberWithScenario[], error: null }
 }
 
 /**
@@ -466,7 +379,6 @@ export async function unassignPhoneNumber(phoneNumberId: string) {
   const { error } = await serviceRoleClient
     .from('phone_numbers')
     .update({
-      assistant_id: null,
       scenario_id: null,
       assigned_at: null,
       updated_at: new Date().toISOString(),
@@ -483,7 +395,6 @@ export async function unassignPhoneNumber(phoneNumberId: string) {
 
 /**
  * Assign a phone number to a call scenario
- * Clears any existing assistant_id assignment
  */
 export async function assignPhoneNumberToFlow(
   phoneNumberId: string,
@@ -517,7 +428,6 @@ export async function assignPhoneNumberToFlow(
     .from('phone_numbers')
     .update({
       scenario_id: scenarioId,
-      assistant_id: null,
       assigned_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -544,7 +454,6 @@ export async function autoAssignPhoneNumberToFlow(
     .from('phone_numbers')
     .select('id')
     .eq('organization_id', orgId)
-    .is('assistant_id', null)
     .is('scenario_id', null)
     .eq('is_active', true)
     .order('phone_number')
@@ -558,7 +467,6 @@ export async function autoAssignPhoneNumberToFlow(
     .from('phone_numbers')
     .update({
       scenario_id: scenarioId,
-      assistant_id: null,
       assigned_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -573,50 +481,3 @@ export async function autoAssignPhoneNumberToFlow(
   return { phoneNumber: data as unknown as PhoneNumber, error: null }
 }
 
-/**
- * Automatically assign an available phone number to an assistant
- * Called when creating a new assistant
- */
-export async function autoAssignPhoneNumber(
-  assistantId: string,
-  orgId: string
-) {
-  const serviceRoleClient = createServiceRoleClient()
-
-  // Find first available phone number (not assigned to any assistant or flow)
-  const { data: availableNumbers } = await serviceRoleClient
-    .from('phone_numbers')
-    .select('id')
-    .eq('organization_id', orgId)
-    .is('assistant_id', null)
-    .is('scenario_id', null)
-    .eq('is_active', true)
-    .order('phone_number')
-    .limit(1)
-
-  if (!availableNumbers || availableNumbers.length === 0) {
-    return {
-      phoneNumber: null,
-      error: 'No available phone numbers in this organization',
-    }
-  }
-
-  // Assign the phone number
-  const { data, error } = await serviceRoleClient
-    .from('phone_numbers')
-    .update({
-      assistant_id: assistantId,
-      assigned_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', availableNumbers[0].id)
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error auto-assigning phone number:', error)
-    return { phoneNumber: null, error: error.message }
-  }
-
-  return { phoneNumber: data as unknown as PhoneNumber, error: null }
-}

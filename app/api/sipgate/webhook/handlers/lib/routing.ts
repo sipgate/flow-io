@@ -4,13 +4,12 @@ import type { ScenarioNode, ScenarioEdge } from '@/types/scenarios'
 import type { AssistantConfig, PhoneNumberRouting } from './types'
 
 /**
- * Route incoming call to the correct assistant/scenario based on to_phone_number.
- * Returns assistant if phone number is assigned directly, or scenario data for scenario routing.
+ * Route incoming call to the correct scenario based on to_phone_number.
+ * Every phone number routes through a scenario (single-agent or multi-agent).
  */
 export async function routeCallToAssistant(toPhoneNumber: string, organizationId: string): Promise<{
   phoneNumber: PhoneNumberRouting
-  assistant: AssistantConfig | null
-  scenario: { id: string; nodes: ScenarioNode[]; edges: ScenarioEdge[] } | null
+  scenario: { id: string; nodes: ScenarioNode[]; edges: ScenarioEdge[] }
 } | null> {
   const supabase = createServiceRoleClient()
 
@@ -21,28 +20,7 @@ export async function routeCallToAssistant(toPhoneNumber: string, organizationId
 
   const { data: phoneNumber, error } = await supabase
     .from('phone_numbers')
-    .select(
-      `
-      id,
-      phone_number,
-      assistant_id,
-      scenario_id,
-      assistants (
-        id,
-        name,
-        organization_id,
-        voice_provider,
-        voice_id,
-        voice_language,
-        llm_provider,
-        llm_model,
-        llm_temperature,
-        system_prompt,
-        opening_message,
-        is_active
-      )
-    `
-    )
+    .select('id, phone_number, scenario_id')
     .eq('phone_number', normalizedNumber)
     .eq('organization_id', organizationId)
     .single()
@@ -52,34 +30,17 @@ export async function routeCallToAssistant(toPhoneNumber: string, organizationId
     return null
   }
 
-  const pn = phoneNumber as unknown as PhoneNumberRouting & {
-    assistants: AssistantConfig | null
-  }
+  const pn = phoneNumber as unknown as PhoneNumberRouting
 
-  // Scenario routing takes precedence over direct assistant assignment
-  if (pn.scenario_id) {
-    const { scenario: callScenario, error: scenarioError } = await getScenarioByIdServiceRole(pn.scenario_id)
-    if (scenarioError || !callScenario) {
-      console.error('Scenario not found for phone number:', pn.scenario_id, scenarioError)
-      return null
-    }
-    return {
-      phoneNumber: { id: pn.id, phone_number: pn.phone_number, assistant_id: null, scenario_id: pn.scenario_id },
-      assistant: null,
-      scenario: { id: callScenario.id, nodes: callScenario.nodes, edges: callScenario.edges },
-    }
-  }
-
-  // Direct assistant routing
-  if (!pn.assistant_id || !pn.assistants) {
-    console.error('No assistant or scenario assigned to number:', normalizedNumber)
+  const { scenario: callScenario, error: scenarioError } = await getScenarioByIdServiceRole(pn.scenario_id)
+  if (scenarioError || !callScenario) {
+    console.error('Scenario not found for phone number:', pn.scenario_id, scenarioError)
     return null
   }
 
   return {
-    phoneNumber: { id: pn.id, phone_number: pn.phone_number, assistant_id: pn.assistant_id, scenario_id: null },
-    assistant: pn.assistants,
-    scenario: null,
+    phoneNumber: { id: pn.id, phone_number: pn.phone_number, scenario_id: pn.scenario_id },
+    scenario: { id: callScenario.id, nodes: callScenario.nodes, edges: callScenario.edges },
   }
 }
 
