@@ -75,10 +75,20 @@ beforeEach(() => {
 // ─── Signatur-Verifikation ────────────────────────────────────────────────────
 
 describe('Webhook Signatur-Verifikation', () => {
-  it('erlaubt Requests wenn weder Token noch Secret konfiguriert sind', async () => {
+  it('lehnt Requests ab wenn weder Token noch Secret in production konfiguriert sind', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    const req = makeRequest({ type: 'session_start', session: makeSession() })
+    const res = await POST(req, PARAMS)
+    expect(res.status).toBe(401)
+    vi.unstubAllEnvs()
+  })
+
+  it('erlaubt Requests wenn weder Token noch Secret in development konfiguriert sind', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
     const req = makeRequest({ type: 'session_start', session: makeSession() })
     const res = await POST(req, PARAMS)
     expect(res.status).not.toBe(401)
+    vi.unstubAllEnvs()
   })
 
   it('erlaubt Requests mit korrektem x-api-token', async () => {

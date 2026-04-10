@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import type { Content, FunctionDeclaration, FunctionDeclarationsTool, Schema } from '@google/generative-ai'
+import { debug } from '@/lib/utils/logger'
 import type { LLMProvider, LLMGenerateOptions, LLMGenerateResponse, LLMMessage, LLMTool, LLMPerformanceMetrics } from './types'
 
 export class GeminiProvider implements LLMProvider {
@@ -125,21 +126,21 @@ export class GeminiProvider implements LLMProvider {
     const { systemPrompt, history, lastUserMessage } = this.convertMessages(options.messages)
 
     // Debug: Log what's actually being sent to Gemini
-    console.log('[Gemini] === ACTUAL API REQUEST ===')
-    console.log('[Gemini] Model:', this.model)
-    console.log('[Gemini] System prompt:', systemPrompt?.substring(0, 100) + '...')
-    console.log('[Gemini] History messages:')
+    debug('[Gemini] === ACTUAL API REQUEST ===')
+    debug('[Gemini] Model:', this.model)
+    debug('[Gemini] System prompt:', systemPrompt?.substring(0, 100) + '...')
+    debug('[Gemini] History messages:')
     history.forEach((msg, idx) => {
       const part = msg.parts[0]
       const content = 'text' in part ? part.text : 'functionResponse' in part ? `[Function: ${part.functionResponse?.name}]` : '[Unknown]'
-      console.log(`  [${idx}] ${msg.role}: ${content}`)
+      debug(`  [${idx}] ${msg.role}: ${content}`)
     })
     const isFunctionResponse = Array.isArray(lastUserMessage)
-    console.log('[Gemini] Last user message:', isFunctionResponse ? 'Function response(s)' : lastUserMessage)
-    console.log('[Gemini] Is function response:', isFunctionResponse)
-    console.log('[Gemini] Total history messages:', history.length)
-    console.log('[Gemini] Tools provided:', geminiTools ? geminiTools[0]?.functionDeclarations?.map(f => f.name) : 'none')
-    console.log('[Gemini] ========================')
+    debug('[Gemini] Last user message:', isFunctionResponse ? 'Function response(s)' : lastUserMessage)
+    debug('[Gemini] Is function response:', isFunctionResponse)
+    debug('[Gemini] Total history messages:', history.length)
+    debug('[Gemini] Tools provided:', geminiTools ? geminiTools[0]?.functionDeclarations?.map(f => f.name) : 'none')
+    debug('[Gemini] ========================')
 
     // Build generation config with optional thinking level for Gemini 3 models
     const generationConfig: Record<string, unknown> = {
@@ -196,7 +197,7 @@ export class GeminiProvider implements LLMProvider {
 
     // Debug logging
     const candidate = response.candidates?.[0]
-    console.log('[Gemini] Response details:', {
+    debug('[Gemini] Response details:', {
       has_function_calls: !!(functionCalls && functionCalls.length > 0),
       function_calls: functionCalls?.map(fc => fc.name) || [],
       finish_reason: candidate?.finishReason,
@@ -206,7 +207,7 @@ export class GeminiProvider implements LLMProvider {
 
     // If there are function calls, return them
     if (functionCalls && functionCalls.length > 0) {
-      console.log('[Gemini] Function calls detected:', JSON.stringify(functionCalls, null, 2))
+      debug('[Gemini] Function calls detected:', JSON.stringify(functionCalls, null, 2))
 
       // Generate IDs upfront so we can key the raw content for thought_signature preservation
       const now = Date.now()
@@ -249,7 +250,7 @@ export class GeminiProvider implements LLMProvider {
       content = ''
     }
 
-    console.log('[Gemini] Text response length:', content?.length || 0)
+    debug('[Gemini] Text response length:', content?.length || 0)
 
     // Handle empty response - provide fallback instead of throwing
     if (!content) {

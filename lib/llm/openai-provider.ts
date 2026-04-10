@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { debug } from '@/lib/utils/logger'
 import type { LLMProvider, LLMGenerateOptions, LLMGenerateResponse, LLMPerformanceMetrics } from './types'
 
 export class OpenAIProvider implements LLMProvider {
@@ -16,14 +17,14 @@ export class OpenAIProvider implements LLMProvider {
 
   private async generateWithRetry(options: LLMGenerateOptions, retriesLeft: number): Promise<LLMGenerateResponse> {
     // Debug: Log actual messages being sent to OpenAI API
-    console.log('[OpenAI] === ACTUAL API REQUEST ===')
-    console.log('[OpenAI] Model:', this.model)
-    console.log('[OpenAI] Messages being sent to API:')
+    debug('[OpenAI] === ACTUAL API REQUEST ===')
+    debug('[OpenAI] Model:', this.model)
+    debug('[OpenAI] Messages being sent to API:')
     options.messages.forEach((msg, idx) => {
-      console.log(`  [${idx}] ${msg.role}: ${msg.content}`)
+      debug(`  [${idx}] ${msg.role}: ${msg.content}`)
     })
-    console.log('[OpenAI] Total messages:', options.messages.length)
-    console.log('[OpenAI] ========================')
+    debug('[OpenAI] Total messages:', options.messages.length)
+    debug('[OpenAI] ========================')
 
     // Newer OpenAI models (gpt-4o, gpt-5, etc.) use max_completion_tokens instead of max_tokens
     const isNewerModel = this.model.startsWith('gpt-4o') ||
@@ -72,7 +73,7 @@ export class OpenAIProvider implements LLMProvider {
     const choice = response.choices[0]
 
     // Debug logging
-    console.log('[OpenAI] Response details:', {
+    debug('[OpenAI] Response details:', {
       finish_reason: choice.finish_reason,
       content_length: choice.message.content?.length || 0,
       content_preview: choice.message.content?.slice(0, 100) + '...',
@@ -113,7 +114,7 @@ export class OpenAIProvider implements LLMProvider {
     if (!choice?.message?.content) {
       // Retry on empty content (common with GPT-5 Mini/Nano on cold starts)
       if (retriesLeft > 0) {
-        console.log(`[OpenAI] Empty response, retrying... (${retriesLeft} retries left)`)
+        debug(`[OpenAI] Empty response, retrying... (${retriesLeft} retries left)`)
         await new Promise(resolve => setTimeout(resolve, 500)) // Brief delay before retry
         return this.generateWithRetry(options, retriesLeft - 1)
       }

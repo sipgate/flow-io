@@ -12,7 +12,7 @@ import { createRequire } from "module";
 import tsParser from "@typescript-eslint/parser";
 
 const require = createRequire(import.meta.url);
-const flow-ioDesign = require("./eslint-rules/index.js");
+const flowIoDesign = require("./eslint-rules/index.js");
 
 export default [
   {
@@ -30,7 +30,7 @@ export default [
       },
     },
     plugins: {
-      "flow-io-design": flow-ioDesign,
+      "flow-io-design": flowIoDesign,
     },
     rules: {
       // Nur die drei hard-error Design-System-Regeln

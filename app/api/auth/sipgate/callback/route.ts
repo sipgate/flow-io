@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { SipgateProvider } from '@/lib/telephony/providers/sipgate/oauth'
+import { getAppUrl } from '@/lib/utils/app-url'
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const forwardedHost = request.headers.get('x-forwarded-host')
-  const forwardedProto = request.headers.get('x-forwarded-proto')
-  const host = forwardedHost ?? url.host
-  const proto = forwardedProto ?? url.protocol.replace(':', '')
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? `${proto}://${host}`
+  const origin = getAppUrl()
 
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
@@ -22,14 +19,14 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`)
   }
 
-  // Validate state (stored in cookie)
+  // Validate state (stored in cookie) — fail closed
   const storedState = request.headers.get('cookie')
     ?.split(';')
     .find(c => c.trim().startsWith('sipgate_oauth_state='))
     ?.split('=')[1]
     ?.trim()
 
-  if (state && storedState && state !== storedState) {
+  if (!state || !storedState || state !== storedState) {
     return NextResponse.redirect(`${origin}/login?error=invalid_state`)
   }
 

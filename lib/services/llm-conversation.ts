@@ -1,3 +1,4 @@
+import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { createLLMProvider } from '@/lib/llm/provider'
 import type { LLMMessage, LLMTool, LLMResponseResult } from '@/lib/llm/types'
@@ -104,7 +105,7 @@ export async function generateLLMResponse(params: {
     if (params.sessionId) {
       contextData = await getCallContextData(params.sessionId)
       if (contextData && Object.keys(contextData).length > 0) {
-        console.log('[LLM Service] Context data loaded:', Object.keys(contextData))
+        debug('[LLM Service] Context data loaded:', Object.keys(contextData))
       }
     }
 
@@ -149,17 +150,17 @@ export async function generateLLMResponse(params: {
 
       // Log variable substitution if any occurred
       if (processedPrompt !== assistant.system_prompt) {
-        console.log('[LLM Service] Prompt variables substituted:', {
+        debug('[LLM Service] Prompt variables substituted:', {
           callerNumber: variableContext.callerNumber,
           assistantName: variableContext.assistantName,
           contextKeys: contextData ? Object.keys(contextData) : [],
         })
       }
       if (params.variableCollectionPrompt || params.validationContext) {
-        console.log('[LLM Service] Variable collection context appended to system prompt')
+        debug('[LLM Service] Variable collection context appended to system prompt')
       }
       if (params.seamlessTransfer) {
-        console.log('[LLM Service] Seamless transfer: suppressing self-introduction')
+        debug('[LLM Service] Seamless transfer: suppressing self-introduction')
       }
     }
 
@@ -183,8 +184,8 @@ export async function generateLLMResponse(params: {
     }
 
     // Debug: Log messages being sent to LLM
-    console.log('[LLM Service] Messages to LLM:', JSON.stringify(messages.map(m => ({ role: m.role, content: m.content.substring(0, 100) + (m.content.length > 100 ? '...' : '') })), null, 2))
-    console.log('[LLM Service] Total messages:', messages.length)
+    debug('[LLM Service] Messages to LLM:', JSON.stringify(messages.map(m => ({ role: m.role, content: m.content.substring(0, 100) + (m.content.length > 100 ? '...' : '') })), null, 2))
+    debug('[LLM Service] Total messages:', messages.length)
 
     // Create LLM provider with assistant's configuration
     const llmProvider = createLLMProvider({
@@ -232,23 +233,23 @@ export async function generateLLMResponse(params: {
     const hasTools = mcpTools.length > 0 || (hasKnowledgeBases && assistant.enable_kb_tool !== false)
     if (assistant.enable_hesitation && hasTools && !params.disableHesitation) {
       allTools.unshift(hesitateToolDefinition)
-      console.log('[LLM Service] Hesitate tool enabled')
+      debug('[LLM Service] Hesitate tool enabled')
     }
 
     // Add call control tools (only for real calls, not test chats)
     if (callToolConfig) {
       const callControlTools = buildCallControlTools(callToolConfig)
       allTools.push(...callControlTools)
-      console.log('[LLM Service] Call control tools enabled:', callControlTools.map(t => t.function.name))
+      debug('[LLM Service] Call control tools enabled:', callControlTools.map(t => t.function.name))
     }
 
     // Add scenario transfer tool if running in scenario mode with reachable nodes
     if (params.scenarioTransferNodes && params.scenarioTransferNodes.length > 0) {
       allTools.push(buildScenarioTransferTool(params.scenarioTransferNodes))
-      console.log('[LLM Service] Scenario transfer tool enabled for nodes:', params.scenarioTransferNodes.map(n => n.nodeId))
+      debug('[LLM Service] Scenario transfer tool enabled for nodes:', params.scenarioTransferNodes.map(n => n.nodeId))
     }
 
-    console.log('[LLM Service] Tools available:', {
+    debug('[LLM Service] Tools available:', {
       knowledgeBase: hasKnowledgeBases && assistant.enable_kb_tool !== false ? 1 : 0,
       mcp: mcpTools.length,
       callControl: callToolConfig ? buildCallControlTools(callToolConfig).length : 0,
@@ -287,7 +288,7 @@ export async function generateLLMResponse(params: {
       const hesitateCall = llmResponse.tool_calls.find((tc) => isHesitateTool(tc.function.name))
       if (hesitateCall) {
         const hesitateArgs = JSON.parse(hesitateCall.function.arguments) as { message: string }
-        console.log('[LLM Service] Hesitate tool called:', hesitateArgs.message)
+        debug('[LLM Service] Hesitate tool called:', hesitateArgs.message)
         return {
           response: hesitateArgs.message,
           hesitationMessage: hesitateArgs.message,
@@ -299,7 +300,7 @@ export async function generateLLMResponse(params: {
       // Skip enforcement if all tool calls are call control actions or scenario transfers — those execute immediately without hesitation.
       const hasNonCallControlCall = llmResponse.tool_calls!.some(tc => !isCallControlTool(tc.function.name) && !isScenarioTransferTool(tc.function.name))
       if (assistant.enable_hesitation && !params.disableHesitation && hasNonCallControlCall) {
-        console.log('[LLM Service] Enforcing hesitation — returning error for skipped hesitate tool')
+        debug('[LLM Service] Enforcing hesitation — returning error for skipped hesitate tool')
         messages.push({
           role: 'assistant',
           content: '',
@@ -325,14 +326,14 @@ export async function generateLLMResponse(params: {
         const hesitateRetry = llmResponse.tool_calls?.find((tc) => isHesitateTool(tc.function.name))
         if (hesitateRetry) {
           const hesitateArgs = JSON.parse(hesitateRetry.function.arguments) as { message: string }
-          console.log('[LLM Service] Hesitate tool called after enforcement:', hesitateArgs.message)
+          debug('[LLM Service] Hesitate tool called after enforcement:', hesitateArgs.message)
           return {
             response: hesitateArgs.message,
             hesitationMessage: hesitateArgs.message,
           }
         }
         // Model still didn't call hesitate — fall through to normal tool execution
-        console.log('[LLM Service] Hesitation enforcement failed — proceeding without hesitation')
+        debug('[LLM Service] Hesitation enforcement failed — proceeding without hesitation')
         if (!llmResponse.tool_calls?.length) {
           // Model returned a text response after enforcement — skip tool execution
           return { response: llmResponse.content }
@@ -358,7 +359,7 @@ export async function generateLLMResponse(params: {
           if (toolCall.function.name === CALL_CONTROL_TOOL_NAMES.HANGUP) {
             // Hangup tool - immediately return with hangup action
             const hangupArgs = args as HangupToolArgs
-            console.log('[LLM Service] Hangup tool called:', hangupArgs)
+            debug('[LLM Service] Hangup tool called:', hangupArgs)
 
             return {
               response: hangupArgs.farewell_message || 'Goodbye!',
@@ -377,7 +378,7 @@ export async function generateLLMResponse(params: {
           if (toolCall.function.name === CALL_CONTROL_TOOL_NAMES.FORWARD) {
             // Forward tool - immediately return with forward action
             const forwardArgs = args as ForwardToolArgs
-            console.log('[LLM Service] Forward tool called:', forwardArgs)
+            debug('[LLM Service] Forward tool called:', forwardArgs)
 
             if (!callToolConfig?.forward_phone_number) {
               toolResult = 'Error: No forward phone number configured'
@@ -408,7 +409,7 @@ export async function generateLLMResponse(params: {
           if (toolCall.function.name === CALL_CONTROL_TOOL_NAMES.TAKE_NOTE) {
             // Take note tool - save the note and continue
             const noteArgs = args as NoteToolArgs
-            console.log('[LLM Service] Take note tool called:', noteArgs)
+            debug('[LLM Service] Take note tool called:', noteArgs)
 
             if (params.sessionId) {
               // Get the last few messages for context
@@ -454,7 +455,7 @@ export async function generateLLMResponse(params: {
         // Check for scenario transfer tool
         if (isScenarioTransferTool(toolCall.function.name)) {
           const transferArgs = JSON.parse(toolCall.function.arguments) as ScenarioTransferToolArgs
-          console.log('[LLM Service] Scenario transfer tool called:', transferArgs)
+          debug('[LLM Service] Scenario transfer tool called:', transferArgs)
 
           return {
             response: transferArgs.handoff_message || 'Let me connect you with the right agent.',
@@ -531,7 +532,7 @@ export async function generateLLMResponse(params: {
     }
 
     // Debug logging
-    console.log('[LLM Conversation] Final response:', {
+    debug('[LLM Conversation] Final response:', {
       response_length: llmResponse.content.length,
       finish_reason: llmResponse.finish_reason,
       usage: llmResponse.usage,

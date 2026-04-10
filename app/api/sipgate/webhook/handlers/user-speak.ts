@@ -25,6 +25,7 @@ import {
 } from '@/lib/services/variable-realtime-extractor'
 import { validateWithRegex, validateWithWebhook } from '@/lib/services/variable-validation'
 import { sessionState } from '@/lib/services/session-state'
+import { debug } from '@/lib/utils/logger'
 import { DEFAULT_ELEVENLABS_VOICE_ID, DEFAULT_TTS_PROVIDER } from '@/lib/constants/voices'
 import { buildSpeakResponse, buildTTSConfig, buildAssistantMeta } from './lib/speak-response'
 import { loadAssistantConfig } from './lib/routing'
@@ -135,7 +136,7 @@ export async function processRealtimeExtraction(
  * Routes through MCP async path (with hold messages) or fast synchronous path.
  */
 export async function handleUserSpeak(event: UserSpeakEvent) {
-  console.log('🗣️  User Speak:', event)
+  debug('🗣️  User Speak:', event)
 
   const bargeIn = sessionState.getBargeInConfig(event.session.id)
   const supabase = createServiceRoleClient()
@@ -267,7 +268,7 @@ async function handleUserSpeakMCPPath(
   collection: ReturnType<typeof getVariableCollection>,
   bargeIn: ReturnType<typeof sessionState.getBargeInConfig>,
 ) {
-  console.log('[Webhook] Assistant has MCP servers - using async pattern with delayed hold')
+  debug('[Webhook] Assistant has MCP servers - using async pattern with delayed hold')
 
   const supabase = createServiceRoleClient()
   const { data: transcripts } = await supabase
@@ -323,7 +324,7 @@ async function handleUserSpeakMCPPath(
   const quickResult = await Promise.race([llmPromise, timeoutPromise])
 
   if (quickResult !== null) {
-    console.log('[Webhook] LLM completed quickly, returning direct response')
+    debug('[Webhook] LLM completed quickly, returning direct response')
 
     if (quickResult.error) {
       const fallbackResponse = 'Es tut mir leid, es gab einen Fehler. Können Sie das bitte wiederholen?'
@@ -354,7 +355,7 @@ async function handleUserSpeakMCPPath(
 
     // Hesitation: LLM announced what it will do — store state for follow-up in assistant_speech_ended
     if (quickResult.hesitationMessage) {
-      console.log('[Webhook] LLM hesitating:', quickResult.hesitationMessage)
+      debug('[Webhook] LLM hesitating:', quickResult.hesitationMessage)
       startHesitation(event.session.id, {
         assistantId: assistant.id,
         organizationId: session.organization_id,
@@ -404,7 +405,7 @@ async function handleUserSpeakMCPPath(
   }
 
   // LLM taking > 4s — use hold message pattern
-  console.log('[Webhook] LLM taking >4s, switching to hold message pattern')
+  debug('[Webhook] LLM taking >4s, switching to hold message pattern')
   startPendingMCP(event.session.id, llmPromise, event.text)
 
   const language = (assistant.voice_language || 'de-DE').startsWith('de') ? 'de' : 'en'
@@ -455,8 +456,8 @@ async function handleUserSpeakFastPath(
           }))
       : []
 
-    console.log('[Webhook] Conversation history:', JSON.stringify(conversationHistory, null, 2))
-    console.log('[Webhook] Total messages in history:', conversationHistory.length)
+    debug('[Webhook] Conversation history:', JSON.stringify(conversationHistory, null, 2))
+    debug('[Webhook] Total messages in history:', conversationHistory.length)
 
     const validationContext = collection ? buildValidationContext(event.session.id) : undefined
     const collectionPrompt = collection ? buildCollectionSystemPrompt(collection.definitions) : undefined
@@ -489,7 +490,7 @@ async function handleUserSpeakFastPath(
 
     // Hesitation: LLM announced what it will do — store state for follow-up in assistant_speech_ended
     if (llmResult.hesitationMessage) {
-      console.log('[Webhook] LLM hesitating (fast path):', llmResult.hesitationMessage)
+      debug('[Webhook] LLM hesitating (fast path):', llmResult.hesitationMessage)
       startHesitation(event.session.id, {
         assistantId: assistant.id,
         organizationId: session.organization_id,
@@ -590,7 +591,7 @@ async function handleScenarioTransfer(params: ScenarioTransferParams) {
   persistActiveNodeId(event.session.id, targetNodeId).catch(() => {})
 
   const pathLabel = isQuickResponse ? 'async path' : 'fast path'
-  console.log(`[Webhook] Scenario transfer (${pathLabel}): switching active node to ${targetNodeId}`)
+  debug(`[Webhook] Scenario transfer (${pathLabel}): switching active node to ${targetNodeId}`)
 
   const targetNode = scenarioState.nodes.find((n) => n.id === targetNodeId)
 
@@ -677,7 +678,7 @@ async function handleCallAction(
 ): Promise<NextResponse | null> {
   if (callAction.type === 'hangup') {
     const pathLabel = isQuickResponse ? '(async path) ' : ''
-    console.log(`[Webhook] Hangup action triggered ${pathLabel}— deferring until speech ends`)
+    debug(`[Webhook] Hangup action triggered ${pathLabel}— deferring until speech ends`)
     sessionState.setPendingAction(event.session.id, { type: 'hangup' })
     const speak = buildSpeakResponse(event.session.id, response, assistant, bargeIn)
     await addTranscriptMessage({
@@ -698,7 +699,7 @@ async function handleCallAction(
 
   if (callAction.type === 'forward') {
     const pathLabel = isQuickResponse ? '(async path) ' : ''
-    console.log(`[Webhook] Forward action triggered ${pathLabel}— deferring until speech ends`)
+    debug(`[Webhook] Forward action triggered ${pathLabel}— deferring until speech ends`)
     sessionState.setPendingAction(event.session.id, {
       type: 'transfer',
       targetPhoneNumber: callAction.targetPhoneNumber,

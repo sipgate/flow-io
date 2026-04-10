@@ -7,6 +7,7 @@
  */
 import { WebSocketServer, WebSocket } from 'ws'
 import type { Server, IncomingMessage } from 'http'
+import { debug } from '@/lib/utils/logger'
 import { handleSessionStart } from '@/app/api/sipgate/webhook/handlers/session-start'
 import { handleUserSpeak } from '@/app/api/sipgate/webhook/handlers/user-speak'
 import { handleSessionEnd } from '@/app/api/sipgate/webhook/handlers/session-end'
@@ -28,7 +29,14 @@ export function setupWebSocketServer(server: Server): void {
       return
     }
 
-    if (TOKEN && req.headers['x-api-token'] !== TOKEN) {
+    if (TOKEN) {
+      if (req.headers['x-api-token'] !== TOKEN) {
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
+        socket.destroy()
+        return
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      console.warn('SIPGATE_WEBHOOK_TOKEN unconfigured in production. Rejecting WebSocket connection.')
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
       socket.destroy()
       return
@@ -41,7 +49,7 @@ export function setupWebSocketServer(server: Server): void {
   })
 
   wss.on('connection', (ws: WebSocket, _req: IncomingMessage, orgId: string) => {
-    console.log(`[WS] Connected orgId=${orgId}`)
+    debug(`[WS] Connected orgId=${orgId}`)
 
     ws.on('message', async (data) => {
       let event: SipgateEvent
@@ -52,7 +60,7 @@ export function setupWebSocketServer(server: Server): void {
         return
       }
 
-      console.log(`[WS] Event: ${event.type} session=${event.session.id}`)
+      debug(`[WS] Event: ${event.type} session=${event.session.id}`)
 
       try {
         let response: Response | null = null
@@ -93,7 +101,7 @@ export function setupWebSocketServer(server: Server): void {
             break
 
           default:
-            console.log('[WS] Unknown event type:', (event as { type: string }).type)
+            debug('[WS] Unknown event type:', (event as { type: string }).type)
             return
         }
 
@@ -106,7 +114,7 @@ export function setupWebSocketServer(server: Server): void {
       }
     })
 
-    ws.on('close', () => console.log(`[WS] Disconnected orgId=${orgId}`))
+    ws.on('close', () => debug(`[WS] Disconnected orgId=${orgId}`))
     ws.on('error', (err) => console.error(`[WS] Error orgId=${orgId}:`, err))
   })
 }

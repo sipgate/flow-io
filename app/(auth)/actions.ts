@@ -1,23 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getAppUrl } from '@/lib/utils/app-url'
 import type { Database } from '@/types/database'
-
-async function getBaseUrl(): Promise<string> {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL
-  }
-  const h = await headers()
-  const host = h.get('x-forwarded-host') ?? h.get('host')
-  const proto = h.get('x-forwarded-proto') ?? 'http'
-  if (host) {
-    return `${proto}://${host}`
-  }
-  return 'http://localhost:3000'
-}
 
 type ActionResult = {
   error?: string
@@ -67,7 +54,7 @@ export async function signup(formData: FormData): Promise<never> {
     )
   }
 
-  const baseUrl = await getBaseUrl()
+  const baseUrl = getAppUrl()
 
   // Sign up the user
   const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -131,7 +118,7 @@ export async function resetPassword(formData: FormData): Promise<never> {
     redirect('/forgot-password?error=missing_email')
   }
 
-  const baseUrl = await getBaseUrl()
+  const baseUrl = getAppUrl()
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${baseUrl}/reset-password`,
   })
@@ -158,7 +145,7 @@ export async function signOut(): Promise<never> {
 
 export async function signInWithSipgate(): Promise<never> {
   const { SipgateProvider } = await import('@/lib/telephony/providers/sipgate/oauth')
-  const baseUrl = await getBaseUrl()
+  const baseUrl = getAppUrl()
 
   const state = crypto.randomUUID()
   const redirectUri = `${baseUrl}/api/auth/sipgate/callback`

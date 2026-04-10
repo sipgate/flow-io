@@ -1,5 +1,6 @@
 'use server'
 
+import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type {
   ContextWebhook,
@@ -46,7 +47,7 @@ export async function fetchCallContext(
 
   if (webhookError || !webhook) {
     // No webhook configured or not enabled - this is fine, just skip
-    console.log('[ContextWebhook] No enabled webhook for assistant:', params.assistantId)
+    debug('[ContextWebhook] No enabled webhook for assistant:', params.assistantId)
     return { success: true, contextData: {} }
   }
 
@@ -75,8 +76,8 @@ export async function fetchCallContext(
       },
     }
 
-    console.log('[ContextWebhook] Fetching context from:', contextWebhook.url)
-    console.log('[ContextWebhook] Request payload:', JSON.stringify(requestPayload))
+    debug('[ContextWebhook] Fetching context from:', contextWebhook.url)
+    debug('[ContextWebhook] Request payload:', JSON.stringify(requestPayload))
 
     // Build headers
     const headers: Record<string, string> = {
@@ -125,7 +126,7 @@ export async function fetchCallContext(
 
     // Parse response
     const responseData: ContextWebhookResponse = await response.json()
-    console.log('[ContextWebhook] Response received:', JSON.stringify(responseData))
+    debug('[ContextWebhook] Response received:', JSON.stringify(responseData))
 
     // Prefix the context data with the configured prefix
     const prefix = contextWebhook.response_variable_prefix || 'context'

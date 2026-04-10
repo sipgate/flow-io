@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { updateCallSession } from '@/lib/repositories/calls.repository'
 import { extractAndDeliverVariables } from '@/lib/services/variable-extractor'
@@ -14,7 +15,7 @@ import type { SessionEndEvent } from './lib/types'
  * Updates call session, extracts variables, evaluates criteria, and cleans up state.
  */
 export async function handleSessionEnd(event: SessionEndEvent) {
-  console.log('📴 Session End:', event)
+  debug('📴 Session End:', event)
 
   const supabase = createServiceRoleClient()
 

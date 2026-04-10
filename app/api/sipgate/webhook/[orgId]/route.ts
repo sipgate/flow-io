@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { debug } from '@/lib/utils/logger'
 import { sessionState } from '@/lib/services/session-state'
 import { cancelPendingMCP } from '@/lib/services/pending-mcp-state'
 import { handleSessionStart } from '../handlers/session-start'
@@ -8,7 +9,7 @@ import { handleAssistantSpeechEnded } from '../handlers/assistant-speech-ended'
 import type { SipgateEvent, UserBargeInEvent } from '../handlers/lib/types'
 
 function handleUserBargeIn(event: UserBargeInEvent): NextResponse {
-  console.log('🔇 User Barge-In:', event.session.id)
+  debug('🔇 User Barge-In:', event.session.id)
   cancelPendingMCP(event.session.id)
   sessionState.deletePendingAction(event.session.id)
   sessionState.setBargeInOccurred(event.session.id)
@@ -22,7 +23,13 @@ async function verifyWebhookSignature(request: NextRequest, rawBody: string): Pr
   }
 
   const secret = process.env.SIPGATE_WEBHOOK_SECRET
-  if (!secret) return true
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('SIPGATE_WEBHOOK_TOKEN and SIPGATE_WEBHOOK_SECRET unconfigured in production. Rejecting.')
+      return false
+    }
+    return true
+  }
 
   const signature = request.headers.get('x-sipgate-signature')
   if (!signature) return false
@@ -59,7 +66,7 @@ export async function POST(
     }
 
     const event: SipgateEvent = JSON.parse(rawBody)
-    console.log('📨 Received sipgate event:', event.type, 'orgId:', orgId)
+    debug('📨 Received sipgate event:', event.type, 'orgId:', orgId)
 
     switch (event.type) {
       case 'session_start':
@@ -89,7 +96,7 @@ export async function POST(
         return handleSessionEnd(event)
 
       default:
-        console.log('Unknown event type:', (event as { type: string }).type)
+        debug('Unknown event type:', (event as { type: string }).type)
         return NextResponse.json({ success: true })
     }
   } catch (error) {

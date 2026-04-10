@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { debug } from '@/lib/utils/logger'
 import { createLLMProvider } from '@/lib/llm/provider'
 import { getAssistantVariableDefinitionsForExtraction } from '@/lib/repositories/variables.repository'
 import { storeExtractedVariables, hasAssistantVariables } from '@/lib/actions/variables'
@@ -15,23 +16,23 @@ export async function extractAndDeliverVariables(
   organizationId: string,
   options?: { preCollected?: Map<string, CollectedVariable> }
 ): Promise<void> {
-  console.log('[VariableExtractor] Starting extraction for call:', callSessionId)
+  debug('[VariableExtractor] Starting extraction for call:', callSessionId)
   if (options?.preCollected) {
-    console.log('[VariableExtractor] Using pre-collected data for', options.preCollected.size, 'variables')
+    debug('[VariableExtractor] Using pre-collected data for', options.preCollected.size, 'variables')
   }
 
   try {
     // Check if assistant has variable definitions
     const { hasVariables } = await hasAssistantVariables(assistantId)
     if (!hasVariables) {
-      console.log('[VariableExtractor] No variable definitions for assistant:', assistantId)
+      debug('[VariableExtractor] No variable definitions for assistant:', assistantId)
       return
     }
 
     // Get variable definitions (using service role for webhook context)
     const { definitions, error: defError } = await getAssistantVariableDefinitionsForExtraction(assistantId)
     if (defError || definitions.length === 0) {
-      console.log('[VariableExtractor] No definitions found or error:', defError)
+      debug('[VariableExtractor] No definitions found or error:', defError)
       return
     }
 
@@ -44,7 +45,7 @@ export async function extractAndDeliverVariables(
       .order('timestamp', { ascending: true })
 
     if (transcriptError || !transcripts || transcripts.length === 0) {
-      console.log('[VariableExtractor] No transcripts found:', transcriptError)
+      debug('[VariableExtractor] No transcripts found:', transcriptError)
       return
     }
 
@@ -56,7 +57,7 @@ export async function extractAndDeliverVariables(
       .single()
 
     if (assistantError || !assistant) {
-      console.log('[VariableExtractor] Assistant not found:', assistantError)
+      debug('[VariableExtractor] Assistant not found:', assistantError)
       return
     }
 
@@ -97,7 +98,7 @@ export async function extractAndDeliverVariables(
     })
 
     if (!extractedVars || extractedVars.length === 0) {
-      console.log('[VariableExtractor] No variables extracted')
+      debug('[VariableExtractor] No variables extracted')
       return
     }
 
@@ -117,7 +118,7 @@ export async function extractAndDeliverVariables(
       })
 
     if (variablesToStore.length === 0) {
-      console.log('[VariableExtractor] No variables with values to store')
+      debug('[VariableExtractor] No variables with values to store')
 
       // Check if there were required variables that are now missing
       const requiredDefinitions = definitions.filter((d) => d.required)
@@ -131,7 +132,7 @@ export async function extractAndDeliverVariables(
             },
           })
           .eq('id', callSessionId)
-        console.log('[VariableExtractor] Marked as incomplete - missing all required variables')
+        debug('[VariableExtractor] Marked as incomplete - missing all required variables')
       }
       return
     }
@@ -148,7 +149,7 @@ export async function extractAndDeliverVariables(
       return
     }
 
-    console.log('[VariableExtractor] Stored', stored.length, 'variables')
+    debug('[VariableExtractor] Stored', stored.length, 'variables')
 
     // Check if all required variables were extracted
     const requiredDefinitions = definitions.filter((d) => d.required)
@@ -168,7 +169,7 @@ export async function extractAndDeliverVariables(
       .eq('id', callSessionId)
 
     if (missingRequired.length > 0) {
-      console.log('[VariableExtractor] Missing required variables:', missingRequired.map((d) => d.name))
+      debug('[VariableExtractor] Missing required variables:', missingRequired.map((d) => d.name))
     }
 
     // Send webhook if configured
@@ -290,7 +291,7 @@ Important:
         : typeof v.value === 'string' ? v.value.trim() : v.value,
     }))
 
-    console.log('[VariableExtractor] Extracted', normalizedVariables.length, 'variables')
+    debug('[VariableExtractor] Extracted', normalizedVariables.length, 'variables')
     return normalizedVariables
 
   } catch (error) {

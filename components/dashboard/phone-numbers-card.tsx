@@ -31,14 +31,8 @@ export function PhoneNumbersCard({ phoneNumbers, orgSlug }: PhoneNumbersCardProp
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold">{t('title')}</CardTitle>
-        <Link href={`/${orgSlug}/connect`}>
-          <Button variant="ghost" size="sm" className="text-xs">
-            {t('manage')}
-            <ArrowRight className="ml-1 h-3 w-3" />
-          </Button>
-        </Link>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -65,6 +59,14 @@ export function PhoneNumbersCard({ phoneNumbers, orgSlug }: PhoneNumbersCardProp
               </div>
             )
           })}
+        </div>
+        <div className="flex justify-end mt-3">
+          <Link href={`/${orgSlug}/connect`}>
+            <Button variant="ghost" size="sm" className="text-xs">
+              {t('manage')}
+              <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
+          </Link>
         </div>
       </CardContent>
     </Card>

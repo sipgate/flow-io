@@ -1,16 +1,13 @@
-import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { getAppUrl } from '@/lib/utils/app-url'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
 
-  const h = await headers()
-  const host = h.get('host')
-  const proto = h.get('x-forwarded-proto') ?? 'https'
-  const origin = host ? `${proto}://${host}` : requestUrl.origin
+  const origin = getAppUrl()
 
   if (code) {
     const supabase = await createClient()

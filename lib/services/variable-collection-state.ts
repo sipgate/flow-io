@@ -7,6 +7,7 @@
  * In production, consider using Redis for multi-instance deployments.
  */
 
+import { debug } from '@/lib/utils/logger'
 import type {
   VariableDefinition,
   CollectedVariable,
@@ -24,7 +25,7 @@ export function initVariableCollection(
   sessionId: string,
   definitions: VariableDefinition[]
 ): void {
-  console.log(
+  debug(
     `[VariableCollection] Initializing for session ${sessionId} with ${definitions.length} definitions`
   )
   collectionStates.set(sessionId, {
@@ -75,7 +76,7 @@ export function updateCollectedVariable(
     collectedAt: Date.now(),
   })
 
-  console.log(
+  debug(
     `[VariableCollection] Updated ${name} for session ${sessionId}: value="${value}", regexValid=${regexValid}`
   )
 }
@@ -101,7 +102,7 @@ export function setWebhookResult(
   // Clean up resolved webhook promise
   state.pendingWebhooks.delete(name)
 
-  console.log(
+  debug(
     `[VariableCollection] Webhook result for ${name}: valid=${valid}${message ? `, message=${message}` : ''}`
   )
 }
@@ -129,7 +130,7 @@ export function setConfirmed(
     collected.value = ''
   }
 
-  console.log(
+  debug(
     `[VariableCollection] ${name} ${confirmed ? 'confirmed' : 'denied'} by caller`
   )
 }
@@ -344,7 +345,7 @@ export function isCollectionComplete(sessionId: string): boolean {
  */
 export function cleanupVariableCollection(sessionId: string): void {
   if (collectionStates.has(sessionId)) {
-    console.log(`[VariableCollection] Cleaning up session ${sessionId}`)
+    debug(`[VariableCollection] Cleaning up session ${sessionId}`)
     collectionStates.delete(sessionId)
   }
 }
@@ -353,7 +354,7 @@ export function cleanupVariableCollection(sessionId: string): void {
  * Clean up all states (useful for testing or shutdown)
  */
 export function clearAllVariableCollections(): void {
-  console.log(
+  debug(
     `[VariableCollection] Clearing all states (${collectionStates.size} states)`
   )
   collectionStates.clear()

@@ -5,6 +5,7 @@ import { getAssistantVariableDefinitionsForExtraction } from '@/lib/repositories
 import { initVariableCollection } from '@/lib/services/variable-collection-state'
 import { getCallToolConfigServiceRole } from '@/lib/repositories/call-tools.repository'
 import { getPhonemeReplacementsForAssistant } from '@/lib/repositories/phoneme-sets.repository'
+import { debug } from '@/lib/utils/logger'
 import { DEFAULT_ELEVENLABS_VOICE_ID, DEFAULT_TTS_PROVIDER } from '@/lib/constants/voices'
 import { sessionState } from '@/lib/services/session-state'
 import type { BargeInConfig } from '@/lib/services/session-state'
@@ -18,7 +19,7 @@ import type { SessionStartEvent } from './lib/types'
  * fetches context data, and returns the opening message.
  */
 export async function handleSessionStart(event: SessionStartEvent, organizationId: string) {
-  console.log('📞 Session Start:', event)
+  debug('📞 Session Start:', event)
 
   const { to_phone_number, from_phone_number, id: sessionId, direction } = event.session
 
@@ -72,7 +73,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
       nodes: scenario.nodes,
       edges: scenario.edges,
     })
-    console.log(`[SessionStart] Scenario routing: scenarioId=${scenario.id} entryNode=${entryNode.id} assistant=${entryAssistant.name}`)
+    debug(`[SessionStart] Scenario routing: scenarioId=${scenario.id} entryNode=${entryNode.id} assistant=${entryAssistant.name}`)
   }
 
   // Guard: should not happen since routeCallToAssistant guarantees one of the two paths
@@ -127,7 +128,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
   })
 
   if (contextResult.success && Object.keys(contextResult.contextData).length > 0) {
-    console.log('[SessionStart] Context fetched:', contextResult.contextData)
+    debug('[SessionStart] Context fetched:', contextResult.contextData)
   }
 
   // Prepare opening message with variable substitution
@@ -164,7 +165,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
   )
   if (collectionDefs.length > 0) {
     initVariableCollection(sessionId, collectionDefs)
-    console.log(`[SessionStart] Variable collection initialized with ${collectionDefs.length} definitions`)
+    debug(`[SessionStart] Variable collection initialized with ${collectionDefs.length} definitions`)
   }
 
   // Load barge-in config and store in session state
@@ -189,7 +190,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
   const phonemeReplacements = await getPhonemeReplacementsForAssistant(assistant.id)
   if (phonemeReplacements.length > 0) {
     sessionState.setPhonemeReplacements(sessionId, phonemeReplacements)
-    console.log(`[SessionStart] Loaded ${phonemeReplacements.length} phoneme replacement(s) for assistant ${assistant.name}`)
+    debug(`[SessionStart] Loaded ${phonemeReplacements.length} phoneme replacement(s) for assistant ${assistant.name}`)
   }
 
   const openingSpeak = buildSpeakResponse(sessionId, openingMessage, assistant, bargeIn)

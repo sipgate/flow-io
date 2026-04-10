@@ -1,4 +1,5 @@
 import { Mistral } from '@mistralai/mistralai'
+import { debug } from '@/lib/utils/logger'
 import type { LLMProvider, LLMGenerateOptions, LLMGenerateResponse, LLMPerformanceMetrics } from './types'
 
 export class MistralProvider implements LLMProvider {
@@ -12,14 +13,14 @@ export class MistralProvider implements LLMProvider {
 
   async generate(options: LLMGenerateOptions): Promise<LLMGenerateResponse> {
     // Debug: Log actual messages being sent to Mistral API
-    console.log('[Mistral] === ACTUAL API REQUEST ===')
-    console.log('[Mistral] Model:', this.model)
-    console.log('[Mistral] Messages being sent to API:')
+    debug('[Mistral] === ACTUAL API REQUEST ===')
+    debug('[Mistral] Model:', this.model)
+    debug('[Mistral] Messages being sent to API:')
     options.messages.forEach((msg, idx) => {
-      console.log(`  [${idx}] ${msg.role}: ${msg.content}`)
+      debug(`  [${idx}] ${msg.role}: ${msg.content}`)
     })
-    console.log('[Mistral] Total messages:', options.messages.length)
-    console.log('[Mistral] ========================')
+    debug('[Mistral] Total messages:', options.messages.length)
+    debug('[Mistral] ========================')
 
     // Convert messages to Mistral format
     const messages = options.messages.map((msg) => {
@@ -87,7 +88,7 @@ export class MistralProvider implements LLMProvider {
     const choice = response.choices?.[0]
 
     // Debug logging
-    console.log('[Mistral] Response details:', {
+    debug('[Mistral] Response details:', {
       finish_reason: choice?.finishReason,
       content_length: choice?.message?.content?.length || 0,
       content_preview: typeof choice?.message?.content === 'string'

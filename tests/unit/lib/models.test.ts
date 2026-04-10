@@ -145,9 +145,9 @@ describe('getComparisonModels', () => {
 
 describe('getModelLabel', () => {
   it('gibt das Label für ein bekanntes Modell zurück', () => {
-    const label = getModelLabel('openai', 'gpt-4o')
+    const label = getModelLabel('openai', 'gpt-5.4-nano')
     expect(label).toBeTruthy()
-    expect(label).not.toBe('gpt-4o') // sollte einen sprechenden Namen haben
+    expect(label).not.toBe('gpt-5.4-nano') // sollte einen sprechenden Namen haben
   })
 
   it('gibt die modelId zurück wenn das Modell unbekannt ist', () => {

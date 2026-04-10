@@ -1,29 +1,31 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { getAppUrl } from '@/lib/utils/app-url'
+import { debug } from '@/lib/utils/logger'
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const origin = `${url.protocol}//${url.host}`
+  const origin = getAppUrl()
 
   const supabase = await createClient()
 
   // Exchange the code Supabase appends to the redirect URL
   const code = url.searchParams.get('code')
-  console.log('sipgate complete: full URL:', url.toString())
-  console.log('sipgate complete: code param:', code)
-  console.log('sipgate complete: all params:', Object.fromEntries(url.searchParams))
+  debug('sipgate complete: full URL:', url.toString())
+  debug('sipgate complete: code param:', code)
+  debug('sipgate complete: all params:', Object.fromEntries(url.searchParams))
 
   if (code) {
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-    console.log('sipgate complete: exchange error:', exchangeError)
+    debug('sipgate complete: exchange error:', exchangeError)
     if (exchangeError) {
       return NextResponse.redirect(`${origin}/login?error=session_failed`)
     }
   }
 
   const { data: { user }, error: userError } = await supabase.auth.getUser()
-  console.log('sipgate complete: user:', user?.id, 'error:', userError)
+  debug('sipgate complete: user:', user?.id, 'error:', userError)
 
   if (userError || !user) {
     return NextResponse.redirect(`${origin}/login?error=session_failed`)

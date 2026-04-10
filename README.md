@@ -83,7 +83,7 @@ Flow-IO needs a **Next.js host** and a **Supabase instance** (Postgres + Auth + 
 | **Coolify** | ❌ bundled | Git-connected, deploys full `docker-compose.yml` |
 | **Railway** (UI import) | ❌ bundled | Drag `docker-compose.yml` onto Railway canvas |
 | **Railway** (button) | ✅ Supabase Cloud | App only, add env vars |
-| **Render** | ✅ Supabase Cloud | `render.yaml` included |
+| **Render** | ✅ Supabase Cloud | Deploy as Docker container |
 | **Fly.io / any Docker host** | ✅ Supabase Cloud | `docker run` the app image |
 
 ### Docker (self-hosted, everything included)
@@ -135,7 +135,9 @@ These options only host the app — use [Supabase Cloud](https://supabase.com) (
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
 | `SIPGATE_OAUTH_CLIENT_ID` | sipgate OAuth client ID |
 | `SIPGATE_OAUTH_CLIENT_SECRET` | sipgate OAuth client secret |
-| `SIPGATE_WEBHOOK_TOKEN` | Shared token for WebSocket authentication (`x-api-token` header) |
+| `SIPGATE_WEBHOOK_SECRET` | Shared secret for webhook HMAC-SHA256 signature verification |
+| `SIPGATE_WEBHOOK_TOKEN` | Token for WebSocket authentication (`x-api-token` header) |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL for OAuth redirects and email links (required in production) |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `ELEVENLABS_API_KEY` | ElevenLabs API key |
 
@@ -193,7 +195,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 **Auth flow:**
 1. User clicks "Mit sipgate anmelden"
-2. sipgate OAuth2 (scopes: `openid profile email account:read devices:read`)
+2. sipgate OAuth2 (scopes: `openid profile email account:read numbers:read all`)
 3. Phone numbers are synced from the sipgate account automatically
 4. Organization is created, user lands on the dashboard
 
@@ -205,15 +207,15 @@ Users can also sign up with email/password and connect their sipgate account lat
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | [Next.js 15](https://nextjs.org/) (App Router, standalone output) |
+| Framework | [Next.js 16](https://nextjs.org/) (App Router, standalone output) |
 | Language | TypeScript (strict) |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) |
 | Database | [Supabase](https://supabase.com/) PostgreSQL + pgvector |
 | Auth | Supabase Auth + sipgate OAuth2 |
 | Telephony | [sipgate AI Flow SDK](https://sipgate.github.io/sipgate-ai-flow-api/) |
-| LLM | OpenAI GPT-4o · Google Gemini · Mistral |
+| LLM | OpenAI GPT-5.4 · Google Gemini · Mistral |
 | TTS | [ElevenLabs](https://elevenlabs.io/) |
-| Testing | [Vitest](https://vitest.dev/) · [Playwright](https://playwright.dev/) |
+| Testing | [Vitest](https://vitest.dev/) |
 
 ---
 
@@ -226,7 +228,7 @@ Key tables (all with Row Level Security):
 | `organizations` | Workspaces / tenants |
 | `organization_members` | User↔org relationships with roles |
 | `assistants` | AI assistant configurations |
-| `call_flows` | Visual routing flow definitions |
+| `call_scenarios` | Visual routing scenario definitions |
 | `call_sessions` | Call records |
 | `call_transcripts` | Conversation transcripts |
 | `knowledge_bases` | Document collections |

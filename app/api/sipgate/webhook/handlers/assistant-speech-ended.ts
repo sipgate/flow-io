@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { addTranscriptMessage } from '@/lib/repositories/calls.repository'
 import {
@@ -29,7 +30,7 @@ import type { AssistantSpeechEndedEvent, CallSessionWithAssistant } from './lib/
  * and returns the next MCP response if one is ready.
  */
 export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEvent) {
-  console.log('🔊 Assistant Speech Ended:', event.session.id)
+  debug('🔊 Assistant Speech Ended:', event.session.id)
 
   const sessionId = event.session.id
   const bargeIn = sessionState.getBargeInConfig(sessionId)
@@ -39,7 +40,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
   if (pendingAction) {
     if (pendingAction.type === 'hangup' && !pendingAction.clickPlayed) {
       // First stage: play click sound, then hangup on next assistant_speech_ended
-      console.log(`[AssistantSpeechEnded] Playing hangup click for session ${sessionId}`)
+      debug(`[AssistantSpeechEnded] Playing hangup click for session ${sessionId}`)
       pendingAction.clickPlayed = true
       return NextResponse.json({
         type: 'audio',
@@ -50,7 +51,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
     }
 
     sessionState.deletePendingAction(sessionId)
-    console.log(`[AssistantSpeechEnded] Executing deferred ${pendingAction.type} for session ${sessionId}`)
+    debug(`[AssistantSpeechEnded] Executing deferred ${pendingAction.type} for session ${sessionId}`)
 
     if (pendingAction.type === 'hangup') {
       return NextResponse.json({ type: 'hangup', session_id: sessionId })
@@ -78,7 +79,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
       loadAssistantConfig(assistantId),
       Promise.race([textPromise, timeout]),
     ])
-    console.log(`[AssistantSpeechEnded] Greeting: assistantId=${assistantId}, text=${greetingText ? greetingText.slice(0, 60) : 'null'}`)
+    debug(`[AssistantSpeechEnded] Greeting: assistantId=${assistantId}, text=${greetingText ? greetingText.slice(0, 60) : 'null'}`)
     if (greetingAssistant && greetingText) {
       const speakAssistant = greetingNode?.data.inherit_voice
         ? {
@@ -110,7 +111,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
   // Hesitation follow-up: LLM previously announced what it was going to do.
   // Now run the real LLM call (with disableHesitation: true so the actual tool gets called).
   if (hasHesitationState(sessionId)) {
-    console.log('[AssistantSpeechEnded] Hesitation state found — running follow-up LLM call')
+    debug('[AssistantSpeechEnded] Hesitation state found — running follow-up LLM call')
     const hesitationParams = getHesitationState(sessionId)!
     clearHesitation(sessionId)
 
@@ -131,7 +132,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
   }
 
   if (!hasPendingMCP(sessionId)) {
-    console.log('[AssistantSpeechEnded] No pending MCP, returning 204')
+    debug('[AssistantSpeechEnded] No pending MCP, returning 204')
     return new NextResponse(null, { status: 204 })
   }
 
@@ -166,7 +167,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
   const mcpResult = await waitForMCPWithTimeout(sessionId)
 
   if (mcpResult !== null) {
-    console.log('[AssistantSpeechEnded] MCP completed, returning response')
+    debug('[AssistantSpeechEnded] MCP completed, returning response')
 
     if (mcpResult.error) {
       const errorMessage = 'Es tut mir leid, ich konnte die Informationen nicht abrufen. Kann ich Ihnen anders helfen?'
@@ -189,10 +190,10 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
     // Defer until after the farewell speech finishes, same as the user-speak path.
     if (mcpResult.callAction) {
       if (mcpResult.callAction.type === 'hangup') {
-        console.log('[AssistantSpeechEnded] Hesitation follow-up returned hangup — deferring until speech ends')
+        debug('[AssistantSpeechEnded] Hesitation follow-up returned hangup — deferring until speech ends')
         sessionState.setPendingAction(sessionId, { type: 'hangup' })
       } else if (mcpResult.callAction.type === 'forward' && mcpResult.callAction.targetPhoneNumber) {
-        console.log('[AssistantSpeechEnded] Hesitation follow-up returned forward — deferring until speech ends')
+        debug('[AssistantSpeechEnded] Hesitation follow-up returned forward — deferring until speech ends')
         sessionState.setPendingAction(sessionId, {
           type: 'transfer',
           targetPhoneNumber: mcpResult.callAction.targetPhoneNumber,
@@ -261,10 +262,10 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
 
   // MCP still in progress — check elapsed time
   const elapsedMs = getPendingMCPElapsedMs(sessionId)
-  console.log(`[AssistantSpeechEnded] MCP still pending after ${elapsedMs}ms`)
+  debug(`[AssistantSpeechEnded] MCP still pending after ${elapsedMs}ms`)
 
   if (elapsedMs > 60000) {
-    console.log('[AssistantSpeechEnded] Waited too long, forcing wait for MCP result')
+    debug('[AssistantSpeechEnded] Waited too long, forcing wait for MCP result')
     const result = await waitForPendingMCP(sessionId, 5000)
 
     if (!result || result.error) {

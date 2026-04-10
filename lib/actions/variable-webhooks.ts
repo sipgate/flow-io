@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { debug } from '@/lib/utils/logger'
 import type {
   VariableWebhook,
   VariableWebhookInsert,
@@ -209,7 +210,7 @@ export async function sendVariableWebhook(
 
   // Send webhook
   try {
-    console.log('[Webhook] Sending to:', typedWebhook.url)
+    debug('[Webhook] Sending to:', typedWebhook.url)
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -227,7 +228,7 @@ export async function sendVariableWebhook(
       const body = await response.text()
       console.error('[Webhook] Response body:', body)
     } else {
-      console.log('[Webhook] Successfully delivered')
+      debug('[Webhook] Successfully delivered')
     }
 
   } catch (error) {
