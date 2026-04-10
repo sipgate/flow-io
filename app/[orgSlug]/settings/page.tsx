@@ -4,7 +4,7 @@ import { getOrganizationBySlug } from '@/lib/actions/organizations'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { OrganizationSettingsForm } from '@/components/settings/organization-settings-form'
 import { MembersManagement } from '@/components/settings/members-management'
-import { CriteriaList } from '@/components/call-criteria/criteria-list'
+import { CriteriaList } from '@/components/calls/call-criteria/criteria-list'
 import { PhonemeSetsSection } from '@/components/settings/phoneme-sets-section'
 import { ToolModelSettings } from '@/components/settings/tool-model-settings'
 

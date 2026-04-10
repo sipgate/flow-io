@@ -88,9 +88,9 @@ import type { PhonemeSet } from '@/types/phoneme-sets'
 import { VariableDefinitionsSection } from '@/components/variables/variable-definitions-section'
 import { WebhookConfigSection } from '@/components/variables/webhook-config-section'
 import { ContextWebhookSection } from '@/components/variables/context-webhook-section'
-import { CallToolsSection } from '@/components/call-tools/call-tools-section'
-import { BargeInSection } from '@/components/call-tools/barge-in-section'
-import { AssistantCriteriaList } from '@/components/call-criteria/assistant-criteria-list'
+import { CallToolsSection } from '@/components/calls/call-tools/call-tools-section'
+import { BargeInSection } from '@/components/calls/call-tools/barge-in-section'
+import { AssistantCriteriaList } from '@/components/calls/call-criteria/assistant-criteria-list'
 import { PromptEditor } from '@/components/assistants/prompt-editor'
 import { PromptVersionHistory } from '@/components/assistants/prompt-version-history'
 import { ModelComparisonDialog } from '@/components/assistants/model-comparison-dialog'
@@ -185,30 +185,34 @@ function SectionCollapsible({
       onOpenChange={() => onToggle(id)}
       className={cn('space-y-0', className)}
     >
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className="flex items-start justify-between w-full py-2 group text-left"
-        >
-          <div className="flex-1 min-w-0">
+      <div className="flex items-start justify-between w-full py-2 group text-left">
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex-1 min-w-0 text-left cursor-pointer"
+          >
             <h3 className="text-base font-semibold group-hover:text-foreground text-foreground/90 leading-tight">
               {title}
             </h3>
             {!open && preview && (
               <div className="mt-1">{preview}</div>
             )}
-          </div>
-          <div className="flex items-center gap-2 ml-2 shrink-0 mt-0.5">
-            {headerExtra}
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 text-muted-foreground transition-transform duration-200',
-                !open && '-rotate-90'
-              )}
-            />
-          </div>
-        </button>
-      </CollapsibleTrigger>
+          </button>
+        </CollapsibleTrigger>
+        <div className="flex items-center gap-2 ml-2 shrink-0 mt-0.5">
+          {headerExtra}
+          <CollapsibleTrigger asChild>
+            <button type="button" className="cursor-pointer">
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 text-muted-foreground transition-transform duration-200',
+                  !open && '-rotate-90'
+                )}
+              />
+            </button>
+          </CollapsibleTrigger>
+        </div>
+      </div>
       <CollapsibleContent forceMount className={cn('pb-2', !open && 'hidden')}>
         {hint && open && (
           <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">{hint}</p>
