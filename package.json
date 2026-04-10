@@ -12,7 +12,7 @@
   },
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-http-header-size=65536' tsx server.ts",
+    "dev": "NODE_OPTIONS='--max-http-header-size=65536 --max-old-space-size=8192' tsx server.ts",
     "build": "next build",
     "start": "NODE_OPTIONS='--max-http-header-size=65536' NODE_ENV=production tsx server.ts",
     "lint": "eslint",

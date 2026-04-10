@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, XCircle, Sparkles } from 'lucide-react'
-import { getOverallTestStatus } from '@/lib/actions/autotest'
+import { createClient } from '@/lib/supabase/client'
 
 interface RunningTestsIndicatorProps {
   organizationId: string
@@ -18,31 +18,115 @@ export function RunningTestsIndicator({ organizationId }: RunningTestsIndicatorP
 
   useEffect(() => {
     let mounted = true
+    const supabase = createClient()
 
     const checkStatus = async () => {
       if (fetchingRef.current) return
       fetchingRef.current = true
       try {
-        const result = await getOverallTestStatus(organizationId)
-        if (mounted) {
-          setStatus(result.status)
-          setRunningCount(result.runningCount)
-          setHasCustomPrompt(result.hasCustomPrompt)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+
+        // Check for running tests
+        const { data: runningTests, count: runCount } = await supabase
+          .from('test_runs')
+          .select('prompt_override', { count: 'exact' })
+          .eq('organization_id', organizationId)
+          .in('status', ['pending', 'running'])
+          .gte('started_at', fiveMinutesAgo)
+
+        if (!mounted) return
+
+        if (runCount && runCount > 0) {
+          setStatus('running')
+          setRunningCount(runCount)
+          setHasCustomPrompt(runningTests?.some((run) => run.prompt_override !== null) || false)
+          return
         }
+
+        setRunningCount(0)
+        setHasCustomPrompt(false)
+
+        // Get latest run per test case to determine overall status
+        const { data: testCases } = await supabase
+          .from('test_cases')
+          .select(`
+            id,
+            test_runs (
+              status,
+              created_at
+            )
+          `)
+          .eq('organization_id', organizationId)
+          .eq('is_active', true)
+          .order('created_at', { referencedTable: 'test_runs', ascending: false })
+          .limit(1, { referencedTable: 'test_runs' })
+
+        if (!mounted) return
+
+        if (!testCases || testCases.length === 0) {
+          setStatus('none')
+          return
+        }
+
+        let hasAnyRuns = false
+        let allPassed = true
+        let hasPartial = false
+        let hasFailed = false
+
+        for (const tc of testCases) {
+          const runs = tc.test_runs as Array<{ status: string; created_at: string }> | null
+          if (runs && runs.length > 0) {
+            hasAnyRuns = true
+            const latestRun = runs[0]
+            if (latestRun.status === 'partial') {
+              hasPartial = true
+              allPassed = false
+            } else if (latestRun.status === 'failed' || latestRun.status === 'error') {
+              hasFailed = true
+              allPassed = false
+            } else if (latestRun.status !== 'passed') {
+              allPassed = false
+            }
+          }
+        }
+
+        if (!hasAnyRuns) {
+          setStatus('none')
+          return
+        }
+
+        if (allPassed) setStatus('passed')
+        else if (hasFailed) setStatus('failed')
+        else if (hasPartial) setStatus('partial')
+        else setStatus('failed')
       } finally {
         fetchingRef.current = false
       }
     }
 
-    // Check immediately
+    // Initial check
     checkStatus()
 
-    // Poll every 10 seconds
-    const interval = setInterval(checkStatus, 10_000)
+    // Subscribe to realtime changes instead of polling
+    const channel = supabase
+      .channel(`test-status-${organizationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'test_runs',
+          filter: `organization_id=eq.${organizationId}`,
+        },
+        () => {
+          checkStatus()
+        }
+      )
+      .subscribe()
 
     return () => {
       mounted = false
-      clearInterval(interval)
+      supabase.removeChannel(channel)
     }
   }, [organizationId])
 

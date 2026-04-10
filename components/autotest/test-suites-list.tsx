@@ -18,7 +18,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { FlaskConical, Play, Plus, Pencil, Trash2, CheckCircle2, XCircle, AlertTriangle, Clock } from 'lucide-react'
-import { deleteTestSuite, getRunningSuiteIds } from '@/lib/actions/autotest'
+import { deleteTestSuite } from '@/lib/actions/autotest'
+import { createClient } from '@/lib/supabase/client'
 import { runTestSuite } from '@/lib/services/autotest-runner'
 import type { TestSuiteWithRelations } from '@/types/autotest'
 
@@ -37,16 +38,45 @@ export function TestSuitesList({ suites, organizationId, orgSlug, canManage }: T
   const [runningId, setRunningId] = useState<string | null>(null)
   const [runningSuiteIds, setRunningSuiteIds] = useState<string[]>([])
 
-  // Poll for running suite IDs (real-time state not available via initial props)
+  // Subscribe to running suite IDs via realtime instead of polling
   useEffect(() => {
+    const supabase = createClient()
+
     const fetchRunningSuites = async () => {
-      const { suiteIds } = await getRunningSuiteIds(organizationId)
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+      const { data } = await supabase
+        .from('test_runs')
+        .select('test_suite_id')
+        .eq('organization_id', organizationId)
+        .in('status', ['pending', 'running'])
+        .gte('started_at', fiveMinutesAgo)
+        .not('test_suite_id', 'is', null)
+
+      const suiteIds = [...new Set(data?.map((r) => r.test_suite_id).filter(Boolean) as string[])]
       setRunningSuiteIds(suiteIds)
     }
 
     fetchRunningSuites()
-    const interval = setInterval(fetchRunningSuites, 3000)
-    return () => clearInterval(interval)
+
+    const channel = supabase
+      .channel(`running-suites-${organizationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'test_runs',
+          filter: `organization_id=eq.${organizationId}`,
+        },
+        () => {
+          fetchRunningSuites()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [organizationId])
 
   const isSuiteRunning = (suiteId: string): boolean => {

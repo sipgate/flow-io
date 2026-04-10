@@ -78,10 +78,7 @@ export function RunningTestsBanner({ organizationId, suiteId }: RunningTestsBann
     // Initial fetch
     fetchRunningTests()
 
-    // Poll every 2 seconds
-    const interval = setInterval(fetchRunningTests, 2000)
-
-    // Also subscribe to realtime updates
+    // Subscribe to realtime updates for test run changes
     const channel = supabase
       .channel('running-tests')
       .on(
@@ -100,7 +97,6 @@ export function RunningTestsBanner({ organizationId, suiteId }: RunningTestsBann
 
     return () => {
       mounted = false
-      clearInterval(interval)
       supabase.removeChannel(channel)
     }
   }, [organizationId, suiteId])
