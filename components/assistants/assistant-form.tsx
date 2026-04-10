@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -336,6 +337,7 @@ export function AssistantForm({
   )
   const [isActive, setIsActive] = useState(assistant?.is_active ?? true)
   const [enableHesitation, setEnableHesitation] = useState(assistant?.enable_hesitation ?? false)
+  const [createScenarioChecked, setCreateScenarioChecked] = useState(!assistant)
 
   const handleProviderChange = (provider: string) => {
     setLlmProvider(provider)
@@ -714,7 +716,7 @@ export function AssistantForm({
 
     const result = assistant
       ? await updateAssistant(assistant.id, data)
-      : await createAssistant(organizationId, data)
+      : await createAssistant(organizationId, { ...data, create_scenario: createScenarioChecked })
 
     if ('error' in result && result.error) {
       setError(result.error)
@@ -1536,22 +1538,34 @@ export function AssistantForm({
 
       {/* Create-Modus: normaler Submit-Button */}
       {!assistant && (
-        <div className="flex justify-end gap-2 pt-6 mt-6 border-t">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push(`/${orgSlug}/assistants`)}
-            disabled={isLoading}
-          >
-            {tCommon('cancel')}
-          </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{tCommon('creating')}</>
-            ) : (
-              t('createAssistant')
-            )}
-          </Button>
+        <div className="pt-6 mt-6 border-t space-y-4">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="create-scenario"
+              checked={createScenarioChecked}
+              onCheckedChange={(v) => setCreateScenarioChecked(!!v)}
+            />
+            <Label htmlFor="create-scenario" className="font-normal cursor-pointer">
+              {t('autoCreateScenario')}
+            </Label>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(`/${orgSlug}/assistants`)}
+              disabled={isLoading}
+            >
+              {tCommon('cancel')}
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{tCommon('creating')}</>
+              ) : (
+                t('createAssistant')
+              )}
+            </Button>
+          </div>
         </div>
       )}
 

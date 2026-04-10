@@ -209,7 +209,8 @@
       "fieldSystemPrompt": "System Prompt",
       "createButton": "Create Assistant",
       "customizeButton": "Customize",
-      "createSuccess": "Assistant created successfully"
+      "createSuccess": "Assistant created successfully",
+      "autoCreateScenario": "Also create a scenario with this assistant"
     },
     "edit": {
       "title": "Edit Assistant",
@@ -294,6 +295,7 @@
       "noVariables": "No variables defined yet",
       "webhooks": "Webhooks",
       "createAssistant": "Create Assistant",
+      "autoCreateScenario": "Also create a scenario with this assistant",
       "phonemeSets": "Pronunciation Sets",
       "phonemeSetsHint": "Pronunciation dictionaries for this assistant. Active entries replace words with their alias spelling before ElevenLabs synthesis.",
       "phonemeSetsLoading": "Loading...",

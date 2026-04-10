@@ -8,6 +8,8 @@ import { DEFAULT_ELEVENLABS_VOICE_ID } from '@/lib/constants/voices'
 import { redirect } from 'next/navigation'
 import { createPromptVersion } from './prompt-versions'
 import { generateAssistantAvatar } from '@/lib/services/avatar-generator'
+import { createScenario, updateScenario } from './scenarios'
+import type { ScenarioNode } from '@/types/scenarios'
 
 interface Assistant {
   id: string
@@ -111,6 +113,7 @@ export async function createAssistant(orgId: string, data: {
   barge_in_strategy?: string
   barge_in_allow_after_ms?: number
   barge_in_minimum_characters?: number
+  create_scenario?: boolean
 }) {
   const supabase = await createClient()
 
@@ -178,8 +181,38 @@ export async function createAssistant(orgId: string, data: {
     console.warn('Avatar generation failed:', err)
   })
 
+  // Auto-create a scenario with this assistant as the entry agent
+  let scenarioId: string | null = null
+  if (data.create_scenario) {
+    try {
+      const scenarioResult = await createScenario(orgId, {
+        name: data.name,
+        description: data.description,
+      })
+      if (scenarioResult.scenario) {
+        scenarioId = scenarioResult.scenario.id
+        const entryNode: ScenarioNode = {
+          id: crypto.randomUUID(),
+          type: 'entry_agent',
+          position: { x: 300, y: 200 },
+          data: {
+            assistant_id: typedAssistant.id,
+            label: data.name,
+            avatar_url: null,
+            transfer_instruction: '',
+            inherit_voice: false,
+            send_greeting: true,
+          },
+        }
+        await updateScenario(scenarioResult.scenario.id, [entryNode], [])
+      }
+    } catch (err) {
+      console.warn('[createAssistant] Auto scenario creation failed:', err)
+    }
+  }
+
   revalidatePath('/', 'layout')
-  return { assistant: typedAssistant }
+  return { assistant: typedAssistant, scenarioId }
 }
 
 export async function updateAssistant(

@@ -257,6 +257,7 @@
       "noVariables": "Sin variables definidas aún",
       "webhooks": "Webhooks",
       "createAssistant": "Crear asistente",
+      "autoCreateScenario": "Crear también un escenario con este asistente",
       "phonemeSets": "Sets de pronunciación",
       "phonemeSetsHint": "Diccionarios de pronunciación para este asistente. Las entradas activas reemplazan palabras con su ortografía alternativa antes de la síntesis de ElevenLabs.",
       "phonemeSetsLoading": "Cargando...",

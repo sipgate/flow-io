@@ -46,6 +46,7 @@ export function AISetupWizard({ organizationId, orgSlug, toolModel }: AISetupWiz
   const [customUrl, setCustomUrl] = useState('')
   const [generatedConfig, setGeneratedConfig] = useState<AISetupResult | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [createScenarioChecked, setCreateScenarioChecked] = useState(true)
 
   const detectedDomain = extractDomain(description)
   const scrapeUrl = scrapeEnabled ? (customUrl || detectedDomain || '') : undefined
@@ -93,6 +94,7 @@ export function AISetupWizard({ organizationId, orgSlug, toolModel }: AISetupWiz
       llm_temperature: generatedConfig.llm_temperature,
       thinking_level: generatedConfig.thinking_level,
       is_active: true,
+      create_scenario: createScenarioChecked,
     })
 
     if (result.error) {
@@ -201,6 +203,17 @@ export function AISetupWizard({ organizationId, orgSlug, toolModel }: AISetupWiz
               </p>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="flex items-center gap-2 pt-2">
+          <Checkbox
+            id="wizard-create-scenario"
+            checked={createScenarioChecked}
+            onCheckedChange={(v) => setCreateScenarioChecked(!!v)}
+          />
+          <Label htmlFor="wizard-create-scenario" className="font-normal cursor-pointer">
+            {t('autoCreateScenario')}
+          </Label>
         </div>
 
         <div className="flex gap-3 pt-2">

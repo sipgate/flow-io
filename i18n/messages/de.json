@@ -209,7 +209,8 @@
       "fieldSystemPrompt": "System-Prompt",
       "createButton": "Assistent erstellen",
       "customizeButton": "Anpassen",
-      "createSuccess": "Assistent wurde erstellt"
+      "createSuccess": "Assistent wurde erstellt",
+      "autoCreateScenario": "Gleichzeitig ein Szenario mit diesem Assistenten erstellen"
     },
     "edit": {
       "title": "Assistent bearbeiten",
@@ -294,6 +295,7 @@
       "noVariables": "Noch keine Variablen definiert",
       "webhooks": "Webhooks",
       "createAssistant": "Assistent erstellen",
+      "autoCreateScenario": "Gleichzeitig ein Szenario mit diesem Assistenten erstellen",
       "phonemeSets": "Aussprache-Sets",
       "phonemeSetsHint": "Aussprache-Wörterbücher für diesen Assistenten. Aktive Einträge ersetzen Wörter direkt im Text vor der ElevenLabs-Synthese.",
       "phonemeSetsLoading": "Wird geladen...",
