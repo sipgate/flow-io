@@ -307,20 +307,13 @@ export async function getFeatureFlags(organizationId: string): Promise<FeatureFl
 export async function getSystemStatus(organizationId: string) {
   const supabase = await createClient()
 
-  // Get phone numbers assigned to this org's assistants
-  const { data: phoneNumbers } = await supabase
+  // Get phone numbers assigned to scenarios in this org
+  const { count: connectedCount } = await supabase
     .from('phone_numbers')
-    .select(`
-      id,
-      phone_number,
-      assistant_id,
-      assistants!inner (
-        id,
-        name,
-        organization_id
-      )
-    `)
-    .eq('assistants.organization_id', organizationId)
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', organizationId)
+    .not('scenario_id', 'is', null)
+    .eq('is_active', true)
 
   // Get total assistant count
   const { count: assistantCount } = await supabase
@@ -328,11 +321,11 @@ export async function getSystemStatus(organizationId: string) {
     .select('id', { count: 'exact', head: true })
     .eq('organization_id', organizationId)
 
-  const connectedCount = phoneNumbers?.length || 0
+  const connected = connectedCount || 0
 
   return {
-    connectedCount,
+    connectedCount: connected,
     assistantCount: assistantCount || 0,
-    allAssistantsHavePhoneNumber: assistantCount !== null && assistantCount > 0 && connectedCount >= assistantCount,
+    allAssistantsHavePhoneNumber: assistantCount !== null && assistantCount > 0 && connected >= assistantCount,
   }
 }
