@@ -13,7 +13,7 @@ WORKDIR /app
 COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* .npmrc* ./
 RUN \
   if [ -f yarn.lock ]; then SUPABASE_INSTALL_METHOD=none yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then SUPABASE_INSTALL_METHOD=none npm ci; \
+  elif [ -f package-lock.json ]; then SUPABASE_INSTALL_METHOD=none npm ci --force; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && SUPABASE_INSTALL_METHOD=none pnpm i --frozen-lockfile; \
   else echo "Lockfile not found." && exit 1; \
   fi
