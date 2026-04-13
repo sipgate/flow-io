@@ -29,7 +29,8 @@ export function applyPhonemeReplacements(
 
   let result = text
 
-  for (const { word, phoneme: alias } of replacements) {
+  for (const { word, phoneme: alias, replace_pronunciation } of replacements) {
+    if (replace_pronunciation === false) continue
     const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const regex = new RegExp(`\\b${escaped}\\b`, 'gi')
     result = result.replace(regex, alias)

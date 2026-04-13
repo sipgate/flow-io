@@ -114,7 +114,7 @@ export async function deletePhonemeSet(id: string): Promise<{ error?: string }> 
 
 export async function upsertPhonemeSetEntry(
   setId: string,
-  entry: { word: string; alias: string; position?: number }
+  entry: { word: string; alias: string; position?: number; boost_recognition?: boolean; replace_pronunciation?: boolean }
 ): Promise<{ entry: PhonemeSetEntry | null; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -129,6 +129,8 @@ export async function upsertPhonemeSetEntry(
         alias: entry.alias,
         position: entry.position ?? 0,
         is_active: true,
+        boost_recognition: entry.boost_recognition ?? true,
+        replace_pronunciation: entry.replace_pronunciation ?? true,
       },
       { onConflict: 'phoneme_set_id,word' }
     )
@@ -156,6 +158,29 @@ export async function togglePhonemeSetEntry(id: string, isActive: boolean): Prom
 
   if (error) {
     console.error('Error toggling phoneme set entry:', error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/', 'layout')
+  return {}
+}
+
+export async function updatePhonemeSetEntryField(
+  id: string,
+  field: 'boost_recognition' | 'replace_pronunciation',
+  value: boolean
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  const { error } = await supabase
+    .from('phoneme_set_entries')
+    .update({ [field]: value })
+    .eq('id', id)
+
+  if (error) {
+    console.error(`Error updating phoneme set entry ${field}:`, error)
     return { error: error.message }
   }
 

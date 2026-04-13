@@ -15,6 +15,10 @@ export interface PhonemeSetEntry {
   /** Pronunciation alias — alternate spelling sent to ElevenLabs, e.g. "zipgate" */
   alias: string
   is_active: boolean
+  /** When true, word is sent as custom_vocabulary to sipgate Flow for STT boosting */
+  boost_recognition: boolean
+  /** When true, word is replaced with alias before TTS synthesis */
+  replace_pronunciation: boolean
   position: number
 }
 
@@ -29,4 +33,6 @@ export interface PhonemeReplacement {
   word: string
   /** Alias spelling that replaces the word before TTS synthesis */
   phoneme: string
+  boost_recognition: boolean
+  replace_pronunciation: boolean
 }

@@ -155,13 +155,13 @@ describe('SessionStateManager', () => {
     })
 
     it('stores and retrieves replacements', () => {
-      const replacements = [{ word: 'GmbH', phoneme: 'G-m-b-H' }]
+      const replacements = [{ word: 'GmbH', phoneme: 'G-m-b-H', boost_recognition: true, replace_pronunciation: true }]
       mgr.setPhonemeReplacements('s1', replacements)
       expect(mgr.getPhonemeReplacements('s1')).toEqual(replacements)
     })
 
     it('is removed by cleanup()', () => {
-      mgr.setPhonemeReplacements('s1', [{ word: 'test', phoneme: 't-e-s-t' }])
+      mgr.setPhonemeReplacements('s1', [{ word: 'test', phoneme: 't-e-s-t', boost_recognition: true, replace_pronunciation: true }])
       mgr.cleanup('s1')
       expect(mgr.getPhonemeReplacements('s1')).toEqual([])
     })
@@ -200,7 +200,7 @@ describe('SessionStateManager', () => {
       mgr.setPendingAction('s1', { type: 'hangup' })
       mgr.setBargeInConfig('s1', makeBargeInConfig())
       mgr.setScenarioState('s1', makeScenarioState())
-      mgr.setPhonemeReplacements('s1', [{ word: 'x', phoneme: 'y' }])
+      mgr.setPhonemeReplacements('s1', [{ word: 'x', phoneme: 'y', boost_recognition: true, replace_pronunciation: true }])
       mgr.setBargeInOccurred('s1')
 
       // Session s2 — should be unaffected

@@ -19,6 +19,8 @@ export async function getPhonemeReplacementsForAssistant(
           word,
           alias,
           is_active,
+          boost_recognition,
+          replace_pronunciation,
           position
         )
       )
@@ -37,7 +39,7 @@ export async function getPhonemeReplacementsForAssistant(
 
   for (const row of data as unknown as Array<{
     position: number
-    phoneme_sets: { phoneme_set_entries: Array<{ word: string; alias: string; is_active: boolean; position: number }> } | null
+    phoneme_sets: { phoneme_set_entries: Array<{ word: string; alias: string; is_active: boolean; boost_recognition: boolean; replace_pronunciation: boolean; position: number }> } | null
   }>) {
     const entries = row.phoneme_sets?.phoneme_set_entries ?? []
     const active = entries
@@ -48,7 +50,12 @@ export async function getPhonemeReplacementsForAssistant(
       const key = entry.word.toLowerCase()
       if (!seen.has(key)) {
         seen.add(key)
-        merged.push({ word: entry.word, phoneme: entry.alias })
+        merged.push({
+          word: entry.word,
+          phoneme: entry.alias,
+          boost_recognition: entry.boost_recognition,
+          replace_pronunciation: entry.replace_pronunciation,
+        })
       }
     }
   }

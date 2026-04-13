@@ -183,5 +183,21 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
   }
 
   const openingSpeak = buildSpeakResponse(sessionId, openingMessage, assistant, bargeIn)
+
+  // Build custom_vocabulary from entries with boost_recognition=true
+  const boostWords = phonemeReplacements
+    .filter((r) => r.boost_recognition)
+    .map((r) => r.word)
+
+  if (boostWords.length > 0) {
+    debug(`[SessionStart] Sending ${boostWords.length} boost word(s) as custom_vocabulary`)
+    const configureTranscription = {
+      type: 'configure_transcription',
+      session_id: sessionId,
+      custom_vocabulary: boostWords,
+    }
+    return NextResponse.json([configureTranscription, openingSpeak.json])
+  }
+
   return NextResponse.json(openingSpeak.json)
 }

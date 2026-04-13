@@ -6,6 +6,7 @@ import { Plus, Trash2, ChevronDown, ChevronRight, Volume2, Loader2 } from 'lucid
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import {
   AlertDialog,
@@ -26,6 +27,7 @@ import {
   deletePhonemeSet,
   upsertPhonemeSetEntry,
   togglePhonemeSetEntry,
+  updatePhonemeSetEntryField,
   deletePhonemeSetEntry,
 } from '@/lib/actions/phoneme-sets'
 
@@ -47,7 +49,7 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
   const [showNewSetForm, setShowNewSetForm] = useState(false)
 
   // New entry form per set
-  const [entryForms, setEntryForms] = useState<Record<string, { word: string; alias: string }>>({})
+  const [entryForms, setEntryForms] = useState<Record<string, { word: string; alias: string; boost_recognition: boolean; replace_pronunciation: boolean }>>({})
   const phonemeInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   // Preview state: ID of entry or set currently loading audio
@@ -139,11 +141,14 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
 
   function handleAddEntry(setId: string) {
     const form = entryForms[setId]
-    if (!form?.word.trim() || !form?.alias.trim()) return
+    if (!form?.word.trim()) return
+    if (form.replace_pronunciation && !form.alias.trim()) return
     startTransition(async () => {
       const { entry, error } = await upsertPhonemeSetEntry(setId, {
         word: form.word.trim(),
-        alias: form.alias.trim(),
+        alias: form.alias.trim() || form.word.trim(),
+        boost_recognition: form.boost_recognition,
+        replace_pronunciation: form.replace_pronunciation,
       })
       if (error || !entry) {
         toast.error(error || t('entryAddFailed'))
@@ -156,7 +161,7 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
             : s
         )
       )
-      setEntryForms((prev) => ({ ...prev, [setId]: { word: '', alias: '' } }))
+      setEntryForms((prev) => ({ ...prev, [setId]: { word: '', alias: '', boost_recognition: true, replace_pronunciation: true } }))
       toast.success(t('entrySaved'))
     })
   }
@@ -172,6 +177,24 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
         prev.map((s) =>
           s.id === setId
             ? { ...s, entries: (s.entries ?? []).map((e) => e.id === entry.id ? { ...e, is_active: !e.is_active } : e) }
+            : s
+        )
+      )
+    })
+  }
+
+  function handleToggleEntryField(setId: string, entry: PhonemeSetEntry, field: 'boost_recognition' | 'replace_pronunciation') {
+    startTransition(async () => {
+      const newValue = !entry[field]
+      const { error } = await updatePhonemeSetEntryField(entry.id, field, newValue)
+      if (error) {
+        toast.error(error)
+        return
+      }
+      setSets((prev) =>
+        prev.map((s) =>
+          s.id === setId
+            ? { ...s, entries: (s.entries ?? []).map((e) => e.id === entry.id ? { ...e, [field]: newValue } : e) }
             : s
         )
       )
@@ -270,7 +293,7 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
         {sets.map((set) => {
           const isExpanded = expandedSetIds.has(set.id)
           const entries = set.entries ?? []
-          const entryForm = entryForms[set.id] ?? { word: '', alias: '' }
+          const entryForm = entryForms[set.id] ?? { word: '', alias: '', boost_recognition: true, replace_pronunciation: true }
 
           return (
             <div key={set.id} className="rounded-lg border bg-card">
@@ -290,7 +313,7 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
                     <span className="text-xs text-muted-foreground truncate">{set.description}</span>
                   )}
                   <Badge variant="secondary" className="text-xs ml-auto shrink-0">
-                    {entries.filter((e) => e.is_active).length}/{entries.length}
+                    {entries.filter((e) => e.boost_recognition || e.replace_pronunciation).length}/{entries.length}
                   </Badge>
                 </button>
                 {canEdit && (
@@ -314,7 +337,8 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
                         <tr className="text-xs text-muted-foreground border-b">
                           <th className="text-left pb-2 font-medium">{t('wordColumn')}</th>
                           <th className="text-left pb-2 font-medium">{t('aliasColumn')}</th>
-                          <th className="text-left pb-2 font-medium">{t('activeColumn')}</th>
+                          <th className="text-center pb-2 font-medium" title={t('recognitionHint')}>{t('recognitionColumn')}</th>
+                          <th className="text-center pb-2 font-medium" title={t('pronunciationHint')}>{t('pronunciationColumn')}</th>
                           <th className="pb-2" />
                         </tr>
                       </thead>
@@ -322,29 +346,39 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
                         {entries.map((entry) => (
                           <tr key={entry.id} className="border-b last:border-0">
                             <td className="py-1.5 pr-3 font-mono text-xs">{entry.word}</td>
-                            <td className="py-1.5 pr-3 font-mono text-xs text-muted-foreground">{entry.alias}</td>
-                            <td className="py-1.5 pr-3">
-                              <Switch
-                                checked={entry.is_active}
-                                onCheckedChange={() => canEdit && handleToggleEntry(set.id, entry)}
+                            <td className="py-1.5 pr-3 font-mono text-xs text-muted-foreground">
+                              {entry.replace_pronunciation ? entry.alias : <span className="text-muted-foreground/50">—</span>}
+                            </td>
+                            <td className="py-1.5 text-center">
+                              <Checkbox
+                                checked={entry.boost_recognition}
+                                onCheckedChange={() => canEdit && handleToggleEntryField(set.id, entry, 'boost_recognition')}
                                 disabled={!canEdit || isPending}
-                                className="scale-75 origin-left"
+                              />
+                            </td>
+                            <td className="py-1.5 text-center">
+                              <Checkbox
+                                checked={entry.replace_pronunciation}
+                                onCheckedChange={() => canEdit && handleToggleEntryField(set.id, entry, 'replace_pronunciation')}
+                                disabled={!canEdit || isPending}
                               />
                             </td>
                             <td className="py-1.5 text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6"
-                                  disabled={previewingId === entry.id}
-                                  onClick={() => previewPhoneme(entry.id, entry.word, entry.alias)}
-                                  title={t('previewTitle')}
-                                >
-                                  {previewingId === entry.id
-                                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                                    : <Volume2 className="h-3 w-3" />}
-                                </Button>
+                                {entry.replace_pronunciation && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    disabled={previewingId === entry.id}
+                                    onClick={() => previewPhoneme(entry.id, entry.word, entry.alias)}
+                                    title={t('previewTitle')}
+                                  >
+                                    {previewingId === entry.id
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <Volume2 className="h-3 w-3" />}
+                                  </Button>
+                                )}
                                 {canEdit && (
                                   <Button
                                     size="icon"
@@ -365,63 +399,93 @@ export function PhonemeSetsSection({ organizationId, canEdit }: PhonemeSetsProps
 
                   {/* Add entry form */}
                   {canEdit && (
-                    <div className="flex gap-2 items-end flex-wrap">
-                      <div className="space-y-1 min-w-[120px]">
-                        <Label className="text-xs text-muted-foreground">{t('wordLabel')}</Label>
-                        <Input
-                          value={entryForm.word}
-                          onChange={(e) =>
-                            setEntryForms((prev) => ({
-                              ...prev,
-                              [set.id]: { ...entryForm, word: e.target.value },
-                            }))
-                          }
-                          placeholder="sipgate"
-                          className="h-7 text-xs font-mono"
-                          onKeyDown={(e) => e.key === 'Enter' && handleAddEntry(set.id)}
-                        />
-                      </div>
-                      <div className="space-y-1 flex-1 min-w-[140px]">
-                        <Label className="text-xs text-muted-foreground">{t('aliasLabel')}</Label>
-                        <div className="flex gap-1">
+                    <div className="space-y-2">
+                      <div className="flex gap-2 items-end flex-wrap">
+                        <div className="space-y-1 min-w-[120px]">
+                          <Label className="text-xs text-muted-foreground">{t('wordLabel')}</Label>
                           <Input
-                            ref={(el) => { phonemeInputRefs.current[set.id] = el }}
-                            value={entryForm.alias}
+                            value={entryForm.word}
                             onChange={(e) =>
                               setEntryForms((prev) => ({
                                 ...prev,
-                                [set.id]: { ...entryForm, alias: e.target.value },
+                                [set.id]: { ...entryForm, word: e.target.value },
                               }))
                             }
-                            placeholder="zipgate"
+                            placeholder="sipgate"
                             className="h-7 text-xs font-mono"
                             onKeyDown={(e) => e.key === 'Enter' && handleAddEntry(set.id)}
                           />
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="outline"
-                            className="h-7 w-7 shrink-0"
-                            disabled={!entryForm.word.trim() || !entryForm.alias.trim() || previewingId === set.id}
-                            onClick={() => previewPhoneme(set.id, entryForm.word, entryForm.alias)}
-                            title={t('previewTitleElevenLabs')}
-                          >
-                            {previewingId === set.id
-                              ? <Loader2 className="h-3 w-3 animate-spin" />
-                              : <Volume2 className="h-3 w-3" />
-                            }
-                          </Button>
                         </div>
+                        {entryForm.replace_pronunciation && (
+                          <div className="space-y-1 flex-1 min-w-[140px]">
+                            <Label className="text-xs text-muted-foreground">{t('aliasLabel')}</Label>
+                            <div className="flex gap-1">
+                              <Input
+                                ref={(el) => { phonemeInputRefs.current[set.id] = el }}
+                                value={entryForm.alias}
+                                onChange={(e) =>
+                                  setEntryForms((prev) => ({
+                                    ...prev,
+                                    [set.id]: { ...entryForm, alias: e.target.value },
+                                  }))
+                                }
+                                placeholder="zipgate"
+                                className="h-7 text-xs font-mono"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddEntry(set.id)}
+                              />
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="outline"
+                                className="h-7 w-7 shrink-0"
+                                disabled={!entryForm.word.trim() || !entryForm.alias.trim() || previewingId === set.id}
+                                onClick={() => previewPhoneme(set.id, entryForm.word, entryForm.alias)}
+                                title={t('previewTitleElevenLabs')}
+                              >
+                                {previewingId === set.id
+                                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                                  : <Volume2 className="h-3 w-3" />
+                                }
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => handleAddEntry(set.id)}
+                          disabled={isPending || !entryForm.word.trim() || (entryForm.replace_pronunciation && !entryForm.alias.trim())}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          {t('addEntry')}
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => handleAddEntry(set.id)}
-                        disabled={isPending || !entryForm.word.trim() || !entryForm.alias.trim()}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        {t('addEntry')}
-                      </Button>
+                      <div className="flex gap-4 items-center">
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer" title={t('recognitionHint')}>
+                          <Checkbox
+                            checked={entryForm.boost_recognition}
+                            onCheckedChange={(checked) =>
+                              setEntryForms((prev) => ({
+                                ...prev,
+                                [set.id]: { ...entryForm, boost_recognition: checked === true },
+                              }))
+                            }
+                          />
+                          {t('recognitionColumn')}
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer" title={t('pronunciationHint')}>
+                          <Checkbox
+                            checked={entryForm.replace_pronunciation}
+                            onCheckedChange={(checked) =>
+                              setEntryForms((prev) => ({
+                                ...prev,
+                                [set.id]: { ...entryForm, replace_pronunciation: checked === true },
+                              }))
+                            }
+                          />
+                          {t('pronunciationColumn')}
+                        </label>
+                      </div>
                     </div>
                   )}
                 </div>
