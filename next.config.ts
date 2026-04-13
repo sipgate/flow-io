@@ -11,9 +11,8 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: __dirname,
-  },
+  // Turbopack disabled due to memory leak issues in dev mode (Next.js #92287, #91396)
+  // Use production build for better stability
   async headers() {
     return [
       {
