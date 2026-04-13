@@ -339,7 +339,7 @@ export async function getTestSessionHistory(testSessionId: string) {
 
   const { data: transcripts, error } = await supabase
     .from('test_transcripts')
-    .select('role, content, sequence_number')
+    .select('id, role, content, timestamp, sequence_number, metadata')
     .eq('test_session_id', testSessionId)
     .order('sequence_number', { ascending: true })
 

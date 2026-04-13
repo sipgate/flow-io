@@ -660,35 +660,35 @@ export function CallDetailsModal({
                           key={transcript.id || index}
                           className={`flex gap-3 ${
                             transcript.speaker === 'user'
-                              ? 'justify-start'
-                              : 'justify-end'
+                              ? 'justify-end'
+                              : 'justify-start'
                           }`}
                         >
                           <div
                             className={`flex gap-2 max-w-[85%] ${
                               transcript.speaker === 'user'
-                                ? 'flex-row'
-                                : 'flex-row-reverse'
+                                ? 'flex-row-reverse'
+                                : 'flex-row'
                             }`}
                           >
                             <div
                               className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
                                 transcript.speaker === 'user'
-                                  ? 'bg-blue-100 dark:bg-blue-900'
-                                  : 'bg-lime-100 dark:bg-lime-900/30'
+                                  ? 'bg-lime-100 dark:bg-lime-900/30'
+                                  : 'bg-blue-100 dark:bg-blue-900'
                               }`}
                             >
                               {transcript.speaker === 'user' ? (
-                                <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                <User className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
                               ) : (
-                                <Bot className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
+                                <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                               )}
                             </div>
                             <div
                               className={`rounded-lg px-3 py-2 ${
                                 transcript.speaker === 'user'
-                                  ? 'bg-neutral-100 dark:bg-neutral-800'
-                                  : 'bg-lime-50 dark:bg-lime-950'
+                                  ? 'bg-lime-50 dark:bg-lime-950'
+                                  : 'bg-neutral-100 dark:bg-neutral-800'
                               }`}
                             >
                               <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 flex items-center gap-1">

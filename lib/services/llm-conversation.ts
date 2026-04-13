@@ -468,6 +468,15 @@ export async function generateLLMResponse(params: {
               arguments: transferArgs as unknown as Record<string, unknown>,
               result: `Transferring to agent node ${transferArgs.agent_node_id}`,
             }],
+            usage: llmResponse.usage
+              ? {
+                  promptTokens: llmResponse.usage.promptTokens,
+                  completionTokens: llmResponse.usage.completionTokens,
+                  totalTokens: llmResponse.usage.totalTokens,
+                }
+              : undefined,
+            performance: llmResponse.performance,
+            model: llmResponse.model,
           }
         }
 

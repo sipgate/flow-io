@@ -19,11 +19,19 @@ import { MessageList } from './message-list'
 import { SessionHistorySidebar } from './session-history-sidebar'
 import { toast } from 'sonner'
 
+interface MessageMetadata {
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number }
+  toolCalls?: Array<{ name: string; arguments: Record<string, unknown>; result: string }>
+  performance?: { ttftMs: number; totalTimeMs: number; tokensPerSecond: number }
+  model?: string
+}
+
 interface Message {
   id: string
-  role: 'user' | 'assistant' | 'system'
+  role: 'user' | 'assistant' | 'system' | 'tool'
   content: string
   timestamp: string
+  metadata?: MessageMetadata
 }
 
 interface Assistant {
@@ -159,7 +167,17 @@ export function ChatSimulator({
     }
 
     const userMessage = inputValue.trim()
+    const optimisticId = `optimistic-${Date.now()}`
     setInputValue('')
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: optimisticId,
+        role: 'user',
+        content: userMessage,
+        timestamp: new Date().toISOString(),
+      },
+    ])
     setIsLoading(true)
 
     try {
@@ -177,24 +195,49 @@ export function ChatSimulator({
 
       const data = await response.json()
 
-      const newMessages: Message[] = [
-        {
-          id: data.user_message.id,
-          role: 'user',
-          content: data.user_message.content,
-          timestamp: data.user_message.timestamp,
-        },
-        {
-          id: data.assistant_message.id,
-          role: 'assistant',
-          content: data.assistant_message.content,
-          timestamp: data.assistant_message.timestamp,
-        },
-      ]
+      const assistantMetadata: MessageMetadata | undefined = data.assistant_message.metadata
+        ? {
+            usage: data.assistant_message.metadata.usage,
+            toolCalls: data.assistant_message.metadata.toolCalls,
+            performance: data.assistant_message.metadata.performance,
+            model: data.assistant_message.metadata.model,
+          }
+        : undefined
 
-      // Insert a system transfer notification and optional greeting after the handoff message
+      // Replace optimistic user message with the real one from the server
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === optimisticId
+            ? { ...m, id: data.user_message.id, timestamp: data.user_message.timestamp }
+            : m
+        )
+      )
+
+      const newMessages: Message[] = []
+
+      // Insert tool call messages before assistant response
+      if (assistantMetadata?.toolCalls) {
+        for (const tc of assistantMetadata.toolCalls) {
+          newMessages.push({
+            id: `tool-${data.assistant_message.id}-${tc.name}`,
+            role: 'tool',
+            content: tc.name,
+            timestamp: data.assistant_message.timestamp,
+          })
+        }
+      }
+
+      newMessages.push({
+        id: data.assistant_message.id,
+        role: 'assistant',
+        content: data.assistant_message.content,
+        timestamp: data.assistant_message.timestamp,
+        metadata: assistantMetadata,
+      })
+
+      // Insert transfer notification after the handoff message (at the end, before greeting)
       if (data.transfer) {
-        newMessages.splice(1, 0, {
+        newMessages.push({
           id: `transfer-${data.assistant_message.id}`,
           role: 'system',
           content: `↪ Transferred to ${data.transfer.label}`,
@@ -209,6 +252,7 @@ export function ChatSimulator({
           role: 'assistant',
           content: data.greeting_message.content,
           timestamp: data.greeting_message.timestamp,
+          metadata: data.greeting_message.metadata as MessageMetadata | undefined,
         })
       }
 
@@ -224,6 +268,8 @@ export function ChatSimulator({
     } catch (error) {
       console.error('Error sending message:', error)
       toast.error(t('errors.sendMessage'))
+      // Remove optimistic message on error
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setInputValue(userMessage)
     } finally {
       setIsLoading(false)
@@ -243,14 +289,29 @@ export function ChatSimulator({
       setCurrentSessionId(sessionId)
       setSelectedValue(session?.assistant_id ? `assistant:${session.assistant_id}` : null)
       setActiveAgentLabel(null)
-      setMessages(
-        data.history.map((h: { id: string; role: string; content: string; timestamp: string }) => ({
+      const loadedMessages: Message[] = []
+      for (const h of data.history as Array<{ id: string; role: string; content: string; timestamp: string; metadata?: Record<string, unknown> }>) {
+        // Insert virtual tool messages from metadata before assistant messages
+        if (h.role === 'assistant' && h.metadata?.toolCalls) {
+          const toolCalls = h.metadata.toolCalls as Array<{ name: string }>
+          for (const tc of toolCalls) {
+            loadedMessages.push({
+              id: `tool-${h.id}-${tc.name}`,
+              role: 'tool',
+              content: tc.name,
+              timestamp: h.timestamp,
+            })
+          }
+        }
+        loadedMessages.push({
           id: h.id,
-          role: h.role,
+          role: h.role as Message['role'],
           content: h.content,
           timestamp: h.timestamp,
-        }))
-      )
+          metadata: h.metadata as MessageMetadata | undefined,
+        })
+      }
+      setMessages(loadedMessages)
       setInputValue('')
 
       toast.success(t('success.sessionLoaded', { name: session?.assistants?.name || 'assistant' }))
@@ -359,7 +420,7 @@ export function ChatSimulator({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 bg-white dark:bg-neutral-950">
         {!currentSessionId ? (
           <div className="flex items-center justify-center h-full text-center text-neutral-500 dark:text-neutral-400">
             <div>
@@ -388,10 +449,9 @@ export function ChatSimulator({
             <Button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isLoading}
-              size="icon"
-              className="h-full"
+              className="h-auto self-stretch px-4 bg-lime-500 hover:bg-lime-600 dark:bg-lime-600 dark:hover:bg-lime-500 text-white"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-5 w-5" />
             </Button>
           </div>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">

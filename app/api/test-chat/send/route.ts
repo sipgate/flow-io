@@ -176,6 +176,12 @@ export async function POST(request: NextRequest) {
 
     // Save assistant (handoff) response
     const { sequenceNumber: assistantSeqNum } = await getNextSequenceNumber(test_session_id)
+    const assistantMetadata: Record<string, unknown> = {}
+    if (llmResult.usage) assistantMetadata.usage = llmResult.usage
+    if (llmResult.toolCalls) assistantMetadata.toolCalls = llmResult.toolCalls
+    if (llmResult.performance) assistantMetadata.performance = llmResult.performance
+    if (llmResult.model) assistantMetadata.model = llmResult.model
+
     const { transcript: assistantTranscriptData, error: assistantError } =
       await addTestTranscriptMessage({
         test_session_id,
@@ -183,7 +189,7 @@ export async function POST(request: NextRequest) {
         role: 'assistant',
         content: llmResult.response,
         sequence_number: assistantSeqNum,
-        metadata: { usage: llmResult.usage },
+        metadata: assistantMetadata,
       })
 
     const assistantTranscript = assistantTranscriptData as { id: string; content: string; timestamp: string } | null
@@ -193,6 +199,7 @@ export async function POST(request: NextRequest) {
 
     // ── Generate greeting from new agent if send_greeting is enabled ──────────
     let greetingMessage: { id: string; content: string; timestamp: string } | null = null
+    let greetingMetadata: Record<string, unknown> = {}
 
     if (transferInfo && llmResult.scenarioTransfer && scenarioNodes) {
       const targetNode = scenarioNodes.nodes.find((n) => n.id === llmResult.scenarioTransfer!.targetNodeId)
@@ -215,6 +222,10 @@ export async function POST(request: NextRequest) {
         })
 
         if (greetingResult.response) {
+          if (greetingResult.usage) greetingMetadata.usage = greetingResult.usage
+          if (greetingResult.performance) greetingMetadata.performance = greetingResult.performance
+          if (greetingResult.model) greetingMetadata.model = greetingResult.model
+
           const { sequenceNumber: greetingSeqNum } = await getNextSequenceNumber(test_session_id)
           const { transcript: greetingTranscriptData } = await addTestTranscriptMessage({
             test_session_id,
@@ -222,6 +233,7 @@ export async function POST(request: NextRequest) {
             role: 'assistant',
             content: greetingResult.response,
             sequence_number: greetingSeqNum,
+            metadata: greetingMetadata,
           })
           greetingMessage = greetingTranscriptData as { id: string; content: string; timestamp: string } | null
         }
@@ -238,9 +250,10 @@ export async function POST(request: NextRequest) {
         id: assistantTranscript.id,
         content: assistantTranscript.content,
         timestamp: assistantTranscript.timestamp,
+        metadata: assistantMetadata,
       },
       greeting_message: greetingMessage
-        ? { id: greetingMessage.id, content: greetingMessage.content, timestamp: greetingMessage.timestamp }
+        ? { id: greetingMessage.id, content: greetingMessage.content, timestamp: greetingMessage.timestamp, metadata: greetingMetadata }
         : undefined,
       transfer: transferInfo,
     })

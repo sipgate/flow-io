@@ -608,7 +608,8 @@
       "memberAdded": "Miembro agregado correctamente",
       "memberRemoved": "Miembro quitado correctamente",
       "roleUpdated": "Rol actualizado correctamente",
-      "unknown": "Desconocido"
+      "unknown": "Desconocido",
+      "cancel": "Cancelar"
     }
   },
   "analytics": {
@@ -773,7 +774,15 @@
       "sessionDeleted": "Sesión de chat eliminada"
     },
     "assistantsGroup": "Asistentes",
-    "flowsGroup": "Flows"
+    "flowsGroup": "Flows",
+    "promptTokens": "Tokens de prompt",
+    "completionTokens": "Tokens de respuesta",
+    "totalTokens": "Tokens totales",
+    "ttft": "TTFT",
+    "totalTime": "Tiempo LLM",
+    "tps": "Tokens/sec",
+    "modelLabel": "Modelo",
+    "toolUse": "Herramienta"
   },
   "autotest": {
     "title": "Autotest",
