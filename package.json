@@ -59,7 +59,7 @@
     "libphonenumber-js": "^1.12.31",
     "lucide-react": "^0.561.0",
     "mammoth": "^1.11.0",
-    "next": "^15.2.4",
+    "next": "^15.5.15",
     "next-intl": "^4.6.1",
     "next-themes": "^0.4.6",
     "openai": "^6.13.0",
