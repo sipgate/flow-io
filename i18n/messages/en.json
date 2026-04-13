@@ -975,7 +975,15 @@
     "totalTime": "LLM Time",
     "tps": "Tokens/sec",
     "modelLabel": "Model",
-    "toolUse": "Tool"
+    "toolUse": "Tool",
+    "voice": {
+      "ttsOn": "Voice output on (click to mute)",
+      "ttsOff": "Voice output off (click to enable)",
+      "startListening": "Start voice input",
+      "stopListening": "Stop voice input",
+      "listening": "Listening...",
+      "ttsFallback": "ElevenLabs failed — using browser voice"
+    }
   },
   "autotest": {
     "title": "Autotest",

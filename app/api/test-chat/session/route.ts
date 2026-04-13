@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       // Verify entry assistant belongs to org
       const { data: assistant, error: assistantError } = await supabase
         .from('assistants')
-        .select('id, name, opening_message, is_active')
+        .select('id, name, opening_message, is_active, voice_provider, voice_id, avatar_url')
         .eq('id', entryNode.data.assistant_id)
         .eq('organization_id', organization_id)
         .single()
@@ -112,13 +112,15 @@ export async function POST(request: NextRequest) {
           active_node_label: entryNode.data.label,
         },
         opening_message: openingMessage,
+        voice: { provider: assistant.voice_provider, voiceId: assistant.voice_id },
+        agent: { name: assistant.name, avatarUrl: assistant.avatar_url },
       })
     }
 
     // ── Assistant mode (unchanged) ────────────────────────────────────────────
     const { data: assistant, error: assistantError } = await supabase
       .from('assistants')
-      .select('id, name, opening_message, is_active')
+      .select('id, name, opening_message, is_active, voice_provider, voice_id, avatar_url')
       .eq('id', assistant_id)
       .eq('organization_id', organization_id)
       .single()
@@ -181,6 +183,8 @@ export async function POST(request: NextRequest) {
         started_at: session.started_at,
       },
       opening_message: openingMessage,
+      voice: { provider: assistant.voice_provider, voiceId: assistant.voice_id },
+      agent: { name: assistant.name, avatarUrl: assistant.avatar_url },
     })
   } catch (error) {
     console.error('Error in test-chat/session:', error)

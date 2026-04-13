@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, Send, GitBranch, Bot } from 'lucide-react'
+import { Plus, Send, GitBranch, Bot, Mic, MicOff, Volume2, VolumeX, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -15,8 +15,10 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { MessageList } from './message-list'
 import { SessionHistorySidebar } from './session-history-sidebar'
+import { useSpeechRecognition } from './use-speech-recognition'
 import { toast } from 'sonner'
 
 interface MessageMetadata {
@@ -32,6 +34,8 @@ interface Message {
   content: string
   timestamp: string
   metadata?: MessageMetadata
+  agentLabel?: string
+  agentAvatarUrl?: string | null
 }
 
 interface Assistant {
@@ -77,6 +81,96 @@ export function ChatSimulator({
   const [sessions, setSessions] = useState<TestSession[]>(initialSessions)
   const [activeAgentLabel, setActiveAgentLabel] = useState<string | null>(null)
 
+  // Voice state
+  const [ttsEnabled, setTtsEnabled] = useState(false)
+  const [ttsWarning, setTtsWarning] = useState<string | null>(null)
+  const [voiceConfig, setVoiceConfig] = useState<{ provider: string | null; voiceId: string | null }>({ provider: null, voiceId: null })
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const { isListening, transcript, isSupported: sttSupported, start: startListening, stop: stopListening, reset: resetTranscript } = useSpeechRecognition()
+
+  // Sync speech transcript into input field
+  useEffect(() => {
+    if (transcript) {
+      setInputValue(transcript)
+    }
+  }, [transcript])
+
+  const speakText = useCallback(async (text: string, voice?: { provider: string | null; voiceId: string | null }) => {
+    if (!ttsEnabled) return
+
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+    window.speechSynthesis?.cancel()
+
+    const vc = voice ?? voiceConfig
+
+    // ElevenLabs TTS via server route
+    if (vc.provider === 'elevenlabs' && vc.voiceId) {
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voiceId: vc.voiceId }),
+        })
+        if (res.ok) {
+          setTtsWarning(null)
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          audioRef.current = audio
+          await new Promise<void>((resolve) => {
+            audio.onended = () => { URL.revokeObjectURL(url); resolve() }
+            audio.onerror = () => { URL.revokeObjectURL(url); resolve() }
+            audio.play()
+          })
+          return
+        }
+        const err = await res.json().catch(() => null)
+        const msg = err?.error || `ElevenLabs ${res.status}`
+        setTtsWarning(msg)
+      } catch (e) {
+        setTtsWarning(String(e))
+      }
+    }
+
+    // Browser TTS fallback
+    if (window.speechSynthesis) {
+      await new Promise<void>((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text)
+        utterance.lang = 'de-DE'
+        utterance.onend = () => resolve()
+        utterance.onerror = () => resolve()
+        window.speechSynthesis.speak(utterance)
+      })
+    }
+  }, [ttsEnabled, voiceConfig])
+
+  const toggleTts = useCallback(() => {
+    setTtsEnabled((prev) => {
+      if (prev) {
+        // Turning off — stop any playing audio
+        if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current = null
+        }
+        window.speechSynthesis?.cancel()
+      }
+      return !prev
+    })
+  }, [])
+
+  const toggleMic = useCallback(() => {
+    if (isListening) {
+      stopListening()
+    } else {
+      resetTranscript()
+      startListening()
+    }
+  }, [isListening, stopListening, startListening, resetTranscript])
+
   const selectedAssistantId = selectedValue?.startsWith('assistant:')
     ? selectedValue.slice('assistant:'.length)
     : null
@@ -117,6 +211,11 @@ export function ChatSimulator({
       const data = await response.json()
       setCurrentSessionId(data.session.id)
 
+      const newVoice = data.voice
+        ? { provider: data.voice.provider, voiceId: data.voice.voiceId }
+        : null
+      if (newVoice) setVoiceConfig(newVoice)
+
       if (data.session.active_node_label) {
         setActiveAgentLabel(data.session.active_node_label)
       } else {
@@ -130,7 +229,10 @@ export function ChatSimulator({
           role: 'assistant',
           content: data.opening_message.content,
           timestamp: data.opening_message.timestamp,
+          agentLabel: data.agent?.name,
+          agentAvatarUrl: data.agent?.avatarUrl,
         })
+        speakText(data.opening_message.content, newVoice ?? undefined)
       }
       setMessages(newMessages)
 
@@ -233,6 +335,8 @@ export function ChatSimulator({
         content: data.assistant_message.content,
         timestamp: data.assistant_message.timestamp,
         metadata: assistantMetadata,
+        agentLabel: data.assistant_message.agent?.name,
+        agentAvatarUrl: data.assistant_message.agent?.avatarUrl,
       })
 
       // Insert transfer notification after the handoff message (at the end, before greeting)
@@ -253,10 +357,29 @@ export function ChatSimulator({
           content: data.greeting_message.content,
           timestamp: data.greeting_message.timestamp,
           metadata: data.greeting_message.metadata as MessageMetadata | undefined,
+          agentLabel: data.greeting_message.agent?.name,
+          agentAvatarUrl: data.greeting_message.agent?.avatarUrl,
         })
       }
 
+      const newVoice = data.voice
+        ? { provider: data.voice.provider, voiceId: data.voice.voiceId }
+        : null
+
       setMessages((prev) => [...prev, ...newMessages])
+
+      // Speak messages sequentially with correct voices:
+      // 1. Handoff message with OLD voice (current voiceConfig)
+      // 2. Greeting with NEW voice (after transfer)
+      // If no transfer: just speak the assistant response
+      if (data.transfer && data.greeting_message) {
+        await speakText(data.assistant_message.content)
+        if (newVoice) setVoiceConfig(newVoice)
+        await speakText(data.greeting_message.content, newVoice ?? undefined)
+      } else {
+        if (newVoice) setVoiceConfig(newVoice)
+        await speakText(data.assistant_message.content)
+      }
 
       setSessions((prev) =>
         prev.map((s) =>
@@ -354,6 +477,7 @@ export function ChatSimulator({
   }
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b px-6 py-4">
@@ -408,6 +532,35 @@ export function ChatSimulator({
                 {activeAgentLabel}
               </Badge>
             )}
+
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={ttsEnabled ? 'default' : 'outline'}
+                    size="icon"
+                    onClick={toggleTts}
+                    className={ttsEnabled ? 'bg-lime-500 hover:bg-lime-600 dark:bg-lime-600 dark:hover:bg-lime-500 text-white' : ''}
+                  >
+                    {ttsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t(ttsEnabled ? 'voice.ttsOn' : 'voice.ttsOff')}</TooltipContent>
+              </Tooltip>
+              {ttsEnabled && ttsWarning && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center justify-center h-5 w-5 rounded-full bg-amber-100 dark:bg-amber-900/40 cursor-default">
+                      <TriangleAlert className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-medium text-amber-600 dark:text-amber-400">{t('voice.ttsFallback')}</p>
+                    <p className="text-xs text-neutral-500 mt-0.5">{ttsWarning}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           </div>
 
           <SessionHistorySidebar
@@ -441,18 +594,36 @@ export function ChatSimulator({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={t('inputPlaceholder')}
-              className="resize-none"
+              placeholder={isListening ? t('voice.listening') : t('inputPlaceholder')}
+              className={`resize-none ${isListening ? 'border-red-400 ring-1 ring-red-400' : ''}`}
               rows={3}
               disabled={isLoading}
             />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
-              className="h-auto self-stretch px-4 bg-lime-500 hover:bg-lime-600 dark:bg-lime-600 dark:hover:bg-lime-500 text-white"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
+            <div className="flex flex-col gap-1.5 self-stretch">
+              {sttSupported && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={isListening ? 'destructive' : 'outline'}
+                      size="icon"
+                      onClick={toggleMic}
+                      disabled={isLoading}
+                      className={`h-0 flex-1 w-10 ${isListening ? 'animate-pulse' : ''}`}
+                    >
+                      {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t(isListening ? 'voice.stopListening' : 'voice.startListening')}</TooltipContent>
+                </Tooltip>
+              )}
+              <Button
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isLoading}
+                className="h-0 flex-1 w-10 bg-lime-500 hover:bg-lime-600 dark:bg-lime-600 dark:hover:bg-lime-500 text-white"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
             {t('characters', { count: inputValue.length })}
@@ -460,5 +631,6 @@ export function ChatSimulator({
         </div>
       )}
     </div>
+    </TooltipProvider>
   )
 }

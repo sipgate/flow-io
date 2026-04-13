@@ -101,7 +101,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
           speaker: 'assistant',
           text: greetingText,
           metadata: { scenario_greeting: true },
-          assistant_name: greetingAssistant.name,
+          assistant_name: greetingAssistant.name, assistant_avatar_url: greetingAssistant.avatar_url,
         })
       }
       return NextResponse.json(buildSpeakResponse(sessionId, greetingText, speakAssistant, bargeIn).json)
@@ -145,6 +145,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
       assistants (
         id,
         name,
+        avatar_url,
         voice_provider,
         voice_id,
         voice_language
@@ -176,7 +177,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
         speaker: 'assistant',
         text: errorMessage,
         metadata: { mcp_error: mcpResult.error },
-        assistant_name: assistant.name,
+        assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
       })
       return NextResponse.json({
         type: 'speak',
@@ -236,7 +237,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
           speaker: 'assistant',
           text: deferredSpeak.cleanText,
           metadata: { scenario_transfer: targetNodeId, deferred: true },
-          assistant_name: assistant.name,
+          assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
         })
         // Tool entry after assistant speak so it appears after in the transcript
         addTranscriptMessage({
@@ -255,7 +256,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
       speaker: 'assistant',
       text: mcpSpeak.cleanText,
       metadata: { from_mcp: true, ...(mcpResult.callAction ? { call_action: mcpResult.callAction.type } : {}) },
-      assistant_name: assistant.name,
+      assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
     })
     return NextResponse.json(mcpSpeak.json)
   }
@@ -275,7 +276,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
         speaker: 'assistant',
         text: errorMessage,
         metadata: { mcp_timeout: true },
-        assistant_name: assistant.name,
+        assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
       })
       return NextResponse.json({
         type: 'speak',
@@ -291,7 +292,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
       speaker: 'assistant',
       text: forcedSpeak.cleanText,
       metadata: { from_mcp: true, forced_wait: true },
-      assistant_name: assistant.name,
+      assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
     })
     return NextResponse.json(forcedSpeak.json)
   }
@@ -305,7 +306,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
     speaker: 'assistant',
     text: holdMessage,
     metadata: { hold_message: true },
-    assistant_name: assistant.name,
+    assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
   })
 
   return NextResponse.json({

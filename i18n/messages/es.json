@@ -782,7 +782,15 @@
     "totalTime": "Tiempo LLM",
     "tps": "Tokens/sec",
     "modelLabel": "Modelo",
-    "toolUse": "Herramienta"
+    "toolUse": "Herramienta",
+    "voice": {
+      "ttsOn": "Salida de voz activada (clic para silenciar)",
+      "ttsOff": "Salida de voz desactivada (clic para activar)",
+      "startListening": "Iniciar entrada de voz",
+      "stopListening": "Detener entrada de voz",
+      "listening": "Escuchando...",
+      "ttsFallback": "ElevenLabs falló — usando voz del navegador"
+    }
   },
   "autotest": {
     "title": "Autotest",

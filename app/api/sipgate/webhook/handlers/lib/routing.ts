@@ -52,7 +52,7 @@ export async function loadAssistantConfig(assistantId: string): Promise<Assistan
   const { data, error } = await supabase
     .from('assistants')
     .select(`
-      id, name, organization_id,
+      id, name, organization_id, avatar_url,
       voice_provider, voice_id, voice_language,
       llm_provider, llm_model, llm_temperature,
       system_prompt, opening_message, is_active

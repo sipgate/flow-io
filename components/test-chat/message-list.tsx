@@ -25,6 +25,8 @@ interface Message {
   content: string
   timestamp: string
   metadata?: MessageMetadata
+  agentLabel?: string
+  agentAvatarUrl?: string | null
 }
 
 interface MessageListProps {
@@ -108,20 +110,28 @@ export function MessageList({ messages, isLoading = false }: MessageListProps) {
                       isUser ? 'flex-row-reverse' : 'flex-row'
                     }`}
                   >
-                    {/* Icon */}
-                    <div
-                      className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-                        isUser
-                          ? 'bg-lime-100 dark:bg-lime-900/30'
-                          : 'bg-blue-100 dark:bg-blue-900'
-                      }`}
-                    >
-                      {isUser ? (
-                        <User className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
-                      ) : (
-                        <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                      )}
-                    </div>
+                    {/* Icon / Avatar */}
+                    {!isUser && message.agentAvatarUrl ? (
+                      <img
+                        src={message.agentAvatarUrl}
+                        alt={message.agentLabel || ''}
+                        className="flex-shrink-0 w-7 h-7 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
+                          isUser
+                            ? 'bg-lime-100 dark:bg-lime-900/30'
+                            : 'bg-blue-100 dark:bg-blue-900'
+                        }`}
+                      >
+                        {isUser ? (
+                          <User className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
+                        ) : (
+                          <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                        )}
+                      </div>
+                    )}
 
                     {/* Message bubble */}
                     <div
@@ -133,7 +143,7 @@ export function MessageList({ messages, isLoading = false }: MessageListProps) {
                     >
                       <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 flex items-center gap-1">
                         <span>
-                          {isUser ? t('you') : t('assistant')}
+                          {isUser ? t('you') : (message.agentLabel || t('assistant'))}
                           {message.timestamp &&
                             ` · ${format(new Date(message.timestamp), 'HH:mm:ss')}`}
                         </span>

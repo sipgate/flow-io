@@ -41,7 +41,10 @@ export async function POST(request: NextRequest) {
         assistants (
           id,
           name,
-          is_active
+          is_active,
+          voice_provider,
+          voice_id,
+          avatar_url
         )
       `)
       .eq('id', test_session_id)
@@ -52,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const assistant = session.assistants as unknown as { id: string; name: string; is_active: boolean } | null
+    const assistant = session.assistants as unknown as { id: string; name: string; is_active: boolean; voice_provider: string | null; voice_id: string | null; avatar_url: string | null } | null
     if (!assistant || !assistant.is_active) {
       return NextResponse.json(
         { error: 'Assistant not found or inactive' },
@@ -92,6 +95,25 @@ export async function POST(request: NextRequest) {
             transferInstruction: n.data.transfer_instruction,
             inheritVoice: n.data.inherit_voice,
           }))
+      }
+    }
+
+    // Resolve active assistant info (voice, name, avatar)
+    let voiceProvider = assistant.voice_provider
+    let voiceId = assistant.voice_id
+    let activeAssistantName = assistant.name
+    let activeAssistantAvatar = assistant.avatar_url
+    if (activeAssistantId !== assistant.id) {
+      const { data: activeAssistant } = await supabase
+        .from('assistants')
+        .select('name, avatar_url, voice_provider, voice_id')
+        .eq('id', activeAssistantId)
+        .single()
+      if (activeAssistant) {
+        voiceProvider = activeAssistant.voice_provider
+        voiceId = activeAssistant.voice_id
+        activeAssistantName = activeAssistant.name
+        activeAssistantAvatar = activeAssistant.avatar_url
       }
     }
 
@@ -150,6 +172,8 @@ export async function POST(request: NextRequest) {
 
     // ── Handle scenario transfer ──────────────────────────────────────────────
     let transferInfo: { label: string; handoffMessage?: string } | null = null
+    // Snapshot the pre-transfer agent info for the handoff message
+    const handoffAgent = { name: activeAssistantName, avatarUrl: activeAssistantAvatar }
 
     if (llmResult.scenarioTransfer && scenarioId && scenarioNodes) {
       const targetNode = scenarioNodes.nodes.find((n) => n.id === llmResult.scenarioTransfer!.targetNodeId)
@@ -171,6 +195,21 @@ export async function POST(request: NextRequest) {
             },
           })
           .eq('id', test_session_id)
+
+        // Update assistant info to the transferred-to assistant
+        if (targetNode.data.assistant_id) {
+          const { data: targetAssistant } = await supabase
+            .from('assistants')
+            .select('name, avatar_url, voice_provider, voice_id')
+            .eq('id', targetNode.data.assistant_id)
+            .single()
+          if (targetAssistant) {
+            voiceProvider = targetAssistant.voice_provider
+            voiceId = targetAssistant.voice_id
+            activeAssistantName = targetAssistant.name
+            activeAssistantAvatar = targetAssistant.avatar_url
+          }
+        }
       }
     }
 
@@ -251,11 +290,19 @@ export async function POST(request: NextRequest) {
         content: assistantTranscript.content,
         timestamp: assistantTranscript.timestamp,
         metadata: assistantMetadata,
+        agent: { name: handoffAgent.name, avatarUrl: handoffAgent.avatarUrl },
       },
       greeting_message: greetingMessage
-        ? { id: greetingMessage.id, content: greetingMessage.content, timestamp: greetingMessage.timestamp, metadata: greetingMetadata }
+        ? {
+            id: greetingMessage.id,
+            content: greetingMessage.content,
+            timestamp: greetingMessage.timestamp,
+            metadata: greetingMetadata,
+            agent: { name: activeAssistantName, avatarUrl: activeAssistantAvatar },
+          }
         : undefined,
       transfer: transferInfo,
+      voice: { provider: voiceProvider, voiceId },
     })
   } catch (error) {
     console.error('Error in test-chat/send:', error)

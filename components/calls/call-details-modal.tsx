@@ -57,6 +57,7 @@ interface CallTranscriptDetail {
   metadata: {
     tool_name?: string
     assistant_name?: string
+    assistant_avatar_url?: string | null
     voice_id?: string
     voice_provider?: string
     voice_language?: string
@@ -671,19 +672,27 @@ export function CallDetailsModal({
                                 : 'flex-row'
                             }`}
                           >
-                            <div
-                              className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-                                transcript.speaker === 'user'
-                                  ? 'bg-lime-100 dark:bg-lime-900/30'
-                                  : 'bg-blue-100 dark:bg-blue-900'
-                              }`}
-                            >
-                              {transcript.speaker === 'user' ? (
-                                <User className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
-                              ) : (
-                                <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                              )}
-                            </div>
+                            {transcript.speaker !== 'user' && transcript.metadata?.assistant_avatar_url ? (
+                              <img
+                                src={transcript.metadata.assistant_avatar_url}
+                                alt={transcript.metadata.assistant_name || ''}
+                                className="flex-shrink-0 w-7 h-7 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div
+                                className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
+                                  transcript.speaker === 'user'
+                                    ? 'bg-lime-100 dark:bg-lime-900/30'
+                                    : 'bg-blue-100 dark:bg-blue-900'
+                                }`}
+                              >
+                                {transcript.speaker === 'user' ? (
+                                  <User className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
+                                ) : (
+                                  <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                )}
+                              </div>
+                            )}
                             <div
                               className={`rounded-lg px-3 py-2 ${
                                 transcript.speaker === 'user'

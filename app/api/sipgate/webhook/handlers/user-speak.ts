@@ -148,6 +148,7 @@ export async function handleUserSpeak(event: UserSpeakEvent) {
       assistants (
         id,
         name,
+        avatar_url,
         llm_provider,
         llm_model,
         llm_temperature,
@@ -333,7 +334,7 @@ async function handleUserSpeakMCPPath(
         speaker: 'assistant',
         text: fallbackResponse,
         metadata: { error: quickResult.error },
-        assistant_name: assistant.name,
+        assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
       })
       return NextResponse.json({
         type: 'speak',
@@ -378,7 +379,7 @@ async function handleUserSpeakMCPPath(
         speaker: 'assistant',
         text: speak.cleanText,
         metadata: { hesitation: true, response_latency_ms: quickResult.responseLatencyMs },
-        assistant_name: assistant.name,
+        assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
       })
       return NextResponse.json(speak.json)
     }
@@ -399,7 +400,7 @@ async function handleUserSpeakMCPPath(
         performance: quickResult.performance,
         response_latency_ms: quickResult.responseLatencyMs,
       }),
-      assistant_name: assistant.name,
+      assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
     })
     return NextResponse.json(speak.json)
   }
@@ -416,7 +417,7 @@ async function handleUserSpeakMCPPath(
     speaker: 'assistant',
     text: holdMessage,
     metadata: { hold_message: true, mcp_async: true },
-    assistant_name: assistant.name,
+    assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
   })
 
   return NextResponse.json({
@@ -513,7 +514,7 @@ async function handleUserSpeakFastPath(
         speaker: 'assistant',
         text: speak.cleanText,
         metadata: { hesitation: true, response_latency_ms: responseLatencyMs },
-        assistant_name: assistant.name,
+        assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
       })
       return NextResponse.json(speak.json)
     }
@@ -547,7 +548,7 @@ async function handleUserSpeakFastPath(
         performance: llmResult.performance,
         response_latency_ms: responseLatencyMs,
       }),
-      assistant_name: assistant.name,
+      assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
     })
     return NextResponse.json(speak.json)
   } catch (error) {
@@ -559,7 +560,7 @@ async function handleUserSpeakFastPath(
       speaker: 'assistant',
       text: fallbackResponse,
       metadata: { error: String(error) },
-      assistant_name: assistant.name,
+      assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
     })
     return NextResponse.json({
       type: 'speak',
@@ -630,7 +631,7 @@ async function handleScenarioTransfer(params: ScenarioTransferParams) {
           seamless: true,
           ...(isQuickResponse ? { quick_response: true } : {}),
         }),
-        assistant_name: newAssistant.name,
+        assistant_name: newAssistant.name, assistant_avatar_url: newAssistant.avatar_url,
       })
       return NextResponse.json(speak.json)
     }
@@ -652,7 +653,7 @@ async function handleScenarioTransfer(params: ScenarioTransferParams) {
       scenario_transfer: targetNodeId,
       ...(isQuickResponse ? { quick_response: true } : { usage }),
     }),
-    assistant_name: assistant.name,
+    assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
   })
   // Tool entry after assistant speak so it appears after in the transcript
   addTranscriptMessage({
@@ -692,7 +693,7 @@ async function handleCallAction(
         ...(performance ? { performance } : {}),
         ...(responseLatencyMs !== undefined ? { response_latency_ms: responseLatencyMs } : {}),
       }),
-      assistant_name: assistant.name,
+      assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
     })
     return NextResponse.json(speak.json)
   }
@@ -719,7 +720,7 @@ async function handleCallAction(
         ...(performance ? { performance } : {}),
         ...(responseLatencyMs !== undefined ? { response_latency_ms: responseLatencyMs } : {}),
       }),
-      assistant_name: assistant.name,
+      assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
     })
     return NextResponse.json(speak.json)
   }

@@ -144,6 +144,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     text: openingMessage,
     metadata: buildAssistantMeta(assistant),
     assistant_name: assistant.name,
+    assistant_avatar_url: assistant.avatar_url,
   })
 
   // Initialize real-time variable collection if assistant has relevant definitions

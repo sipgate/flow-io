@@ -75,12 +75,16 @@ export async function addTranscriptMessage(data: {
   confidence?: number
   metadata?: unknown
   assistant_name?: string
+  assistant_avatar_url?: string | null
 }) {
   const supabase = createServiceRoleClient()
 
-  const metadata = data.assistant_name
+  let metadata = data.assistant_name
     ? { ...(data.metadata as Record<string, unknown> | undefined), assistant_name: data.assistant_name }
     : data.metadata || null
+  if (data.assistant_avatar_url && metadata) {
+    metadata = { ...(metadata as Record<string, unknown>), assistant_avatar_url: data.assistant_avatar_url }
+  }
 
   const { error } = await supabase.from('call_transcripts').insert({
     call_session_id: data.call_session_id,

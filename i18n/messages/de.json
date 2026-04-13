@@ -975,7 +975,15 @@
     "totalTime": "LLM-Zeit",
     "tps": "Tokens/sec",
     "modelLabel": "Modell",
-    "toolUse": "Tool"
+    "toolUse": "Tool",
+    "voice": {
+      "ttsOn": "Sprachausgabe an (klicken zum Stummschalten)",
+      "ttsOff": "Sprachausgabe aus (klicken zum Aktivieren)",
+      "startListening": "Spracheingabe starten",
+      "stopListening": "Spracheingabe stoppen",
+      "listening": "Ich höre zu...",
+      "ttsFallback": "ElevenLabs fehlgeschlagen — Browser-Stimme aktiv"
+    }
   },
   "autotest": {
     "title": "Autotest",

@@ -62,6 +62,7 @@ export interface AssistantConfig {
   id: string
   name: string
   organization_id: string
+  avatar_url: string | null
   voice_provider: string | null
   voice_id: string | null
   voice_language: string | null
