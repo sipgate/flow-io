@@ -19,7 +19,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
 import { getCallsForExport } from '@/lib/actions/calls'
 import { EXPORT_FIELDS, type ExportFormat } from '@/lib/export/call-export-config'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 
 type ExportCallData = Record<string, string | number | null | undefined>
 
@@ -152,14 +152,117 @@ export function ExportCallsDialog({
           filename = `calls-export-${timestamp}.json`
           mimeType = 'application/json'
           break
-        case 'xlsx':
-          const worksheet = XLSX.utils.json_to_sheet(data)
-          const workbook = XLSX.utils.book_new()
-          XLSX.utils.book_append_sheet(workbook, worksheet, 'Calls')
-          content = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+        case 'xlsx': {
+          const workbook = new ExcelJS.Workbook()
+          const worksheet = workbook.addWorksheet('Calls')
+          const headers = Object.keys(data[0])
+
+          // Set up columns with initial widths based on header length
+          worksheet.columns = headers.map(h => ({
+            header: h,
+            key: h,
+            width: Math.max(h.length + 4, 14),
+          }))
+
+          // Add data rows
+          for (const row of data) {
+            worksheet.addRow(row)
+          }
+
+          // Auto-fit column widths based on content
+          for (const col of worksheet.columns) {
+            let maxLen = col.width ?? 14
+            col.eachCell?.({ includeEmpty: false }, (cell) => {
+              const len = String(cell.value ?? '').length + 3
+              if (len > maxLen) maxLen = Math.min(len, 60)
+            })
+            col.width = maxLen
+          }
+
+          // Style header row
+          const headerRow = worksheet.getRow(1)
+          headerRow.eachCell((cell) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF1E293B' },
+            }
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+            cell.alignment = { vertical: 'middle', horizontal: 'left' }
+            cell.border = {
+              bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+            }
+          })
+          headerRow.height = 28
+
+          // Freeze header row + auto-filter
+          worksheet.views = [{ state: 'frozen' as const, ySplit: 1 }]
+          worksheet.autoFilter = {
+            from: { row: 1, column: 1 },
+            to: { row: 1, column: headers.length },
+          }
+
+          // Style data rows: zebra stripes, borders, conditional colors
+          const thinBorder: Partial<ExcelJS.Borders> = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          }
+          const stripeFill: ExcelJS.Fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8FAFC' },
+          }
+
+          const statusIdx = headers.indexOf('status')
+          const csatIdx = headers.indexOf('csat_score')
+
+          for (let r = 2; r <= worksheet.rowCount; r++) {
+            const row = worksheet.getRow(r)
+            const isStripe = r % 2 === 0
+            row.height = 22
+
+            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+              cell.alignment = { vertical: 'middle', wrapText: false }
+              cell.border = thinBorder
+              cell.font = { size: 10.5 }
+              if (isStripe) cell.fill = stripeFill
+
+              // Color-code status column
+              if (statusIdx >= 0 && colNumber === statusIdx + 1) {
+                const val = String(cell.value ?? '').toLowerCase()
+                if (val === 'completed' || val === 'ended') {
+                  cell.font = { size: 10.5, color: { argb: 'FF16A34A' }, bold: true }
+                } else if (val === 'failed' || val === 'error') {
+                  cell.font = { size: 10.5, color: { argb: 'FFDC2626' }, bold: true }
+                } else if (val === 'in_progress' || val === 'active') {
+                  cell.font = { size: 10.5, color: { argb: 'FF2563EB' }, bold: true }
+                }
+              }
+
+              // Color-code CSAT score
+              if (csatIdx >= 0 && colNumber === csatIdx + 1) {
+                const score = Number(cell.value)
+                if (!isNaN(score)) {
+                  cell.alignment = { vertical: 'middle', horizontal: 'center' }
+                  if (score >= 4) {
+                    cell.font = { size: 10.5, color: { argb: 'FF16A34A' }, bold: true }
+                  } else if (score >= 3) {
+                    cell.font = { size: 10.5, color: { argb: 'FFCA8A04' }, bold: true }
+                  } else {
+                    cell.font = { size: 10.5, color: { argb: 'FFDC2626' }, bold: true }
+                  }
+                }
+              }
+            })
+          }
+
+          content = await workbook.xlsx.writeBuffer() as ArrayBuffer
           filename = `calls-export-${timestamp}.xlsx`
           mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           break
+        }
       }
 
       // Download file

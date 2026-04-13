@@ -53,6 +53,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "diff": "^8.0.2",
+    "exceljs": "^4.4.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
@@ -76,7 +77,6 @@
     "tsx": "^4.19.4",
     "unpdf": "^1.4.0",
     "ws": "^8.18.2",
-    "xlsx": "^0.18.5",
     "zod": "^4.2.1"
   },
   "devDependencies": {
