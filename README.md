@@ -4,7 +4,7 @@
 
 **App only (requires external Supabase):**
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/BlackMac/flow-io)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/sipgate/flow-io)
 
 ---
 

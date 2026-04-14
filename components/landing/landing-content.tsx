@@ -400,9 +400,11 @@ export function LandingContent() {
           <p className="text-xs text-[#666]">
             {t('builtWith')}
           </p>
-          <p className="text-xs text-[#666]">
-            {t('copyright', { year: new Date().getFullYear() })}
-          </p>
+          <div className="flex items-center gap-4 text-xs text-[#666]">
+            <a href="https://www.sipgate.de/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-[#999] transition-colors duration-300">{t('imprint')}</a>
+            <a href="https://www.sipgate.de/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-[#999] transition-colors duration-300">{t('privacy')}</a>
+            <span>{t('copyright', { year: new Date().getFullYear() })}</span>
+          </div>
         </div>
       </footer>
     </div>

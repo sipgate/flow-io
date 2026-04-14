@@ -69,10 +69,10 @@ export default async function AuthLayout({
 
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-center">
-          <p className="text-xs text-[#444]">
-            {t('copyright', { year: new Date().getFullYear() })}
-          </p>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-center gap-4 text-xs text-[#444]">
+          <a href="https://www.sipgate.de/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-[#888] transition-colors duration-300">{t('imprint')}</a>
+          <a href="https://www.sipgate.de/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-[#888] transition-colors duration-300">{t('privacy')}</a>
+          <span>{t('copyright', { year: new Date().getFullYear() })}</span>
         </div>
       </footer>
     </div>

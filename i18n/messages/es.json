@@ -1018,6 +1018,8 @@
   },
   "authLayout": {
     "brandName": "flow-io",
+    "imprint": "Aviso legal",
+    "privacy": "Privacidad",
     "copyright": "© {year} sipgate GmbH"
   },
   "sipgateComplete": {
@@ -1409,6 +1411,8 @@
     "starOnGithub": "Dar estrella en GitHub",
     "selfHostNote": "git clone · docker compose up · listo",
     "builtWith": "Desarrollado con Next.js, Supabase & sipgate Flow",
+    "imprint": "Aviso legal",
+    "privacy": "Privacidad",
     "copyright": "© {year} sipgate GmbH"
   }
 }
