@@ -321,7 +321,8 @@ async function handleUserSpeakMCPPath(
     ? transcripts
         .filter((t) =>
           (t.speaker === 'user' || t.speaker === 'assistant') &&
-          !(t.metadata as Record<string, unknown> | null)?.partial_turn
+          !(t.metadata as Record<string, unknown> | null)?.partial_turn &&
+            !(t.metadata as Record<string, unknown> | null)?.wait_for_turn_filler
         )
         .map((t) => ({
           role: t.speaker === 'user' ? ('user' as const) : ('assistant' as const),
@@ -518,7 +519,8 @@ async function handleUserSpeakFastPath(
       ? transcripts
           .filter((t) =>
             (t.speaker === 'user' || t.speaker === 'assistant') &&
-            !(t.metadata as Record<string, unknown> | null)?.partial_turn
+            !(t.metadata as Record<string, unknown> | null)?.partial_turn &&
+            !(t.metadata as Record<string, unknown> | null)?.wait_for_turn_filler
           )
           .map((t) => ({
             role: t.speaker === 'user' ? ('user' as const) : ('assistant' as const),
