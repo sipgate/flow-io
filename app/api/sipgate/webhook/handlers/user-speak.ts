@@ -360,9 +360,8 @@ async function handleUserSpeakMCPPath(
       startHesitation(event.session.id, {
         assistantId: assistant.id,
         organizationId: session.organization_id,
-        // Do NOT include the hesitation message in history: the follow-up LLM call must
-        // see only the user's question and call the tool directly. Adding the hesitation
-        // message creates two consecutive model turns which confuses Gemini.
+        // Do NOT include the hesitation message in history: it is injected as a fake
+        // tool call in the follow-up so the model knows to proceed to the real tool.
         conversationHistory,
         sessionId: session.id,
         variableContext: {
@@ -372,6 +371,7 @@ async function handleUserSpeakMCPPath(
         variableCollectionPrompt: collectionPrompt || undefined,
         validationContext,
         scenarioTransferNodes,
+        hesitationMessage: quickResult.hesitationMessage,
       })
       const speak = buildSpeakResponse(event.session.id, quickResult.hesitationMessage, assistant, bargeIn)
       await addTranscriptMessage({
@@ -495,9 +495,8 @@ async function handleUserSpeakFastPath(
       startHesitation(event.session.id, {
         assistantId: assistant.id,
         organizationId: session.organization_id,
-        // Do NOT include the hesitation message in history: the follow-up LLM call must
-        // see only the user's question and call the tool directly. Adding the hesitation
-        // message creates two consecutive model turns which confuses Gemini.
+        // Do NOT include the hesitation message in history: it is injected as a fake
+        // tool call in the follow-up so the model knows to proceed to the real tool.
         conversationHistory,
         sessionId: session.id,
         variableContext: {
@@ -507,6 +506,7 @@ async function handleUserSpeakFastPath(
         variableCollectionPrompt: collectionPrompt || undefined,
         validationContext,
         scenarioTransferNodes,
+        hesitationMessage: llmResult.hesitationMessage,
       })
       const speak = buildSpeakResponse(event.session.id, llmResult.hesitationMessage, assistant, bargeIn)
       await addTranscriptMessage({

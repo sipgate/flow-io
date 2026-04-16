@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
 import { enUS, de, es } from 'date-fns/locale'
 import { useTranslations, useLocale } from 'next-intl'
-import { Phone, Clock, User, Bot, RefreshCw, StickyNote, AlertCircle, Info, MessageSquare, CheckCircle2, XCircle, HelpCircle, Target, Loader2, Wrench, ArrowRightLeft, Mic } from 'lucide-react'
+import { Phone, Clock, User, Bot, RefreshCw, StickyNote, AlertCircle, Info, MessageSquare, CheckCircle2, XCircle, HelpCircle, Target, Loader2, Wrench, ArrowRightLeft, Mic, Hourglass } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -68,6 +68,7 @@ interface CallTranscriptDetail {
     performance?: { ttftMs: number; totalTimeMs: number; tokensPerSecond: number }
     response_latency_ms?: number
     barge_in?: boolean
+    hesitation?: boolean
     [key: string]: unknown
   } | null
 }
@@ -656,23 +657,18 @@ export function CallDetailsModal({
                         )
                       }
 
-                      return (
+                      {(() => {
+                        const isUser = transcript.speaker === 'user'
+                        const isHesitation = !isUser && transcript.metadata?.hesitation === true
+                        return (
                         <div
                           key={transcript.id || index}
-                          className={`flex gap-3 ${
-                            transcript.speaker === 'user'
-                              ? 'justify-end'
-                              : 'justify-start'
-                          }`}
+                          className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
-                            className={`flex gap-2 max-w-[85%] ${
-                              transcript.speaker === 'user'
-                                ? 'flex-row-reverse'
-                                : 'flex-row'
-                            }`}
+                            className={`flex gap-2 max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
                           >
-                            {transcript.speaker !== 'user' && transcript.metadata?.assistant_avatar_url ? (
+                            {!isUser && transcript.metadata?.assistant_avatar_url ? (
                               <img
                                 src={transcript.metadata.assistant_avatar_url}
                                 alt={transcript.metadata.assistant_name || ''}
@@ -681,13 +677,17 @@ export function CallDetailsModal({
                             ) : (
                               <div
                                 className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-                                  transcript.speaker === 'user'
+                                  isUser
                                     ? 'bg-lime-100 dark:bg-lime-900/30'
-                                    : 'bg-blue-100 dark:bg-blue-900'
+                                    : isHesitation
+                                      ? 'bg-amber-100 dark:bg-amber-900/30'
+                                      : 'bg-blue-100 dark:bg-blue-900'
                                 }`}
                               >
-                                {transcript.speaker === 'user' ? (
+                                {isUser ? (
                                   <User className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
+                                ) : isHesitation ? (
+                                  <Hourglass className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                                 ) : (
                                   <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                                 )}
@@ -695,20 +695,22 @@ export function CallDetailsModal({
                             )}
                             <div
                               className={`rounded-lg px-3 py-2 ${
-                                transcript.speaker === 'user'
+                                isUser
                                   ? 'bg-lime-50 dark:bg-lime-950'
-                                  : 'bg-neutral-100 dark:bg-neutral-800'
+                                  : isHesitation
+                                    ? 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50'
+                                    : 'bg-neutral-100 dark:bg-neutral-800'
                               }`}
                             >
                               <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 flex items-center gap-1">
                                 <span>
-                                  {transcript.speaker === 'user'
+                                  {isUser
                                     ? t('user')
                                     : (transcript.metadata?.assistant_name || t('assistantLabel'))}
                                   {transcript.timestamp &&
                                     ` · ${format(new Date(transcript.timestamp), 'HH:mm:ss')}`}
                                 </span>
-                                {transcript.speaker === 'user' && transcript.metadata?.barge_in && (
+                                {isUser && transcript.metadata?.barge_in && (
                                   <TooltipProvider delayDuration={100}>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -725,7 +727,7 @@ export function CallDetailsModal({
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
-                                {transcript.speaker === 'assistant' && (transcript.metadata?.voice_id || transcript.metadata?.performance || transcript.metadata?.usage || transcript.metadata?.response_latency_ms !== undefined) && (
+                                {!isUser && !isHesitation && (transcript.metadata?.voice_id || transcript.metadata?.performance || transcript.metadata?.usage || transcript.metadata?.response_latency_ms !== undefined) && (
                                   <TooltipProvider delayDuration={100}>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -807,11 +809,12 @@ export function CallDetailsModal({
                                   </TooltipProvider>
                                 )}
                               </div>
-                              <div className="text-sm">{transcript.text}</div>
+                              <div className={`text-sm ${isHesitation ? 'italic text-amber-800 dark:text-amber-300' : ''}`}>{transcript.text}</div>
                             </div>
                           </div>
                         </div>
-                      )
+                        )
+                      })()}
                     })}
                   </div>
                 )}

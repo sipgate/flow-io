@@ -61,6 +61,7 @@ export async function generateLLMResponse(params: {
   scenarioTransferNodes?: ScenarioTransferNode[]  // Reachable agent nodes for scenario-based transfer
   seamlessTransfer?: boolean  // When true, suppress self-introduction (caller doesn't know they were transferred)
   disableHesitation?: boolean  // When true, skip hesitate tool (used for follow-up calls after hesitation)
+  priorHesitationMessage?: string  // When set, inject a fake hesitate tool-call + result into messages so the model knows to proceed to the real tool
 }): Promise<LLMResponseResult> {
   const supabase = createServiceRoleClient()
   let mcpExecutor: MCPToolExecutor | null = null
@@ -170,6 +171,35 @@ export async function generateLLMResponse(params: {
         role: message.role === 'user' ? 'user' : 'assistant',
         content: message.content,
       })
+    }
+
+    // Hesitation follow-up: inject the prior hesitate tool call + result so the model
+    // knows it already made the announcement and should now call the actual tool.
+    // Without this, some models (e.g. Gemini 2.5 Flash) generate an empty response
+    // because they "want" to call hesitate but the tool is disabled.
+    if (params.priorHesitationMessage && params.disableHesitation) {
+      const fakeHesitateCallId = 'prior-hesitation-call'
+      messages.push({
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: fakeHesitateCallId,
+            type: 'function',
+            function: {
+              name: 'hesitate',
+              arguments: JSON.stringify({ message: params.priorHesitationMessage }),
+            },
+          },
+        ],
+      })
+      messages.push({
+        role: 'tool',
+        content: 'Announcement delivered to user. Now call the appropriate tool to fulfill the request.',
+        tool_call_id: fakeHesitateCallId,
+        name: 'hesitate',
+      })
+      debug('[LLM Service] Injected prior hesitation context:', params.priorHesitationMessage)
     }
 
     // Seamless transfer: inject a late system message right after the conversation history.

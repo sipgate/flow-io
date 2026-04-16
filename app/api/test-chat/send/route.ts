@@ -7,21 +7,34 @@ import {
 } from '@/lib/actions/test-chat'
 import { generateLLMResponse } from '@/lib/services/llm-conversation'
 import { getScenarioByIdServiceRole } from '@/lib/actions/scenarios'
+import {
+  startHesitation,
+  getHesitationState,
+  clearHesitation,
+} from '@/lib/services/hesitation-state'
 import type { ScenarioTransferNode } from '@/lib/llm/tools/scenario-transfer-tool'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { test_session_id, message, organization_id } = body
+    const { test_session_id, message, organization_id, continue_after_hesitation } = body
 
-    if (!test_session_id || !message || !organization_id) {
+    if (!test_session_id || !organization_id) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
-    if (message.length > 2000) {
+    // For normal messages, require the message text
+    if (!continue_after_hesitation && !message) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    if (message && message.length > 2000) {
       return NextResponse.json(
         { error: 'Message too long (max 2000 characters)' },
         { status: 400 }
@@ -117,6 +130,161 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ── Path A: follow-up after hesitation ────────────────────────────────────
+    // Client sends continue_after_hesitation:true after displaying the hesitation
+    // message. We retrieve the stored state and run the real LLM call.
+    if (continue_after_hesitation) {
+      const hesitationState = getHesitationState(test_session_id)
+      if (!hesitationState) {
+        return NextResponse.json({ error: 'No pending hesitation' }, { status: 400 })
+      }
+      clearHesitation(test_session_id)
+
+      const followUpResult = await generateLLMResponse({
+        ...hesitationState,
+        disableHesitation: true,
+        priorHesitationMessage: hesitationState.hesitationMessage,
+      })
+
+      // Re-use the shared "save + respond" logic below via finalResult
+      const historyForGreeting = hesitationState.conversationHistory
+      const handoffAgent = { name: activeAssistantName, avatarUrl: activeAssistantAvatar }
+
+      if (followUpResult.error || !followUpResult.response) {
+        const errorMessage = 'I apologize, but I encountered an error. Could you please try again?'
+        const { sequenceNumber: errSeqNum } = await getNextSequenceNumber(test_session_id)
+        const { transcript: errorTranscriptData } = await addTestTranscriptMessage({
+          test_session_id,
+          organization_id,
+          role: 'assistant',
+          content: errorMessage,
+          sequence_number: errSeqNum,
+          metadata: { error: followUpResult.error },
+        })
+        const errorTranscript = errorTranscriptData as { id: string; timestamp: string } | null
+        return NextResponse.json({
+          assistant_message: { id: errorTranscript?.id, content: errorMessage, timestamp: errorTranscript?.timestamp },
+          error: followUpResult.error,
+        })
+      }
+
+      // Handle scenario transfer
+      let transferInfo: { label: string; handoffMessage?: string } | null = null
+      if (followUpResult.scenarioTransfer && scenarioId && scenarioNodes) {
+        const targetNode = scenarioNodes.nodes.find((n) => n.id === followUpResult.scenarioTransfer!.targetNodeId)
+        if (targetNode) {
+          transferInfo = {
+            label: targetNode.data.label,
+            handoffMessage: followUpResult.scenarioTransfer.handoffMessage,
+          }
+          await supabase
+            .from('test_sessions')
+            .update({
+              metadata: {
+                ...(meta || {}),
+                active_node_id: targetNode.id,
+                active_node_label: targetNode.data.label,
+              },
+            })
+            .eq('id', test_session_id)
+          if (targetNode.data.assistant_id) {
+            const { data: targetAssistant } = await supabase
+              .from('assistants')
+              .select('name, avatar_url, voice_provider, voice_id')
+              .eq('id', targetNode.data.assistant_id)
+              .single()
+            if (targetAssistant) {
+              voiceProvider = targetAssistant.voice_provider
+              voiceId = targetAssistant.voice_id
+              activeAssistantName = targetAssistant.name
+              activeAssistantAvatar = targetAssistant.avatar_url
+            }
+          }
+        }
+      }
+
+      // Save assistant response
+      const { sequenceNumber: assistantSeqNum } = await getNextSequenceNumber(test_session_id)
+      const assistantMetadata: Record<string, unknown> = {}
+      if (followUpResult.usage) assistantMetadata.usage = followUpResult.usage
+      if (followUpResult.toolCalls) assistantMetadata.toolCalls = followUpResult.toolCalls
+      if (followUpResult.performance) assistantMetadata.performance = followUpResult.performance
+      if (followUpResult.model) assistantMetadata.model = followUpResult.model
+
+      const { transcript: assistantTranscriptData, error: assistantError } =
+        await addTestTranscriptMessage({
+          test_session_id,
+          organization_id,
+          role: 'assistant',
+          content: followUpResult.response,
+          sequence_number: assistantSeqNum,
+          metadata: assistantMetadata,
+        })
+
+      const assistantTranscript = assistantTranscriptData as { id: string; content: string; timestamp: string } | null
+      if (assistantError || !assistantTranscript) {
+        return NextResponse.json({ error: 'Failed to save assistant response' }, { status: 500 })
+      }
+
+      // Generate greeting if transfer happened
+      let greetingMessage: { id: string; content: string; timestamp: string } | null = null
+      let greetingMetadata: Record<string, unknown> = {}
+      if (transferInfo && followUpResult.scenarioTransfer && scenarioNodes) {
+        const targetNode = scenarioNodes.nodes.find((n) => n.id === followUpResult.scenarioTransfer!.targetNodeId)
+        if (targetNode?.data.send_greeting && targetNode.data.assistant_id) {
+          const greetingHistory = [
+            ...historyForGreeting,
+            { role: 'assistant' as const, content: followUpResult.response },
+            { role: 'user' as const, content: '[Transfer complete. Greet the caller briefly and offer your help.]' },
+          ]
+          const greetingResult = await generateLLMResponse({
+            assistantId: targetNode.data.assistant_id,
+            organizationId: organization_id,
+            conversationHistory: greetingHistory,
+            sessionId: test_session_id,
+          })
+          if (greetingResult.response) {
+            if (greetingResult.usage) greetingMetadata.usage = greetingResult.usage
+            if (greetingResult.performance) greetingMetadata.performance = greetingResult.performance
+            if (greetingResult.model) greetingMetadata.model = greetingResult.model
+            const { sequenceNumber: greetingSeqNum } = await getNextSequenceNumber(test_session_id)
+            const { transcript: greetingTranscriptData } = await addTestTranscriptMessage({
+              test_session_id,
+              organization_id,
+              role: 'assistant',
+              content: greetingResult.response,
+              sequence_number: greetingSeqNum,
+              metadata: greetingMetadata,
+            })
+            greetingMessage = greetingTranscriptData as { id: string; content: string; timestamp: string } | null
+          }
+        }
+      }
+
+      return NextResponse.json({
+        assistant_message: {
+          id: assistantTranscript.id,
+          content: assistantTranscript.content,
+          timestamp: assistantTranscript.timestamp,
+          metadata: assistantMetadata,
+          agent: { name: handoffAgent.name, avatarUrl: handoffAgent.avatarUrl },
+        },
+        greeting_message: greetingMessage
+          ? {
+              id: greetingMessage.id,
+              content: greetingMessage.content,
+              timestamp: greetingMessage.timestamp,
+              metadata: greetingMetadata,
+              agent: { name: activeAssistantName, avatarUrl: activeAssistantAvatar },
+            }
+          : undefined,
+        transfer: transferInfo,
+        voice: { provider: voiceProvider, voiceId },
+      })
+    }
+
+    // ── Path B: normal message ────────────────────────────────────────────────
+
     // Save user message
     const { sequenceNumber: userSeqNum } = await getNextSequenceNumber(test_session_id)
     const { transcript: userTranscriptData, error: userError } =
@@ -139,17 +307,67 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch conversation history' }, { status: 500 })
     }
 
+    const conversationHistory = history.map((h) => ({
+      role: h.role as 'user' | 'assistant' | 'system',
+      content: h.content,
+    }))
+
     // Generate LLM response
     const llmResult = await generateLLMResponse({
       assistantId: activeAssistantId,
       organizationId: organization_id,
-      conversationHistory: history.map((h) => ({
-        role: h.role as 'user' | 'assistant' | 'system',
-        content: h.content,
-      })),
+      conversationHistory,
       sessionId: test_session_id,
       scenarioTransferNodes: scenarioTransferNodes.length > 0 ? scenarioTransferNodes : undefined,
     })
+
+    // ── Hesitation: return early, store state for follow-up ───────────────────
+    // The client will display the hesitation message, then automatically send
+    // continue_after_hesitation:true to trigger the real tool call.
+    if (llmResult.hesitationMessage && !llmResult.error) {
+      const { sequenceNumber: hesSeqNum } = await getNextSequenceNumber(test_session_id)
+      const { transcript: hesTranscriptData } = await addTestTranscriptMessage({
+        test_session_id,
+        organization_id,
+        role: 'assistant',
+        content: llmResult.hesitationMessage,
+        sequence_number: hesSeqNum,
+        metadata: { hesitation: true },
+      })
+      const hesitationTranscript = hesTranscriptData as { id: string; content: string; timestamp: string } | null
+
+      // Store state so the follow-up request can resume from here
+      startHesitation(test_session_id, {
+        assistantId: activeAssistantId,
+        organizationId: organization_id,
+        // Do NOT include the hesitation message in history — it is injected as a
+        // fake tool call in the follow-up so the model knows to proceed to the real tool
+        conversationHistory: conversationHistory.filter(
+          (h): h is { role: 'user' | 'assistant'; content: string } =>
+            h.role === 'user' || h.role === 'assistant'
+        ),
+        sessionId: test_session_id,
+        scenarioTransferNodes: scenarioTransferNodes.length > 0 ? scenarioTransferNodes : undefined,
+        hesitationMessage: llmResult.hesitationMessage,
+      })
+
+      return NextResponse.json({
+        user_message: {
+          id: userTranscript.id,
+          content: userTranscript.content,
+          timestamp: userTranscript.timestamp,
+        },
+        hesitation_message: hesitationTranscript
+          ? {
+              id: hesitationTranscript.id,
+              content: hesitationTranscript.content,
+              timestamp: hesitationTranscript.timestamp,
+            }
+          : undefined,
+        needs_followup: true,
+        voice: { provider: voiceProvider, voiceId },
+      })
+    }
 
     if (llmResult.error || !llmResult.response) {
       const errorMessage = 'I apologize, but I encountered an error. Could you please try again?'
@@ -245,10 +463,7 @@ export async function POST(request: NextRequest) {
       if (targetNode?.data.send_greeting && targetNode.data.assistant_id) {
         // Build updated history including the handoff message
         const greetingHistory = [
-          ...history.map((h) => ({
-            role: h.role as 'user' | 'assistant' | 'system',
-            content: h.content,
-          })),
+          ...conversationHistory,
           { role: 'assistant' as const, content: llmResult.response },
           { role: 'user' as const, content: '[Transfer complete. Greet the caller briefly and offer your help.]' },
         ]

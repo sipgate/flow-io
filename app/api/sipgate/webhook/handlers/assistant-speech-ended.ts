@@ -118,6 +118,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
     const followUpPromise = generateLLMResponse({
       ...hesitationParams,
       disableHesitation: true,
+      priorHesitationMessage: hesitationParams.hesitationMessage,
     }).then((result) => {
       if (result.error || !result.response) {
         return { response: '', error: result.error || 'No response from LLM', callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined }

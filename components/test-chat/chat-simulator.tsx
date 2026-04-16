@@ -26,6 +26,7 @@ interface MessageMetadata {
   toolCalls?: Array<{ name: string; arguments: Record<string, unknown>; result: string }>
   performance?: { ttftMs: number; totalTimeMs: number; tokensPerSecond: number }
   model?: string
+  hesitation?: boolean
 }
 
 interface Message {
@@ -282,6 +283,89 @@ export function ChatSimulator({
     ])
     setIsLoading(true)
 
+    // Helper: append assistant response data (assistant_message, transfer, greeting) to
+    // the message list and speak them. Used for both the normal path and the hesitation
+    // follow-up path so the logic is not duplicated.
+    const applyAssistantData = async (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      d: any,
+      voiceOverride: { provider: string | null; voiceId: string | null } | null,
+    ) => {
+      const meta: MessageMetadata | undefined = d.assistant_message?.metadata
+        ? {
+            usage: d.assistant_message.metadata.usage,
+            toolCalls: d.assistant_message.metadata.toolCalls,
+            performance: d.assistant_message.metadata.performance,
+            model: d.assistant_message.metadata.model,
+          }
+        : undefined
+
+      const msgs: Message[] = []
+
+      if (meta?.toolCalls) {
+        for (const tc of meta.toolCalls) {
+          msgs.push({
+            id: `tool-${d.assistant_message.id}-${tc.name}`,
+            role: 'tool',
+            content: tc.name,
+            timestamp: d.assistant_message.timestamp,
+          })
+        }
+      }
+
+      msgs.push({
+        id: d.assistant_message.id,
+        role: 'assistant',
+        content: d.assistant_message.content,
+        timestamp: d.assistant_message.timestamp,
+        metadata: meta,
+        agentLabel: d.assistant_message.agent?.name,
+        agentAvatarUrl: d.assistant_message.agent?.avatarUrl,
+      })
+
+      if (d.transfer) {
+        msgs.push({
+          id: `transfer-${d.assistant_message.id}`,
+          role: 'system',
+          content: `↪ Transferred to ${d.transfer.label}`,
+          timestamp: d.assistant_message.timestamp,
+        })
+        setActiveAgentLabel(d.transfer.label)
+      }
+
+      if (d.greeting_message) {
+        msgs.push({
+          id: d.greeting_message.id,
+          role: 'assistant',
+          content: d.greeting_message.content,
+          timestamp: d.greeting_message.timestamp,
+          metadata: d.greeting_message.metadata as MessageMetadata | undefined,
+          agentLabel: d.greeting_message.agent?.name,
+          agentAvatarUrl: d.greeting_message.agent?.avatarUrl,
+        })
+      }
+
+      setMessages((prev) => [...prev, ...msgs])
+
+      const newVoice = voiceOverride ?? (d.voice ? { provider: d.voice.provider, voiceId: d.voice.voiceId } : null)
+      if (d.transfer && d.greeting_message) {
+        await speakText(d.assistant_message.content)
+        if (newVoice) setVoiceConfig(newVoice)
+        await speakText(d.greeting_message.content, newVoice ?? undefined)
+      } else {
+        if (newVoice) setVoiceConfig(newVoice)
+        await speakText(d.assistant_message.content)
+      }
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === currentSessionId
+            ? { ...s, last_message_at: d.assistant_message.timestamp }
+            : s
+        )
+      )
+    }
+
     try {
       const response = await fetch('/api/test-chat/send', {
         method: 'POST',
@@ -297,15 +381,6 @@ export function ChatSimulator({
 
       const data = await response.json()
 
-      const assistantMetadata: MessageMetadata | undefined = data.assistant_message.metadata
-        ? {
-            usage: data.assistant_message.metadata.usage,
-            toolCalls: data.assistant_message.metadata.toolCalls,
-            performance: data.assistant_message.metadata.performance,
-            model: data.assistant_message.metadata.model,
-          }
-        : undefined
-
       // Replace optimistic user message with the real one from the server
       setMessages((prev) =>
         prev.map((m) =>
@@ -315,79 +390,44 @@ export function ChatSimulator({
         )
       )
 
-      const newMessages: Message[] = []
-
-      // Insert tool call messages before assistant response
-      if (assistantMetadata?.toolCalls) {
-        for (const tc of assistantMetadata.toolCalls) {
-          newMessages.push({
-            id: `tool-${data.assistant_message.id}-${tc.name}`,
-            role: 'tool',
-            content: tc.name,
-            timestamp: data.assistant_message.timestamp,
-          })
-        }
-      }
-
-      newMessages.push({
-        id: data.assistant_message.id,
-        role: 'assistant',
-        content: data.assistant_message.content,
-        timestamp: data.assistant_message.timestamp,
-        metadata: assistantMetadata,
-        agentLabel: data.assistant_message.agent?.name,
-        agentAvatarUrl: data.assistant_message.agent?.avatarUrl,
-      })
-
-      // Insert transfer notification after the handoff message (at the end, before greeting)
-      if (data.transfer) {
-        newMessages.push({
-          id: `transfer-${data.assistant_message.id}`,
-          role: 'system',
-          content: `↪ Transferred to ${data.transfer.label}`,
-          timestamp: data.assistant_message.timestamp,
-        })
-        setActiveAgentLabel(data.transfer.label)
-      }
-
-      if (data.greeting_message) {
-        newMessages.push({
-          id: data.greeting_message.id,
-          role: 'assistant',
-          content: data.greeting_message.content,
-          timestamp: data.greeting_message.timestamp,
-          metadata: data.greeting_message.metadata as MessageMetadata | undefined,
-          agentLabel: data.greeting_message.agent?.name,
-          agentAvatarUrl: data.greeting_message.agent?.avatarUrl,
-        })
-      }
-
-      const newVoice = data.voice
+      const firstVoice = data.voice
         ? { provider: data.voice.provider, voiceId: data.voice.voiceId }
         : null
 
-      setMessages((prev) => [...prev, ...newMessages])
+      if (data.needs_followup) {
+        // Phase 1: show the hesitation message immediately and speak it
+        if (data.hesitation_message) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: data.hesitation_message.id,
+              role: 'assistant' as const,
+              content: data.hesitation_message.content,
+              timestamp: data.hesitation_message.timestamp,
+              metadata: { hesitation: true },
+            },
+          ])
+          await speakText(data.hesitation_message.content)
+        }
 
-      // Speak messages sequentially with correct voices:
-      // 1. Handoff message with OLD voice (current voiceConfig)
-      // 2. Greeting with NEW voice (after transfer)
-      // If no transfer: just speak the assistant response
-      if (data.transfer && data.greeting_message) {
-        await speakText(data.assistant_message.content)
-        if (newVoice) setVoiceConfig(newVoice)
-        await speakText(data.greeting_message.content, newVoice ?? undefined)
-      } else {
-        if (newVoice) setVoiceConfig(newVoice)
-        await speakText(data.assistant_message.content)
+        // Phase 2: fetch the actual tool response (loading indicator stays active)
+        const followUpResponse = await fetch('/api/test-chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            test_session_id: currentSessionId,
+            organization_id: organizationId,
+            continue_after_hesitation: true,
+          }),
+        })
+        if (!followUpResponse.ok) throw new Error('Failed to get follow-up response')
+        const followUpData = await followUpResponse.json()
+        await applyAssistantData(followUpData, firstVoice)
+        return
       }
 
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === currentSessionId
-            ? { ...s, last_message_at: data.assistant_message.timestamp }
-            : s
-        )
-      )
+      // Normal path (no hesitation)
+      await applyAssistantData(data, firstVoice)
     } catch (error) {
       console.error('Error sending message:', error)
       toast.error(t('errors.sendMessage'))

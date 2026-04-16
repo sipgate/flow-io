@@ -16,13 +16,15 @@ import type { ScenarioTransferNode } from '@/lib/llm/tools/scenario-transfer-too
 export interface HesitationParams {
   assistantId: string
   organizationId: string
-  /** Conversation history including the hesitation message as the last assistant turn */
+  /** Conversation history NOT including the hesitation message — follow-up LLM must call the tool directly */
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
   sessionId: string
   variableContext?: { callerNumber?: string; callDirection?: 'inbound' | 'outbound' }
   variableCollectionPrompt?: string
   validationContext?: string
   scenarioTransferNodes?: ScenarioTransferNode[]
+  /** The hesitation message that was announced — injected as a prior tool call in the follow-up LLM request */
+  hesitationMessage?: string
 }
 
 const hesitationStates = new Map<string, HesitationParams>()
