@@ -252,7 +252,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
       }
     }
 
-    saveToolTranscriptEntries(session.id, mcpResult.toolCalls).catch(() => {})
+    await saveToolTranscriptEntries(session.id, mcpResult.toolCalls).catch(() => {})
     const mcpSpeak = buildSpeakResponse(sessionId, mcpResult.response, assistant, bargeIn)
     await addTranscriptMessage({
       call_session_id: session.id,

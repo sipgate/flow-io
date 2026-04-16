@@ -53,7 +53,7 @@ export async function saveToolTranscriptEntries(
       const argKeys = Object.keys(tc.arguments)
       if (argKeys.length) text = `${tc.name}(${argKeys.join(', ')})`
     }
-    addTranscriptMessage({
+    await addTranscriptMessage({
       call_session_id: callSessionId,
       speaker: 'tool',
       text,
