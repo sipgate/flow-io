@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { format } from 'date-fns'
 import { enUS, de, es } from 'date-fns/locale'
 import { useTranslations, useLocale } from 'next-intl'
@@ -71,6 +71,8 @@ interface CallTranscriptDetail {
     response_latency_ms?: number
     barge_in?: boolean
     hesitation?: boolean
+    partial_turn?: boolean
+    combined_from_partial?: boolean
     [key: string]: unknown
   } | null
 }
@@ -114,6 +116,39 @@ export function CallDetailsModal({
   const csatEvaluationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reExtractTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const supabase = createClient()
+
+  // Live calls have no ended_at; completed calls do.
+  const isLiveCall = !session?.ended_at
+
+  /**
+   * Computed transcript list for display:
+   * - Post-call: hide all partial_turn entries (they're superseded by the final combined entry)
+   * - Live call: show only the LAST partial_turn entry with an "awaiting more input" flag;
+   *   older partials are hidden since they're already included in the latest one's text.
+   */
+  type DisplayTranscript = CallTranscriptDetail & { isAwaitingMoreInput?: boolean }
+  const displayTranscripts = useMemo((): DisplayTranscript[] => {
+    if (!isLiveCall) {
+      return transcripts.filter((t) => !t.metadata?.partial_turn)
+    }
+    // Find the index of the last partial_turn entry
+    let lastPartialIdx = -1
+    for (let i = transcripts.length - 1; i >= 0; i--) {
+      if (transcripts[i].metadata?.partial_turn) {
+        lastPartialIdx = i
+        break
+      }
+    }
+    return transcripts.reduce<DisplayTranscript[]>((acc, t, i) => {
+      if (t.metadata?.partial_turn) {
+        if (i === lastPartialIdx) acc.push({ ...t, isAwaitingMoreInput: true })
+        // older partial entries are dropped
+      } else {
+        acc.push(t)
+      }
+      return acc
+    }, [])
+  }, [transcripts, isLiveCall])
 
   const loadCallDetails = useCallback(async () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional loading state reset at start of async operation
@@ -243,7 +278,7 @@ export function CallDetailsModal({
         debug('[CallDetails] Sessions channel status:', status)
       })
 
-    // Subscribe to new transcripts
+    // Subscribe to new transcripts (INSERT) and partial_turn metadata updates (UPDATE)
     const transcriptsChannel = supabase
       .channel(`call_transcripts_${callSessionId}`)
       .on(
@@ -257,6 +292,20 @@ export function CallDetailsModal({
         (payload) => {
           debug('[CallDetails] New transcript:', payload)
           setTranscripts((prev) => [...prev, payload.new as unknown as CallTranscriptDetail])
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'call_transcripts',
+          filter: `call_session_id=eq.${callSessionId}`,
+        },
+        (payload) => {
+          debug('[CallDetails] Updated transcript:', payload)
+          const updated = payload.new as unknown as CallTranscriptDetail
+          setTranscripts((prev) => prev.map((t) => t.id === updated.id ? updated : t))
         }
       )
       .subscribe((status) => {
@@ -637,7 +686,7 @@ export function CallDetailsModal({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {transcripts.map((transcript, index) => {
+                    {displayTranscripts.map((transcript, index) => {
                       if (transcript.speaker === 'tool') {
                         const isTransfer = transcript.metadata?.tool_name === 'transfer_to_agent'
                         const hasToolData = transcript.metadata?.arguments || transcript.metadata?.result_preview
@@ -687,6 +736,7 @@ export function CallDetailsModal({
 
                       const isUser = transcript.speaker === 'user'
                       const isHesitation = !isUser && transcript.metadata?.hesitation === true
+                      const isWaitFiller = !isUser && transcript.metadata?.wait_for_turn_filler === true
                       return (
                         <div
                           key={transcript.id || index}
@@ -836,7 +886,16 @@ export function CallDetailsModal({
                                   </TooltipProvider>
                                 )}
                               </div>
-                              <div className={`text-sm ${isHesitation ? 'italic text-amber-800 dark:text-amber-300' : ''}`}>{transcript.text}</div>
+                              <div className={`text-sm ${isHesitation ? 'italic text-amber-800 dark:text-amber-300' : ''} ${isWaitFiller ? 'italic text-neutral-400 dark:text-neutral-500' : ''}`}>
+                                {transcript.text}
+                                {(transcript as DisplayTranscript).isAwaitingMoreInput && (
+                                  <span className="inline-flex gap-0.5 ml-2 items-end translate-y-[-1px]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-lime-600 dark:bg-lime-400 animate-bounce [animation-delay:0ms]" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-lime-600 dark:bg-lime-400 animate-bounce [animation-delay:150ms]" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-lime-600 dark:bg-lime-400 animate-bounce [animation-delay:300ms]" />
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

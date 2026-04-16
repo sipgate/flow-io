@@ -86,18 +86,18 @@ export async function addTranscriptMessage(data: {
     metadata = { ...(metadata as Record<string, unknown>), assistant_avatar_url: data.assistant_avatar_url }
   }
 
-  const { error } = await supabase.from('call_transcripts').insert({
+  const { data: inserted, error } = await supabase.from('call_transcripts').insert({
     call_session_id: data.call_session_id,
     speaker: data.speaker,
     text: data.text,
     confidence: data.confidence || null,
     metadata,
-  })
+  }).select('id').single()
 
   if (error) {
     console.error('Error adding transcript message:', error)
     return { error: error.message }
   }
 
-  return { error: null }
+  return { error: null, id: inserted?.id as string | undefined }
 }

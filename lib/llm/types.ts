@@ -140,4 +140,16 @@ export interface LLMResponseResult {
    * restore the thought_signature required by Gemini 3 thinking models.
    */
   rawHesitateContent?: unknown
+  /**
+   * Set when the LLM called the `wait_for_turn` tool.
+   * The user has not finished their sentence — the caller should store the partial
+   * utterance and return an empty action array to sipgate, then wait for the next
+   * user_speak event before generating a real response.
+   */
+  waitForTurn?: true
+  /**
+   * Optional short filler the LLM wants to speak while waiting for the user to continue
+   * (e.g. "OK", "Mhm"). Only present when waitForTurn is true and the LLM chose to include one.
+   */
+  waitForTurnFiller?: string
 }

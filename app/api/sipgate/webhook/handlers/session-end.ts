@@ -4,6 +4,7 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { updateCallSession } from '@/lib/repositories/calls.repository'
 import { extractAndDeliverVariables } from '@/lib/services/variable-extractor'
 import { cancelPendingMCP } from '@/lib/services/pending-mcp-state'
+import { clearPendingTurn } from '@/lib/services/pending-turn-state'
 import { getVariableCollection, cleanupVariableCollection } from '@/lib/services/variable-collection-state'
 import { evaluateCallCriteria } from '@/lib/services/call-criteria-evaluator'
 import { evaluateCallCSAT } from '@/lib/services/csat-evaluator'
@@ -55,6 +56,7 @@ export async function handleSessionEnd(event: SessionEndEvent) {
   })
 
   cancelPendingMCP(event.session.id)
+  clearPendingTurn(event.session.id)
 
   // Extract variables asynchronously (non-blocking)
   const varCollection = getVariableCollection(event.session.id)

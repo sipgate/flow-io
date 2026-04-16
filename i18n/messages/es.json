@@ -268,6 +268,7 @@
       "activeDescription": "El asistente acepta llamadas entrantes",
       "csatDescription": "Evalúa automáticamente la calidad de la conversación tras cada llamada",
       "hesitationDescription": "El asistente anuncia brevemente búsquedas y acciones",
+      "semanticEotDescription": "El asistente espera a que el usuario termine su oración antes de responder",
       "bargeInSection": "Comportamiento de Conversación",
       "bargeInSectionHint": "Controle cómo el asistente responde a las interrupciones",
       "dataTransfer": "Transferencia de Datos",

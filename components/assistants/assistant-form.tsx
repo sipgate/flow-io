@@ -275,6 +275,7 @@ interface AssistantFormProps {
     is_active: boolean | null
     avatar_url: string | null
     enable_hesitation: boolean | null
+    enable_semantic_eot: boolean | null
     deployed_at: string | null
     updated_at: string
     has_undeployed_changes: boolean
@@ -337,6 +338,7 @@ export function AssistantForm({
   )
   const [isActive, setIsActive] = useState(assistant?.is_active ?? true)
   const [enableHesitation, setEnableHesitation] = useState(assistant?.enable_hesitation ?? false)
+  const [enableSemanticEot, setEnableSemanticEot] = useState(assistant?.enable_semantic_eot ?? false)
   const [createScenarioChecked, setCreateScenarioChecked] = useState(!assistant)
 
   const handleProviderChange = (provider: string) => {
@@ -359,6 +361,7 @@ export function AssistantForm({
     openingMessage: assistant?.opening_message || defaultValues?.opening_message || '',
     isActive: assistant?.is_active ?? true,
     enableHesitation: assistant?.enable_hesitation ?? false,
+    enableSemanticEot: assistant?.enable_semantic_eot ?? false,
   })
 
   const isDirty =
@@ -374,7 +377,8 @@ export function AssistantForm({
     systemPrompt !== initialValuesRef.current.systemPrompt ||
     openingMessage !== initialValuesRef.current.openingMessage ||
     isActive !== initialValuesRef.current.isActive ||
-    enableHesitation !== initialValuesRef.current.enableHesitation
+    enableHesitation !== initialValuesRef.current.enableHesitation ||
+    enableSemanticEot !== initialValuesRef.current.enableSemanticEot
 
   // ── beforeunload guard ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -501,7 +505,7 @@ export function AssistantForm({
         voice_provider: voiceProvider, voice_id: voiceId, voice_language: voiceLanguage,
         llm_provider: llmProvider, llm_model: llmModel, llm_temperature: llmTemperature,
         system_prompt: systemPrompt || undefined, opening_message: openingMessage || undefined,
-        is_active: isActive, enable_hesitation: enableHesitation,
+        is_active: isActive, enable_hesitation: enableHesitation, enable_semantic_eot: enableSemanticEot,
       }
       await updateAssistant(assistant!.id, data)
     }
@@ -712,6 +716,7 @@ export function AssistantForm({
       opening_message: openingMessage || undefined,
       is_active: isActive,
       enable_hesitation: enableHesitation,
+      enable_semantic_eot: enableSemanticEot,
     }
 
     const result = assistant
@@ -740,6 +745,7 @@ export function AssistantForm({
           openingMessage,
           isActive,
           enableHesitation,
+          enableSemanticEot,
         }
         setHasUndeployedChanges(true)
         router.refresh()
@@ -951,6 +957,20 @@ export function AssistantForm({
                   id="enable_hesitation"
                   checked={enableHesitation}
                   onCheckedChange={setEnableHesitation}
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <Label htmlFor="enable_semantic_eot" className="font-medium cursor-pointer">
+                    {t('enableSemanticEot')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t('semanticEotDescription')}</p>
+                </div>
+                <Switch
+                  id="enable_semantic_eot"
+                  checked={enableSemanticEot}
+                  onCheckedChange={setEnableSemanticEot}
                   disabled={isLoading}
                 />
               </div>

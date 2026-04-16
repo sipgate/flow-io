@@ -9,6 +9,7 @@ import {
   cancelPendingMCP,
 } from '@/lib/services/pending-mcp-state'
 import { startHesitation, clearHesitation } from '@/lib/services/hesitation-state'
+import { getPendingTurn, setPendingTurn, clearPendingTurn } from '@/lib/services/pending-turn-state'
 import {
   getVariableCollection,
   checkPendingWebhooks,
@@ -175,11 +176,23 @@ export async function handleUserSpeak(event: UserSpeakEvent) {
 
   const wasBargeIn = sessionState.wasBargeInOccurred(event.session.id)
   sessionState.clearBargeInOccurred(event.session.id)
-  await addTranscriptMessage({
+
+  // Semantic EOT: if a partial turn is pending AND no barge-in (barge-in = user started fresh),
+  // combine the accumulated partial text with the new utterance.
+  const pendingPartial = wasBargeIn ? null : getPendingTurn(event.session.id)
+  const effectiveUserText = pendingPartial ? `${pendingPartial} ${event.text}` : event.text
+  clearPendingTurn(event.session.id)
+
+  const userTranscriptMetadata: Record<string, unknown> = {
+    ...event,
+    ...(wasBargeIn ? { barge_in: true } : {}),
+    ...(pendingPartial ? { combined_from_partial: true } : {}),
+  }
+  const { id: userTranscriptId } = await addTranscriptMessage({
     call_session_id: session.id,
     speaker: 'user',
-    text: event.text,
-    metadata: { ...event, ...(wasBargeIn ? { barge_in: true } : {}) },
+    text: effectiveUserText,
+    metadata: userTranscriptMetadata,
   })
 
   // Determine active assistant: for scenario sessions, use the active node's assistant.
@@ -250,11 +263,36 @@ export async function handleUserSpeak(event: UserSpeakEvent) {
 
   const hasMCP = await hasAssistantMCPServers(assistant.id)
 
+  const userTurn = { effectiveText: effectiveUserText, transcriptId: userTranscriptId, metadata: userTranscriptMetadata }
+
   if (hasMCP) {
-    return handleUserSpeakMCPPath(event, session, assistant, scenarioState, scenarioTransferNodes, collection, bargeIn)
+    return handleUserSpeakMCPPath(event, session, assistant, scenarioState, scenarioTransferNodes, collection, bargeIn, userTurn)
   }
 
-  return handleUserSpeakFastPath(event, session, assistant, scenarioState, scenarioTransferNodes, collection, bargeIn)
+  return handleUserSpeakFastPath(event, session, assistant, scenarioState, scenarioTransferNodes, collection, bargeIn, userTurn)
+}
+
+/** Context for the current user turn — computed once in handleUserSpeak, threaded into both paths. */
+interface UserTurnContext {
+  effectiveText: string
+  transcriptId: string | undefined
+  metadata: Record<string, unknown>
+}
+
+/**
+ * Mark a transcript entry as a partial turn so it is excluded from future conversation history.
+ * Called when the LLM returns wait_for_turn for that entry.
+ */
+async function markTranscriptPartial(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  transcriptId: string | undefined,
+  existingMetadata: Record<string, unknown>,
+): Promise<void> {
+  if (!transcriptId) return
+  await supabase
+    .from('call_transcripts')
+    .update({ metadata: { ...existingMetadata, partial_turn: true } })
+    .eq('id', transcriptId)
 }
 
 /**
@@ -268,19 +306,23 @@ async function handleUserSpeakMCPPath(
   scenarioTransferNodes: ScenarioTransferNode[] | undefined,
   collection: ReturnType<typeof getVariableCollection>,
   bargeIn: ReturnType<typeof sessionState.getBargeInConfig>,
+  userTurn: UserTurnContext,
 ) {
   debug('[Webhook] Assistant has MCP servers - using async pattern with delayed hold')
 
   const supabase = createServiceRoleClient()
   const { data: transcripts } = await supabase
     .from('call_transcripts')
-    .select('speaker, text')
+    .select('speaker, text, metadata')
     .eq('call_session_id', session.id)
     .order('timestamp', { ascending: true })
 
   const conversationHistory = transcripts
     ? transcripts
-        .filter((t) => t.speaker === 'user' || t.speaker === 'assistant')
+        .filter((t) =>
+          (t.speaker === 'user' || t.speaker === 'assistant') &&
+          !(t.metadata as Record<string, unknown> | null)?.partial_turn
+        )
         .map((t) => ({
           role: t.speaker === 'user' ? ('user' as const) : ('assistant' as const),
           content: t.text,
@@ -311,13 +353,16 @@ async function handleUserSpeakMCPPath(
     scenarioTransferNodes,
   }).then(result => {
     const responseLatencyMs = Date.now() - llmStartMs
-    if (result.error || !result.response) {
-      return { response: '', error: result.error || 'No response from LLM', callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, rawHesitateContent: undefined, usage: undefined, performance: undefined, responseLatencyMs }
+    if (result.waitForTurn) {
+      return { response: result.waitForTurnFiller ?? '', waitForTurn: true as const, waitForTurnFiller: result.waitForTurnFiller, callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, rawHesitateContent: undefined, usage: undefined, performance: undefined, responseLatencyMs }
     }
-    return { response: result.response, callAction: result.callAction, scenarioTransfer: result.scenarioTransfer, toolCalls: result.toolCalls, hesitationMessage: result.hesitationMessage, rawHesitateContent: result.rawHesitateContent, usage: result.usage, performance: result.performance, responseLatencyMs }
+    if (result.error || !result.response) {
+      return { response: '', error: result.error || 'No response from LLM', waitForTurn: undefined, waitForTurnFiller: undefined, callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, rawHesitateContent: undefined, usage: undefined, performance: undefined, responseLatencyMs }
+    }
+    return { response: result.response, waitForTurn: undefined, waitForTurnFiller: undefined, callAction: result.callAction, scenarioTransfer: result.scenarioTransfer, toolCalls: result.toolCalls, hesitationMessage: result.hesitationMessage, rawHesitateContent: result.rawHesitateContent, usage: result.usage, performance: result.performance, responseLatencyMs }
   }).catch(error => {
     console.error('[Webhook] Async LLM call failed:', error)
-    return { response: '', error: String(error), callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, rawHesitateContent: undefined, usage: undefined, performance: undefined, responseLatencyMs: Date.now() - llmStartMs }
+    return { response: '', waitForTurn: undefined, waitForTurnFiller: undefined, error: String(error), callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, rawHesitateContent: undefined, usage: undefined, performance: undefined, responseLatencyMs: Date.now() - llmStartMs }
   })
 
   const INITIAL_WAIT_MS = 4000
@@ -326,6 +371,26 @@ async function handleUserSpeakMCPPath(
 
   if (quickResult !== null) {
     debug('[Webhook] LLM completed quickly, returning direct response')
+
+    // Semantic EOT: user has not finished speaking — mark entry as partial and wait
+    if (quickResult.waitForTurn) {
+      debug('[Webhook] wait_for_turn: user utterance incomplete, storing partial turn', quickResult.waitForTurnFiller ? `filler: "${quickResult.waitForTurnFiller}"` : '(silent)')
+      await markTranscriptPartial(supabase, userTurn.transcriptId, userTurn.metadata)
+      setPendingTurn(event.session.id, userTurn.effectiveText)
+      if (quickResult.waitForTurnFiller) {
+        const speak = buildSpeakResponse(event.session.id, quickResult.waitForTurnFiller, assistant, bargeIn)
+        await addTranscriptMessage({
+          call_session_id: session.id,
+          speaker: 'assistant',
+          text: speak.cleanText,
+          metadata: { wait_for_turn_filler: true },
+          assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
+        })
+        return NextResponse.json(speak.json)
+      }
+      return NextResponse.json([])
+    }
+
     if (quickResult.error) {
       const fallbackResponse = 'Es tut mir leid, es gab einen Fehler. Können Sie das bitte wiederholen?'
       await addTranscriptMessage({
@@ -439,18 +504,22 @@ async function handleUserSpeakFastPath(
   scenarioTransferNodes: ScenarioTransferNode[] | undefined,
   collection: ReturnType<typeof getVariableCollection>,
   bargeIn: ReturnType<typeof sessionState.getBargeInConfig>,
+  userTurn: UserTurnContext,
 ) {
   try {
     const supabase = createServiceRoleClient()
     const { data: transcripts } = await supabase
       .from('call_transcripts')
-      .select('speaker, text')
+      .select('speaker, text, metadata')
       .eq('call_session_id', session.id)
       .order('timestamp', { ascending: true })
 
     const conversationHistory = transcripts
       ? transcripts
-          .filter((t) => t.speaker === 'user' || t.speaker === 'assistant')
+          .filter((t) =>
+            (t.speaker === 'user' || t.speaker === 'assistant') &&
+            !(t.metadata as Record<string, unknown> | null)?.partial_turn
+          )
           .map((t) => ({
             role: t.speaker === 'user' ? ('user' as const) : ('assistant' as const),
             content: t.text,
@@ -485,8 +554,27 @@ async function handleUserSpeakFastPath(
     })
     const responseLatencyMs = Date.now() - llmStartMs
 
-    if (llmResult.error || !llmResult.response) {
+    if (llmResult.error || (!llmResult.response && !llmResult.waitForTurn)) {
       throw new Error(llmResult.error || 'No response from LLM')
+    }
+
+    // Semantic EOT: user has not finished speaking — mark entry as partial and wait
+    if (llmResult.waitForTurn) {
+      debug('[Webhook] wait_for_turn (fast path): user utterance incomplete, storing partial turn', llmResult.waitForTurnFiller ? `filler: "${llmResult.waitForTurnFiller}"` : '(silent)')
+      await markTranscriptPartial(supabase, userTurn.transcriptId, userTurn.metadata)
+      setPendingTurn(event.session.id, userTurn.effectiveText)
+      if (llmResult.waitForTurnFiller) {
+        const speak = buildSpeakResponse(event.session.id, llmResult.waitForTurnFiller, assistant, bargeIn)
+        await addTranscriptMessage({
+          call_session_id: session.id,
+          speaker: 'assistant',
+          text: speak.cleanText,
+          metadata: { wait_for_turn_filler: true },
+          assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
+        })
+        return NextResponse.json(speak.json)
+      }
+      return NextResponse.json([])
     }
 
     // Hesitation: LLM announced what it will do — store state for follow-up in assistant_speech_ended

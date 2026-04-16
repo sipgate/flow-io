@@ -129,6 +129,25 @@ export class PromptBuilder {
   }
 
   /**
+   * Append semantic end-of-turn instruction when the wait_for_turn tool is available.
+   * Instructs the model to call wait_for_turn instead of responding when the user's
+   * utterance is clearly incomplete (mid-sentence, trailing off, etc.).
+   */
+  withSemanticEndOfTurn(enabled?: boolean): this {
+    if (enabled) {
+      this.parts.push(
+        'IMPORTANT — End of Turn Detection:\n' +
+        'Before generating any response, assess whether the user\'s last utterance is a COMPLETE thought.\n' +
+        'Signs of an INCOMPLETE turn: trailing off mid-sentence, ending with "and...", "because...", ' +
+        '"I was thinking...", "so...", or any statement that clearly has no conclusion yet.\n' +
+        'If the utterance is INCOMPLETE: call the `wait_for_turn` tool immediately — do NOT generate any text.\n' +
+        'If the utterance is COMPLETE (a full sentence, question, or command): respond normally.'
+      )
+    }
+    return this
+  }
+
+  /**
    * Append TTS spelling instruction.
    * Tells the LLM to use [spell]...[/spell] markers so the TTS engine
    * reads out codes, email addresses, etc. character by character.

@@ -9,6 +9,7 @@ import {
 import { MCPToolExecutor, createMCPToolExecutor } from './mcp-tool-executor'
 import { isMCPTool } from '@/lib/mcp'
 import { hesitateToolDefinition, isHesitateTool } from '@/lib/llm/tools/hesitate-tool'
+import { waitForTurnToolDefinition, isWaitForTurnTool } from '@/lib/llm/tools/wait-for-turn-tool'
 import { substitutePromptVariables, PromptVariableContext } from '@/lib/utils/prompt-variables'
 import { PromptBuilder } from '@/lib/llm/prompt-builder'
 import { getCallContextData } from './context-webhook'
@@ -81,7 +82,8 @@ export async function generateLLMResponse(params: {
         thinking_level,
         system_prompt,
         enable_kb_tool,
-        enable_hesitation
+        enable_hesitation,
+        enable_semantic_eot
       `)
       .eq('id', params.assistantId)
       .single()
@@ -142,6 +144,7 @@ export async function generateLLMResponse(params: {
         .withCallControlRules(callToolConfig)
         .withSeamlessTransfer(params.seamlessTransfer)
         .withHesitation(assistant.enable_hesitation && !params.disableHesitation)
+        .withSemanticEndOfTurn(!!assistant.enable_semantic_eot)
         .withSpellingInstruction()
         .build()
 
@@ -273,6 +276,12 @@ export async function generateLLMResponse(params: {
       debug('[LLM Service] Hesitate tool enabled')
     }
 
+    // Add wait_for_turn tool when semantic end-of-turn detection is enabled
+    if (assistant.enable_semantic_eot) {
+      allTools.unshift(waitForTurnToolDefinition)
+      debug('[LLM Service] Semantic EOT (wait_for_turn) tool enabled')
+    }
+
     // Add call control tools (only for real calls, not test chats)
     if (callToolConfig) {
       const callControlTools = buildCallControlTools(callToolConfig)
@@ -321,6 +330,15 @@ export async function generateLLMResponse(params: {
 
     // Handle tool calls (KB, MCP, and Call Control tools)
     if (llmResponse.tool_calls && llmResponse.tool_calls.length > 0) {
+      // wait_for_turn tool: user has not finished speaking — signal caller to wait for more input.
+      const waitForTurnCall = llmResponse.tool_calls.find((tc) => isWaitForTurnTool(tc.function.name))
+      if (waitForTurnCall) {
+        const waitArgs = JSON.parse(waitForTurnCall.function.arguments || '{}') as { message?: string }
+        const filler = waitArgs.message?.trim() || undefined
+        debug('[LLM Service] wait_for_turn tool called — user utterance is incomplete', filler ? `filler: "${filler}"` : '(silent)')
+        return { response: filler ?? '', waitForTurn: true, ...(filler ? { waitForTurnFiller: filler } : {}) }
+      }
+
       // Hesitate tool: LLM wants to announce what it's doing before calling the real tool.
       // Return the hesitation message immediately — the caller will speak it and re-run the LLM.
       const hesitateCall = llmResponse.tool_calls.find((tc) => isHesitateTool(tc.function.name))
