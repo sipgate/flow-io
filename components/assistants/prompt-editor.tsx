@@ -26,6 +26,7 @@ import {
   Loader2,
   Wand2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { PROMPT_VARIABLES } from '@/lib/utils/prompt-variables'
 
@@ -378,7 +379,7 @@ export function PromptEditor({
         onChange(data.improved_prompt)
       }
     } catch {
-      alert(t('improvePromptError'))
+      toast.error(t('improvePromptError'))
     } finally {
       setIsImproving(false)
       improvingRef.current = false
@@ -525,8 +526,8 @@ export function PromptEditor({
           {/* Line numbers */}
           <div
             ref={lineNumbersRef}
-            className="absolute left-0 top-0 w-10 h-full bg-neutral-50 dark:bg-neutral-800/30 text-neutral-400 text-xs font-mono text-right pr-2 pt-3 select-none border-r border-neutral-200 dark:border-neutral-700 overflow-hidden pointer-events-none"
-            style={{ lineHeight: '1.5rem' }}
+            className="absolute left-0 top-0 w-10 h-full bg-neutral-50 dark:bg-neutral-800/30 text-neutral-400 text-xs font-mono text-right pr-2 py-2 select-none border-r border-neutral-200 dark:border-neutral-700 overflow-y-scroll [&::-webkit-scrollbar]:hidden pointer-events-none"
+            style={{ lineHeight: '1.5rem', scrollbarWidth: 'none' }}
           >
             {Array.from({ length: lineCount }, (_, i) => (
               <div key={i + 1}>{i + 1}</div>
