@@ -71,6 +71,7 @@ interface CallTranscriptDetail {
     response_latency_ms?: number
     barge_in?: boolean
     hesitation?: boolean
+    wait_for_turn_filler?: boolean
     partial_turn?: boolean
     combined_from_partial?: boolean
     [key: string]: unknown
@@ -125,29 +126,73 @@ export function CallDetailsModal({
    * - Post-call: hide all partial_turn entries (they're superseded by the final combined entry)
    * - Live call: show only the LAST partial_turn entry with an "awaiting more input" flag;
    *   older partials are hidden since they're already included in the latest one's text.
+   * - wait_for_turn_filler entries are merged inline into the adjacent user entry as subtle segments.
    */
-  type DisplayTranscript = CallTranscriptDetail & { isAwaitingMoreInput?: boolean }
+  type FillerSegment = { text: string; isFiller: boolean }
+  type DisplayTranscript = CallTranscriptDetail & { isAwaitingMoreInput?: boolean; segments?: FillerSegment[] }
   const displayTranscripts = useMemo((): DisplayTranscript[] => {
+    // Step 1: handle partial turns
+    let partialFiltered: DisplayTranscript[]
     if (!isLiveCall) {
-      return transcripts.filter((t) => !t.metadata?.partial_turn)
-    }
-    // Find the index of the last partial_turn entry
-    let lastPartialIdx = -1
-    for (let i = transcripts.length - 1; i >= 0; i--) {
-      if (transcripts[i].metadata?.partial_turn) {
-        lastPartialIdx = i
-        break
+      partialFiltered = transcripts.filter((t) => !t.metadata?.partial_turn)
+    } else {
+      let lastPartialIdx = -1
+      for (let i = transcripts.length - 1; i >= 0; i--) {
+        if (transcripts[i].metadata?.partial_turn) {
+          lastPartialIdx = i
+          break
+        }
       }
+      partialFiltered = transcripts.reduce<DisplayTranscript[]>((acc, t, i) => {
+        if (t.metadata?.partial_turn) {
+          if (i === lastPartialIdx) acc.push({ ...t, isAwaitingMoreInput: true })
+          // older partial entries are dropped
+        } else {
+          acc.push(t)
+        }
+        return acc
+      }, [])
     }
-    return transcripts.reduce<DisplayTranscript[]>((acc, t, i) => {
-      if (t.metadata?.partial_turn) {
-        if (i === lastPartialIdx) acc.push({ ...t, isAwaitingMoreInput: true })
-        // older partial entries are dropped
+
+    // Step 2: merge wait_for_turn_filler entries into adjacent user entries
+    const result: DisplayTranscript[] = []
+    let i = 0
+    while (i < partialFiltered.length) {
+      const current = partialFiltered[i]
+      if (current.speaker === 'user') {
+        const segments: FillerSegment[] = [{ text: current.text, isFiller: false }]
+        let j = i + 1
+        let mergedAny = false
+        let awaitingMore = current.isAwaitingMoreInput ?? false
+        while (j < partialFiltered.length) {
+          const next = partialFiltered[j]
+          if (next.speaker === 'assistant' && next.metadata?.wait_for_turn_filler === true) {
+            segments.push({ text: next.text, isFiller: true })
+            j++
+            mergedAny = true
+          } else if (mergedAny && next.speaker === 'user') {
+            segments.push({ text: next.text, isFiller: false })
+            if (next.isAwaitingMoreInput) awaitingMore = true
+            j++
+          } else {
+            break
+          }
+        }
+        if (mergedAny) {
+          result.push({ ...current, segments, isAwaitingMoreInput: awaitingMore })
+        } else {
+          result.push(current)
+        }
+        i = j
+      } else if (current.speaker === 'assistant' && current.metadata?.wait_for_turn_filler === true) {
+        // Orphaned filler with no preceding user — skip
+        i++
       } else {
-        acc.push(t)
+        result.push(current)
+        i++
       }
-      return acc
-    }, [])
+    }
+    return result
   }, [transcripts, isLiveCall])
 
   const loadCallDetails = useCallback(async () => {
@@ -736,7 +781,6 @@ export function CallDetailsModal({
 
                       const isUser = transcript.speaker === 'user'
                       const isHesitation = !isUser && transcript.metadata?.hesitation === true
-                      const isWaitFiller = !isUser && transcript.metadata?.wait_for_turn_filler === true
                       return (
                         <div
                           key={transcript.id || index}
@@ -886,9 +930,21 @@ export function CallDetailsModal({
                                   </TooltipProvider>
                                 )}
                               </div>
-                              <div className={`text-sm ${isHesitation ? 'italic text-amber-800 dark:text-amber-300' : ''} ${isWaitFiller ? 'italic text-neutral-400 dark:text-neutral-500' : ''}`}>
-                                {transcript.text}
-                                {(transcript as DisplayTranscript).isAwaitingMoreInput && (
+                              <div className={`text-sm ${isHesitation ? 'italic text-amber-800 dark:text-amber-300' : ''}`}>
+                                {transcript.segments ? (
+                                  transcript.segments.map((segment, segIdx) =>
+                                    segment.isFiller ? (
+                                      <span key={segIdx} className="italic text-neutral-400 dark:text-neutral-500 text-xs mx-1 opacity-80">
+                                        {segment.text}
+                                      </span>
+                                    ) : (
+                                      <span key={segIdx}>{segment.text}</span>
+                                    )
+                                  )
+                                ) : (
+                                  transcript.text
+                                )}
+                                {transcript.isAwaitingMoreInput && (
                                   <span className="inline-flex gap-0.5 ml-2 items-end translate-y-[-1px]">
                                     <span className="w-1.5 h-1.5 rounded-full bg-lime-600 dark:bg-lime-400 animate-bounce [animation-delay:0ms]" />
                                     <span className="w-1.5 h-1.5 rounded-full bg-lime-600 dark:bg-lime-400 animate-bounce [animation-delay:150ms]" />
