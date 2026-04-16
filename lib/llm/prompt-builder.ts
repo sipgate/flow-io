@@ -137,15 +137,17 @@ export class PromptBuilder {
   withSemanticEndOfTurn(enabled?: boolean): this {
     if (enabled) {
       this.parts.push(
-        'IMPORTANT — End of Turn Detection:\n' +
-        'The key question is not "is this sentence finished?" but "do I already know what the user wants?"\n' +
-        'If you understand the user\'s intent well enough to give a useful response: respond immediately — ' +
-        'even if their sentence is syntactically unfinished.\n' +
-        'Example: "Ich frag mich, wie Flow funktioniert" → intent is clear → respond now, do not wait.\n' +
-        'Only call `wait_for_turn` when the intent is genuinely ambiguous: ' +
-        'trailing off mid-thought ("I was thinking...", "The problem is that..."), ' +
-        'or speech where you truly cannot determine what action to take yet.\n' +
-        'If the utterance is clearly COMPLETE (full sentence, question, command): respond normally.'
+        'IMPORTANT — Turn End Detection:\n' +
+        'A turn is complete when it has syntactic, sequential, AND/OR lexical closure — you need all three checks:\n' +
+        '(1) SYNTACTIC: Does the utterance end at a major phrase boundary (complete clause, question, or command)? ' +
+        'If it ends mid-phrase ("weil…", "und dann…", "Ich mache den…") → call `wait_for_turn`.\n' +
+        '(2) SEQUENTIAL: Does the utterance make the next action obvious (question → answer, greeting → greeting)? ' +
+        'If yes → respond immediately, the turn is over regardless of syntactic completeness.\n' +
+        '(3) LEXICAL: Are the remaining words strongly predictable? ' +
+        '("Ich frag mich wie Flow funktioniert" → complete enough → respond; ' +
+        '"Ich mache gerade den…" → open noun phrase → call `wait_for_turn`).\n' +
+        'RULE: If you can project what the user means and give a useful response → respond now. ' +
+        'Only call `wait_for_turn` when none of the three signals give you enough to act on.'
       )
     }
     return this

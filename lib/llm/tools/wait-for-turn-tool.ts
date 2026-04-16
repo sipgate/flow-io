@@ -7,25 +7,26 @@ export const waitForTurnToolDefinition: LLMTool = {
   function: {
     name: WAIT_FOR_TURN_TOOL_NAME,
     description:
-      'Call this tool ONLY when you genuinely do not yet know what the user wants — ' +
-      'their intent is unclear and you need more words before you can respond usefully. ' +
-      'CRITICAL: If you already understand the user\'s intent well enough to give a helpful response, ' +
-      'do NOT call this tool — respond immediately, even if their sentence is syntactically unfinished. ' +
-      'Example: "Ich frag mich, wie Flow funktioniert" is enough to respond — do not wait for "Ob Sie mir helfen können". ' +
-      'Use this tool only for genuine intent ambiguity: a sentence that trails off mid-thought ' +
-      '("I was thinking about...", "The problem is that..."), ' +
-      'or speech where you cannot yet determine what action to take. ' +
-      'Do NOT call this if the utterance is a complete sentence, question, or command. ' +
-      'Do NOT call this for short but complete responses ("yes", "no", "okay", "right"). ' +
-      'When called, the system waits for the user to continue speaking. ' +
-      'Optionally set `message` to a single short filler word that fits the conversational moment — ' +
-      'pick the word that feels most natural given what the user just said. ' +
-      'Use neutral back-channel sounds for unfinished rambling (e.g. "Mhm", "Uh-huh", "Mmh"). ' +
-      'Use empathetic words when the user is describing a problem or situation (e.g. "Verstehe", "I see", "Achso"). ' +
-      'Use encouraging words when the user is mid-explanation (e.g. "Genau", "Right", "Klar"). ' +
-      'Do NOT use agreement words like "Ja" or "Yes" — they sound like a response, not a back-channel. ' +
-      'Do NOT repeat the same filler used in the previous turn. ' +
-      'Leave `message` empty for silence.',
+      'Call this tool when the utterance is NOT yet a complete turn — meaning it is missing one or more ' +
+      'of these three signals that mark a real turn end:\n' +
+      '1. SYNTACTIC COMPLETION: the utterance ends mid-phrase or with an open dependency ' +
+      '(e.g. "Ich mache gerade den…", "weil…", "aber da…", "I was thinking…"). ' +
+      'A complete clause, question, or command does NOT need this tool.\n' +
+      '2. SEQUENTIAL COMPLETION: the action type is clear and expects a response ' +
+      '(a question expects an answer, a greeting expects a greeting back, a complaint expects acknowledgement). ' +
+      'If the sequential action is recognisable, the turn is over — respond.\n' +
+      '3. LEXICAL PROJECTABILITY: if the next words are strongly predictable ' +
+      '("Ich muss mir die Zähne…" → obvious end coming) do NOT call this tool — the turn is ending.\n' +
+      'DECISION RULE: respond immediately whenever you can project what the user means, ' +
+      'even if their words are not 100% complete. ' +
+      'Only call this tool when the utterance has no syntactic, sequential, or lexical closure yet.\n' +
+      'Do NOT call this for short complete responses ("yes", "no", "okay", "sure").\n' +
+      'When called, optionally set `message` to a single back-channel word that fits the moment:\n' +
+      '- Unfinished rambling → neutral: "Mhm" / "Mmh" / "Uh-huh"\n' +
+      '- User describes a problem → empathetic: "Verstehe" / "Achso" / "I see"\n' +
+      '- User is mid-explanation → encouraging: "Genau" / "Klar" / "Right"\n' +
+      'Never use agreement words ("Ja", "Yes") — they sound like a response. ' +
+      'Never repeat the same filler as the previous turn. Leave `message` empty for silence.',
     parameters: {
       type: 'object',
       properties: {
