@@ -138,11 +138,14 @@ export class PromptBuilder {
     if (enabled) {
       this.parts.push(
         'IMPORTANT — End of Turn Detection:\n' +
-        'Before generating any response, assess whether the user\'s last utterance is a COMPLETE thought.\n' +
-        'Signs of an INCOMPLETE turn: trailing off mid-sentence, ending with "and...", "because...", ' +
-        '"I was thinking...", "so...", or any statement that clearly has no conclusion yet.\n' +
-        'If the utterance is INCOMPLETE: call the `wait_for_turn` tool immediately — do NOT generate any text.\n' +
-        'If the utterance is COMPLETE (a full sentence, question, or command): respond normally.'
+        'The key question is not "is this sentence finished?" but "do I already know what the user wants?"\n' +
+        'If you understand the user\'s intent well enough to give a useful response: respond immediately — ' +
+        'even if their sentence is syntactically unfinished.\n' +
+        'Example: "Ich frag mich, wie Flow funktioniert" → intent is clear → respond now, do not wait.\n' +
+        'Only call `wait_for_turn` when the intent is genuinely ambiguous: ' +
+        'trailing off mid-thought ("I was thinking...", "The problem is that..."), ' +
+        'or speech where you truly cannot determine what action to take yet.\n' +
+        'If the utterance is clearly COMPLETE (full sentence, question, command): respond normally.'
       )
     }
     return this

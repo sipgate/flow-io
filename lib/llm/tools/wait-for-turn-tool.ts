@@ -7,9 +7,14 @@ export const waitForTurnToolDefinition: LLMTool = {
   function: {
     name: WAIT_FOR_TURN_TOOL_NAME,
     description:
-      'Call this tool when the user has NOT finished their thought — for example: a sentence that ' +
-      'trails off, an unfinished statement ending with "and...", "because...", "I was thinking...", ' +
-      'or speech that clearly lacks a conclusion. ' +
+      'Call this tool ONLY when you genuinely do not yet know what the user wants — ' +
+      'their intent is unclear and you need more words before you can respond usefully. ' +
+      'CRITICAL: If you already understand the user\'s intent well enough to give a helpful response, ' +
+      'do NOT call this tool — respond immediately, even if their sentence is syntactically unfinished. ' +
+      'Example: "Ich frag mich, wie Flow funktioniert" is enough to respond — do not wait for "Ob Sie mir helfen können". ' +
+      'Use this tool only for genuine intent ambiguity: a sentence that trails off mid-thought ' +
+      '("I was thinking about...", "The problem is that..."), ' +
+      'or speech where you cannot yet determine what action to take. ' +
       'Do NOT call this if the utterance is a complete sentence, question, or command. ' +
       'Do NOT call this for short but complete responses ("yes", "no", "okay", "right"). ' +
       'When called, the system waits for the user to continue speaking. ' +
