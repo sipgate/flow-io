@@ -355,7 +355,7 @@ export async function generateLLMResponse(params: {
       // Hesitation enforcement: model skipped the hesitate tool despite instructions.
       // Return an error for every tool call so the model is forced to call hesitate first.
       // Skip enforcement if all tool calls are call control actions or scenario transfers — those execute immediately without hesitation.
-      const hasNonCallControlCall = llmResponse.tool_calls!.some(tc => !isCallControlTool(tc.function.name) && !isScenarioTransferTool(tc.function.name))
+      const hasNonCallControlCall = llmResponse.tool_calls!.some(tc => !isCallControlTool(tc.function.name) && !isScenarioTransferTool(tc.function.name) && !isWaitForTurnTool(tc.function.name))
       if (assistant.enable_hesitation && !params.disableHesitation && hasNonCallControlCall) {
         debug('[LLM Service] Enforcing hesitation — returning error for skipped hesitate tool')
         messages.push({

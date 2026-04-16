@@ -86,10 +86,11 @@ export class PromptBuilder {
   withHesitation(enabled?: boolean): this {
     if (enabled) {
       this.parts.push(
-        'IMPORTANT — Before using any tool, you MUST invoke the `hesitate` function first.\n' +
+        'IMPORTANT — Before using any tool (except `wait_for_turn`), you MUST invoke the `hesitate` function first.\n' +
         'Do NOT output text to describe what you are about to do.\n' +
         'Instead: call the `hesitate` function and pass a brief sentence (in the caller\'s language) as the message.\n' +
-        'Only after `hesitate` returns may you call the actual tool.'
+        'Only after `hesitate` returns may you call the actual tool.\n' +
+        'EXCEPTION: Do NOT call `hesitate` before `wait_for_turn` — that tool executes silently and requires no announcement.'
       )
     }
     return this
