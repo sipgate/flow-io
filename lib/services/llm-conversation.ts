@@ -64,6 +64,7 @@ export async function generateLLMResponse(params: {
   disableHesitation?: boolean  // When true, skip hesitate tool (used for follow-up calls after hesitation)
   priorHesitationMessage?: string  // When set, inject a fake hesitate tool-call + result into messages so the model knows to proceed to the real tool
   rawHesitateContent?: unknown  // Raw Gemini Content from the hesitate call — restores thought_signature for Gemini 3 thinking models
+  disableWaitForTurn?: boolean  // When true, do not offer wait_for_turn (filler limit reached — force a response)
 }): Promise<LLMResponseResult> {
   const supabase = createServiceRoleClient()
   let mcpExecutor: MCPToolExecutor | null = null
@@ -276,10 +277,13 @@ export async function generateLLMResponse(params: {
       debug('[LLM Service] Hesitate tool enabled')
     }
 
-    // Add wait_for_turn tool when semantic end-of-turn detection is enabled
-    if (assistant.enable_semantic_eot) {
+    // Add wait_for_turn tool when semantic end-of-turn detection is enabled,
+    // but suppress it once the filler limit is reached so the LLM is forced to respond.
+    if (assistant.enable_semantic_eot && !params.disableWaitForTurn) {
       allTools.unshift(waitForTurnToolDefinition)
       debug('[LLM Service] Semantic EOT (wait_for_turn) tool enabled')
+    } else if (assistant.enable_semantic_eot && params.disableWaitForTurn) {
+      debug('[LLM Service] Semantic EOT suppressed — filler limit reached, forcing response')
     }
 
     // Add call control tools (only for real calls, not test chats)

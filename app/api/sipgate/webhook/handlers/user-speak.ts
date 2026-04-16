@@ -10,7 +10,7 @@ import {
   cancelPendingMCP,
 } from '@/lib/services/pending-mcp-state'
 import { startHesitation, clearHesitation } from '@/lib/services/hesitation-state'
-import { getPendingTurn, setPendingTurn, clearPendingTurn } from '@/lib/services/pending-turn-state'
+import { getPendingTurn, setPendingTurn, clearPendingTurn, isFillerLimitReached } from '@/lib/services/pending-turn-state'
 import {
   getVariableCollection,
   checkPendingWebhooks,
@@ -354,6 +354,7 @@ async function handleUserSpeakMCPPath(
     variableCollectionPrompt: collectionPrompt || undefined,
     validationContext,
     scenarioTransferNodes,
+    disableWaitForTurn: isFillerLimitReached(event.session.id),
   }).then(result => {
     const responseLatencyMs = Date.now() - llmStartMs
     if (result.waitForTurn) {
@@ -559,6 +560,7 @@ async function handleUserSpeakFastPath(
       variableCollectionPrompt: collectionPrompt || undefined,
       validationContext,
       scenarioTransferNodes,
+      disableWaitForTurn: isFillerLimitReached(event.session.id),
     })
     const responseLatencyMs = Date.now() - llmStartMs
 
