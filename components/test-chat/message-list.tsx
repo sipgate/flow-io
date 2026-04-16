@@ -151,15 +151,13 @@ export function MessageList({ messages, isLoading = false }: MessageListProps) {
                         className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
                           isUser
                             ? 'bg-lime-100 dark:bg-lime-900/30'
-                            : isHesitation
-                              ? 'bg-amber-100 dark:bg-amber-900/30'
-                              : 'bg-blue-100 dark:bg-blue-900'
+                            : 'bg-blue-100 dark:bg-blue-900'
                         }`}
                       >
                         {isUser ? (
                           <User className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
                         ) : isHesitation ? (
-                          <Hourglass className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                          <Hourglass className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                         ) : (
                           <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                         )}
@@ -171,9 +169,7 @@ export function MessageList({ messages, isLoading = false }: MessageListProps) {
                       className={`rounded-lg px-3 py-2 ${
                         isUser
                           ? 'bg-lime-50 dark:bg-lime-950'
-                          : isHesitation
-                            ? 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50'
-                            : 'bg-neutral-100 dark:bg-neutral-800'
+                          : 'bg-neutral-100 dark:bg-neutral-800'
                       }`}
                     >
                       <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 flex items-center gap-1">
@@ -244,7 +240,7 @@ export function MessageList({ messages, isLoading = false }: MessageListProps) {
                           </TooltipProvider>
                         )}
                       </div>
-                      <div className={`text-sm whitespace-pre-wrap ${isHesitation ? 'italic text-amber-800 dark:text-amber-300' : ''}`}>
+                      <div className={`text-sm whitespace-pre-wrap ${isHesitation ? 'italic text-neutral-500 dark:text-neutral-400' : ''}`}>
                         {message.content}
                       </div>
                     </div>

@@ -123,75 +123,126 @@ export function CallDetailsModal({
 
   /**
    * Computed transcript list for display:
-   * - Post-call: hide all partial_turn entries (they're superseded by the final combined entry)
-   * - Live call: show only the LAST partial_turn entry with an "awaiting more input" flag;
-   *   older partials are hidden since they're already included in the latest one's text.
-   * - wait_for_turn_filler entries are merged inline into the adjacent user entry as subtle segments.
+   *
+   * Partial turns and their interleaved wait_for_turn_fillers are collapsed into a single
+   * user entry with `segments` — one text segment per partial diff, interleaved with filler
+   * segments at the exact position they occurred.
+   *
+   * The diff is computed as `partial[n].text.slice(partial[n-1].text.length)` because ASR
+   * produces cumulative text. If a partial cannot be diffed cleanly (text was revised), all
+   * fillers are appended at the end instead (graceful fallback).
+   *
+   * `isAwaitingMoreInput` is only set when no real content (assistant response etc.) follows
+   * the partial group — i.e., the user is still actively speaking.
    */
   type FillerSegment = { text: string; isFiller: boolean }
   type DisplayTranscript = CallTranscriptDetail & { isAwaitingMoreInput?: boolean; segments?: FillerSegment[] }
   const displayTranscripts = useMemo((): DisplayTranscript[] => {
-    // Step 1: handle partial turns
-    let partialFiltered: DisplayTranscript[]
-    if (!isLiveCall) {
-      partialFiltered = transcripts.filter((t) => !t.metadata?.partial_turn)
-    } else {
-      let lastPartialIdx = -1
-      for (let i = transcripts.length - 1; i >= 0; i--) {
-        if (transcripts[i].metadata?.partial_turn) {
-          lastPartialIdx = i
-          break
-        }
-      }
-      partialFiltered = transcripts.reduce<DisplayTranscript[]>((acc, t, i) => {
-        if (t.metadata?.partial_turn) {
-          if (i === lastPartialIdx) acc.push({ ...t, isAwaitingMoreInput: true })
-          // older partial entries are dropped
-        } else {
-          acc.push(t)
-        }
-        return acc
-      }, [])
-    }
-
-    // Step 2: merge wait_for_turn_filler entries into adjacent user entries
     const result: DisplayTranscript[] = []
     let i = 0
-    while (i < partialFiltered.length) {
-      const current = partialFiltered[i]
-      if (current.speaker === 'user') {
-        const segments: FillerSegment[] = [{ text: current.text, isFiller: false }]
-        let j = i + 1
-        let mergedAny = false
-        let awaitingMore = current.isAwaitingMoreInput ?? false
-        while (j < partialFiltered.length) {
-          const next = partialFiltered[j]
-          if (next.speaker === 'assistant' && next.metadata?.wait_for_turn_filler === true) {
-            segments.push({ text: next.text, isFiller: true })
+
+    while (i < transcripts.length) {
+      const t = transcripts[i]
+
+      // ── User speech group: one or more partial_turn entries interleaved with fillers ──
+      if (t.speaker === 'user' && t.metadata?.partial_turn) {
+        const partials: CallTranscriptDetail[] = []
+        // fillersByPartialIdx[p] = fillers that occurred right after partials[p]
+        const fillersByPartialIdx = new Map<number, string[]>()
+        let j = i
+
+        while (j < transcripts.length) {
+          const entry = transcripts[j]
+          if (entry.speaker === 'user' && entry.metadata?.partial_turn) {
+            partials.push(entry)
             j++
-            mergedAny = true
-          } else if (mergedAny && next.speaker === 'user') {
-            segments.push({ text: next.text, isFiller: false })
-            if (next.isAwaitingMoreInput) awaitingMore = true
+          } else if (entry.speaker === 'assistant' && entry.metadata?.wait_for_turn_filler) {
+            const pIdx = partials.length - 1
+            if (!fillersByPartialIdx.has(pIdx)) fillersByPartialIdx.set(pIdx, [])
+            fillersByPartialIdx.get(pIdx)!.push(entry.text)
             j++
           } else {
             break
           }
         }
-        if (mergedAny) {
-          result.push({ ...current, segments, isAwaitingMoreInput: awaitingMore })
-        } else {
-          result.push(current)
+
+        // If a combined_from_partial entry immediately follows, include it as a final
+        // "partial" so the diff captures any text spoken after the last filler.
+        if (j < transcripts.length && transcripts[j].metadata?.combined_from_partial) {
+          partials.push(transcripts[j])
+          j++
         }
+
+        // Pulsing-dot indicator: only when the turn is genuinely still in progress
+        const hasContentAfter = transcripts.slice(j).some(
+          (e) =>
+            !e.metadata?.partial_turn &&
+            !e.metadata?.wait_for_turn_filler &&
+            !e.metadata?.combined_from_partial
+        )
+        const awaitingMore = isLiveCall && !hasContentAfter
+
+        // Build position-aware segments by diffing consecutive cumulative ASR texts
+        let segments: FillerSegment[] = []
+        if (partials.length > 0) {
+          const positional: FillerSegment[] = []
+          let prevText = ''
+          let diffOk = true
+
+          for (let p = 0; p < partials.length && diffOk; p++) {
+            const cur = partials[p].text
+            if (p === 0) {
+              positional.push({ text: cur, isFiller: false })
+            } else if (cur.startsWith(prevText)) {
+              const delta = cur.slice(prevText.length)
+              if (delta.trim()) positional.push({ text: delta, isFiller: false })
+            } else {
+              diffOk = false // ASR revised earlier text — fall back
+            }
+            prevText = cur
+
+            if (diffOk) {
+              for (const f of fillersByPartialIdx.get(p) ?? []) {
+                positional.push({ text: f, isFiller: true })
+              }
+            }
+          }
+
+          if (diffOk) {
+            segments = positional
+          } else {
+            // Fallback: final text + all fillers at the end
+            const allFillers = [...fillersByPartialIdx.values()].flat()
+            segments = [
+              { text: partials[partials.length - 1].text, isFiller: false },
+              ...allFillers.map((f) => ({ text: f, isFiller: true })),
+            ]
+          }
+        }
+
+        const lastPartial = partials[partials.length - 1]
+        if (lastPartial) {
+          result.push({
+            ...lastPartial,
+            segments: segments.length > 1 ? segments : undefined,
+            isAwaitingMoreInput: awaitingMore,
+          })
+        }
+
         i = j
-      } else if (current.speaker === 'assistant' && current.metadata?.wait_for_turn_filler === true) {
-        // Orphaned filler with no preceding user — skip
-        i++
-      } else {
-        result.push(current)
-        i++
+        continue
       }
+
+      // Orphaned wait_for_turn_filler (no adjacent partial turn) — skip silently
+      if (t.speaker === 'assistant' && t.metadata?.wait_for_turn_filler) {
+        i++
+        continue
+      }
+
+      result.push(t)
+      i++
     }
+
     return result
   }, [transcripts, isLiveCall])
 
@@ -800,15 +851,13 @@ export function CallDetailsModal({
                                 className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
                                   isUser
                                     ? 'bg-lime-100 dark:bg-lime-900/30'
-                                    : isHesitation
-                                      ? 'bg-amber-100 dark:bg-amber-900/30'
-                                      : 'bg-blue-100 dark:bg-blue-900'
+                                    : 'bg-blue-100 dark:bg-blue-900'
                                 }`}
                               >
                                 {isUser ? (
                                   <User className="h-3.5 w-3.5 text-lime-700 dark:text-lime-400" />
                                 ) : isHesitation ? (
-                                  <Hourglass className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                                  <Hourglass className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                                 ) : (
                                   <Bot className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                                 )}
@@ -818,9 +867,7 @@ export function CallDetailsModal({
                               className={`rounded-lg px-3 py-2 ${
                                 isUser
                                   ? 'bg-lime-50 dark:bg-lime-950'
-                                  : isHesitation
-                                    ? 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50'
-                                    : 'bg-neutral-100 dark:bg-neutral-800'
+                                  : 'bg-neutral-100 dark:bg-neutral-800'
                               }`}
                             >
                               <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5 flex items-center gap-1">
@@ -930,7 +977,7 @@ export function CallDetailsModal({
                                   </TooltipProvider>
                                 )}
                               </div>
-                              <div className={`text-sm ${isHesitation ? 'italic text-amber-800 dark:text-amber-300' : ''}`}>
+                              <div className={`text-sm ${isHesitation ? 'italic text-neutral-500 dark:text-neutral-400' : ''}`}>
                                 {transcript.segments ? (
                                   transcript.segments.map((segment, segIdx) =>
                                     segment.isFiller ? (
