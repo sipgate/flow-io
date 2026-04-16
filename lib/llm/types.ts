@@ -148,8 +148,8 @@ export interface LLMResponseResult {
    */
   waitForTurn?: true
   /**
-   * Optional short filler the LLM wants to speak while waiting for the user to continue
-   * (e.g. "OK", "Mhm"). Only present when waitForTurn is true and the LLM chose to include one.
+   * Optional short filler the LLM chose to speak while waiting for the user to continue
+   * (e.g. "Mhm", "Verstehe", "I see"). Only present when waitForTurn is true and the LLM chose one.
    */
   waitForTurnFiller?: string
 }

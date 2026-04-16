@@ -10,14 +10,16 @@ export const hesitateToolDefinition: LLMTool = {
       'Call this tool FIRST whenever you are about to use another tool (e.g. database query, knowledge base search, API call). ' +
       'Do NOT use this tool before call control actions (hangup_call, forward_call, take_note) — those execute immediately without announcement. ' +
       'Do NOT use this tool before wait_for_turn — that tool requires no announcement. ' +
-      'Announce to the caller in one short sentence what you are about to do — in the same language the caller is using. ' +
-      'After this you will get the opportunity to call the actual tool.',
+      'The message MUST be a brief bridge phrase that signals you are processing — NOT your answer. ' +
+      'WRONG: "Ich benötige Ihren Namen." / "Let me check your account." — these reveal the answer early. ' +
+      'RIGHT: "Einen Moment..." / "Ich schaue kurz nach..." / "One moment..." / "Let me look that up..." ' +
+      'After this you will get the opportunity to call the actual tool and give the real answer.',
     parameters: {
       type: 'object',
       properties: {
         message: {
           type: 'string',
-          description: 'Sehr kurze natürliche Ankündigung in einem einzigen Satz.',
+          description: 'A very short bridge phrase only — e.g. "Einen Moment...", "Ich schaue kurz nach...", "One moment...", "Let me check...". Never include your answer or what you need from the user.',
         },
       },
       required: ['message'],

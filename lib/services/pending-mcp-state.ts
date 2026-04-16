@@ -13,6 +13,8 @@ import { debug } from '@/lib/utils/logger'
 interface MCPResult {
   response: string
   error?: string
+  /** True when the LLM called wait_for_turn — the response is a filler word (or empty for silence). */
+  waitForTurn?: boolean
   toolCalls?: Array<{ name: string; arguments: Record<string, unknown>; result: string }>
   callAction?: {
     type: 'hangup' | 'forward'
@@ -37,6 +39,9 @@ interface PendingMCPState {
   holdMessageCount: number
   // The user's original message that triggered the MCP call
   userMessage: string
+  // For wait_for_turn handling: transcript ID and accumulated text of the partial turn
+  partialTranscriptId?: string
+  partialEffectiveText?: string
 }
 
 // In-memory store for pending MCP states
@@ -77,6 +82,34 @@ export function startPendingMCP(
     holdMessageCount: 0,
     userMessage,
   })
+}
+
+/**
+ * Store partial-turn metadata so assistant_speech_ended can handle a wait_for_turn
+ * result that arrived via the async path (LLM took >4 s for a partial turn).
+ */
+export function setPendingMCPPartialTurn(
+  sessionId: string,
+  transcriptId: string,
+  effectiveText: string
+): void {
+  const state = pendingMCPStates.get(sessionId)
+  if (state) {
+    state.partialTranscriptId = transcriptId
+    state.partialEffectiveText = effectiveText
+  }
+}
+
+/**
+ * Read partial-turn data stored for a session (safe to call before waitForMCPWithTimeout
+ * deletes the state, e.g. at the start of assistant_speech_ended).
+ */
+export function getPendingMCPPartialData(sessionId: string): {
+  transcriptId: string | undefined
+  effectiveText: string | undefined
+} {
+  const state = pendingMCPStates.get(sessionId)
+  return { transcriptId: state?.partialTranscriptId, effectiveText: state?.partialEffectiveText }
 }
 
 /**

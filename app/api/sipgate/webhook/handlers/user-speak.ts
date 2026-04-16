@@ -5,6 +5,7 @@ import { generateLLMResponse } from '@/lib/services/llm-conversation'
 import { hasAssistantMCPServers } from '@/lib/services/mcp-tool-executor'
 import {
   startPendingMCP,
+  setPendingMCPPartialTurn,
   getNextHoldMessage,
   cancelPendingMCP,
 } from '@/lib/services/pending-mcp-state'
@@ -283,7 +284,7 @@ interface UserTurnContext {
  * Mark a transcript entry as a partial turn so it is excluded from future conversation history.
  * Called when the LLM returns wait_for_turn for that entry.
  */
-async function markTranscriptPartial(
+export async function markTranscriptPartial(
   supabase: ReturnType<typeof createServiceRoleClient>,
   transcriptId: string | undefined,
   existingMetadata: Record<string, unknown>,
@@ -322,7 +323,8 @@ async function handleUserSpeakMCPPath(
         .filter((t) =>
           (t.speaker === 'user' || t.speaker === 'assistant') &&
           !(t.metadata as Record<string, unknown> | null)?.partial_turn &&
-            !(t.metadata as Record<string, unknown> | null)?.wait_for_turn_filler
+          !(t.metadata as Record<string, unknown> | null)?.wait_for_turn_filler &&
+          !(t.metadata as Record<string, unknown> | null)?.hold_message
         )
         .map((t) => ({
           role: t.speaker === 'user' ? ('user' as const) : ('assistant' as const),
@@ -474,6 +476,10 @@ async function handleUserSpeakMCPPath(
   // LLM taking > 4s — use hold message pattern
   debug('[Webhook] LLM taking >4s, switching to hold message pattern')
   startPendingMCP(event.session.id, llmPromise, event.text)
+  // Store partial-turn data so assistant_speech_ended can handle a wait_for_turn result correctly
+  if (userTurn.transcriptId) {
+    setPendingMCPPartialTurn(event.session.id, userTurn.transcriptId, userTurn.effectiveText)
+  }
 
   const language = (assistant.voice_language || 'de-DE').startsWith('de') ? 'de' : 'en'
   const holdMessage = getNextHoldMessage(event.session.id, language)

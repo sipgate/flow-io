@@ -7,10 +7,13 @@ import {
   waitForMCPWithTimeout,
   waitForPendingMCP,
   getPendingMCPElapsedMs,
+  getPendingMCPPartialData,
   getNextHoldMessage,
   cancelPendingMCP,
   startPendingMCP,
 } from '@/lib/services/pending-mcp-state'
+import { setPendingTurn } from '@/lib/services/pending-turn-state'
+import { markTranscriptPartial } from './user-speak'
 import {
   hasHesitationState,
   getHesitationState,
@@ -187,11 +190,37 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
     }
   }
 
+  // Read partial-turn data before waitForMCPWithTimeout deletes the state
+  const partialData = getPendingMCPPartialData(sessionId)
+
   // Wait for MCP to complete (up to ~4 seconds)
   const mcpResult = await waitForMCPWithTimeout(sessionId)
 
   if (mcpResult !== null) {
     debug('[AssistantSpeechEnded] MCP completed, returning response')
+
+    // wait_for_turn via async path: the LLM decided the user hadn't finished speaking.
+    // Mark the partial turn correctly and play the filler (or stay silent).
+    if (mcpResult.waitForTurn) {
+      debug('[AssistantSpeechEnded] wait_for_turn result from async path', mcpResult.response ? `filler: "${mcpResult.response}"` : '(silent)')
+      const supabaseForPartial = createServiceRoleClient()
+      await markTranscriptPartial(supabaseForPartial, partialData.transcriptId, {})
+      if (partialData.effectiveText) {
+        setPendingTurn(sessionId, partialData.effectiveText)
+      }
+      if (mcpResult.response) {
+        const speak = buildSpeakResponse(sessionId, mcpResult.response, assistant, bargeIn)
+        await addTranscriptMessage({
+          call_session_id: session.id,
+          speaker: 'assistant',
+          text: speak.cleanText,
+          metadata: { wait_for_turn_filler: true },
+          assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
+        })
+        return NextResponse.json(speak.json)
+      }
+      return new NextResponse(null, { status: 204 })
+    }
 
     if (mcpResult.error) {
       const errorMessage = 'Es tut mir leid, ich konnte die Informationen nicht abrufen. Kann ich Ihnen anders helfen?'
