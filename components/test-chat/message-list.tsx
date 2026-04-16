@@ -15,6 +15,7 @@ import {
 interface MessageMetadata {
   usage?: { promptTokens: number; completionTokens: number; totalTokens: number }
   toolCalls?: Array<{ name: string; arguments: Record<string, unknown>; result: string }>
+  toolCallData?: { arguments: Record<string, unknown>; result: string }
   performance?: { ttftMs: number; totalTimeMs: number; tokensPerSecond: number }
   model?: string
   hesitation?: boolean
@@ -63,20 +64,46 @@ export function MessageList({ messages, isLoading = false }: MessageListProps) {
               // Tool use divider (matching call-details-modal style)
               if (message.role === 'tool') {
                 const isTransfer = message.content === 'transfer_to_agent'
+                const toolCallData = message.metadata?.toolCallData
+                const badge = (
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    {isTransfer ? (
+                      <ArrowRightLeft className="h-3 w-3" />
+                    ) : (
+                      <Wrench className="h-3 w-3" />
+                    )}
+                    <span>{message.content}</span>
+                    {message.timestamp && (
+                      <span className="text-neutral-400 dark:text-neutral-500">· {format(new Date(message.timestamp), 'HH:mm:ss')}</span>
+                    )}
+                  </div>
+                )
                 return (
                   <div key={message.id} className="flex items-center gap-2 py-0.5">
                     <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700" />
-                    <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 rounded-full whitespace-nowrap">
-                      {isTransfer ? (
-                        <ArrowRightLeft className="h-3 w-3" />
-                      ) : (
-                        <Wrench className="h-3 w-3" />
-                      )}
-                      <span>{message.content}</span>
-                      {message.timestamp && (
-                        <span className="text-neutral-400 dark:text-neutral-500">· {format(new Date(message.timestamp), 'HH:mm:ss')}</span>
-                      )}
-                    </div>
+                    {toolCallData ? (
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button className="focus:outline-none cursor-default">{badge}</button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs max-w-80 space-y-2 p-3">
+                            {toolCallData.arguments && Object.keys(toolCallData.arguments).length > 0 && (
+                              <div>
+                                <div className="font-semibold text-neutral-400 mb-1">Arguments</div>
+                                <pre className="whitespace-pre-wrap break-all font-mono">{JSON.stringify(toolCallData.arguments, null, 2)}</pre>
+                              </div>
+                            )}
+                            {toolCallData.result && (
+                              <div>
+                                <div className="font-semibold text-neutral-400 mb-1">Result</div>
+                                <div className="whitespace-pre-wrap break-all">{toolCallData.result.length > 300 ? `${toolCallData.result.slice(0, 300)}…` : toolCallData.result}</div>
+                              </div>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : badge}
                     <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700" />
                   </div>
                 )

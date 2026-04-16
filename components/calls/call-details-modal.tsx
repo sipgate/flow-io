@@ -56,6 +56,8 @@ interface CallTranscriptDetail {
   timestamp: string | null
   metadata: {
     tool_name?: string
+    arguments?: Record<string, unknown>
+    result_preview?: string
     assistant_name?: string
     assistant_avatar_url?: string | null
     voice_id?: string
@@ -638,29 +640,54 @@ export function CallDetailsModal({
                     {transcripts.map((transcript, index) => {
                       if (transcript.speaker === 'tool') {
                         const isTransfer = transcript.metadata?.tool_name === 'transfer_to_agent'
+                        const hasToolData = transcript.metadata?.arguments || transcript.metadata?.result_preview
+                        const badge = (
+                          <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 rounded-full whitespace-nowrap">
+                            {isTransfer ? (
+                              <ArrowRightLeft className="h-3 w-3" />
+                            ) : (
+                              <Wrench className="h-3 w-3" />
+                            )}
+                            <span>{transcript.text}</span>
+                            {transcript.timestamp && (
+                              <span className="text-neutral-400 dark:text-neutral-500">· {format(new Date(transcript.timestamp), 'HH:mm:ss')}</span>
+                            )}
+                          </div>
+                        )
                         return (
                           <div key={transcript.id || index} className="flex items-center gap-2 py-0.5">
                             <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700" />
-                            <div className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2.5 py-1 rounded-full whitespace-nowrap">
-                              {isTransfer ? (
-                                <ArrowRightLeft className="h-3 w-3" />
-                              ) : (
-                                <Wrench className="h-3 w-3" />
-                              )}
-                              <span>{transcript.text}</span>
-                              {transcript.timestamp && (
-                                <span className="text-neutral-400 dark:text-neutral-500">· {format(new Date(transcript.timestamp), 'HH:mm:ss')}</span>
-                              )}
-                            </div>
+                            {hasToolData ? (
+                              <TooltipProvider delayDuration={100}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button className="focus:outline-none cursor-default">{badge}</button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs max-w-80 space-y-2 p-3">
+                                    {transcript.metadata?.arguments && Object.keys(transcript.metadata.arguments).length > 0 && (
+                                      <div>
+                                        <div className="font-semibold text-neutral-400 mb-1">Arguments</div>
+                                        <pre className="whitespace-pre-wrap break-all font-mono">{JSON.stringify(transcript.metadata.arguments, null, 2)}</pre>
+                                      </div>
+                                    )}
+                                    {transcript.metadata?.result_preview && (
+                                      <div>
+                                        <div className="font-semibold text-neutral-400 mb-1">Result</div>
+                                        <div className="whitespace-pre-wrap break-all">{transcript.metadata.result_preview}</div>
+                                      </div>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : badge}
                             <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700" />
                           </div>
                         )
                       }
 
-                      {(() => {
-                        const isUser = transcript.speaker === 'user'
-                        const isHesitation = !isUser && transcript.metadata?.hesitation === true
-                        return (
+                      const isUser = transcript.speaker === 'user'
+                      const isHesitation = !isUser && transcript.metadata?.hesitation === true
+                      return (
                         <div
                           key={transcript.id || index}
                           className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
@@ -813,8 +840,7 @@ export function CallDetailsModal({
                             </div>
                           </div>
                         </div>
-                        )
-                      })()}
+                      )
                     })}
                   </div>
                 )}

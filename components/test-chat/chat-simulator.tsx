@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 interface MessageMetadata {
   usage?: { promptTokens: number; completionTokens: number; totalTokens: number }
   toolCalls?: Array<{ name: string; arguments: Record<string, unknown>; result: string }>
+  toolCallData?: { arguments: Record<string, unknown>; result: string }
   performance?: { ttftMs: number; totalTimeMs: number; tokensPerSecond: number }
   model?: string
   hesitation?: boolean
@@ -309,6 +310,7 @@ export function ChatSimulator({
             role: 'tool',
             content: tc.name,
             timestamp: d.assistant_message.timestamp,
+            metadata: { toolCallData: { arguments: tc.arguments, result: tc.result } },
           })
         }
       }
@@ -456,13 +458,14 @@ export function ChatSimulator({
       for (const h of data.history as Array<{ id: string; role: string; content: string; timestamp: string; metadata?: Record<string, unknown> }>) {
         // Insert virtual tool messages from metadata before assistant messages
         if (h.role === 'assistant' && h.metadata?.toolCalls) {
-          const toolCalls = h.metadata.toolCalls as Array<{ name: string }>
+          const toolCalls = h.metadata.toolCalls as Array<{ name: string; arguments: Record<string, unknown>; result: string }>
           for (const tc of toolCalls) {
             loadedMessages.push({
               id: `tool-${h.id}-${tc.name}`,
               role: 'tool',
               content: tc.name,
               timestamp: h.timestamp,
+              metadata: { toolCallData: { arguments: tc.arguments, result: tc.result } },
             })
           }
         }
