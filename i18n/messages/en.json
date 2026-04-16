@@ -1362,7 +1362,12 @@
     "templateCustomerSupport": "Customer Support",
     "templateAppointmentScheduler": "Appointment Scheduler",
     "templateLeadQualification": "Lead Qualification",
-    "templateTechnicalSupport": "Technical Support"
+    "templateTechnicalSupport": "Technical Support",
+    "improvePrompt": "Improve",
+    "improvingPrompt": "Improving…",
+    "improvePromptTitle": "Improve prompt with AI",
+    "improvePromptError": "Failed to improve prompt. Please try again.",
+    "improveInstructionPlaceholder": "Optional: describe what to improve, e.g. make the tone more formal or add more edge cases for billing. Leave blank for a general improvement."
   },
   "csatScore": {
     "label": "CSAT",

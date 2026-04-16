@@ -1362,7 +1362,12 @@
     "templateCustomerSupport": "Customer Support",
     "templateAppointmentScheduler": "Appointment Scheduler",
     "templateLeadQualification": "Lead Qualification",
-    "templateTechnicalSupport": "Technical Support"
+    "templateTechnicalSupport": "Technical Support",
+    "improvePrompt": "Verbessern",
+    "improvingPrompt": "Verbessere…",
+    "improvePromptTitle": "Prompt mit KI verbessern",
+    "improvePromptError": "Prompt konnte nicht verbessert werden. Bitte erneut versuchen.",
+    "improveInstructionPlaceholder": "Optional: Was soll verbessert werden? z.B. Ton formeller machen oder mehr Edge Cases für Reklamationen. Leer lassen für eine allgemeine Verbesserung."
   },
   "csatScore": {
     "label": "CSAT",

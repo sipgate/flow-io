@@ -1169,7 +1169,12 @@
     "templateCustomerSupport": "Customer Support",
     "templateAppointmentScheduler": "Appointment Scheduler",
     "templateLeadQualification": "Lead Qualification",
-    "templateTechnicalSupport": "Technical Support"
+    "templateTechnicalSupport": "Technical Support",
+    "improvePrompt": "Mejorar",
+    "improvingPrompt": "Mejorando…",
+    "improvePromptTitle": "Mejorar prompt con IA",
+    "improvePromptError": "No se pudo mejorar el prompt. Por favor, inténtalo de nuevo.",
+    "improveInstructionPlaceholder": "Opcional: describe qué mejorar, p.ej. hacer el tono más formal o añadir más casos de error. Déjalo en blanco para una mejora general."
   },
   "csatScore": {
     "label": "CSAT",

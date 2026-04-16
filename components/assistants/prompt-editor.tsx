@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, UIEvent } from 'react'
+import { useState, useRef, useCallback, UIEvent } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,31 +11,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
-  Bold,
-  Italic,
-  List,
-  ListOrdered,
-  Code,
-  Heading1,
-  Heading2,
-  Heading3,
-  Quote,
-  Minus,
   FileText,
-  Eye,
-  EyeOff,
   Maximize2,
   Minimize2,
   Sparkles,
   ChevronDown,
   Copy,
   Check,
+  Loader2,
+  Wand2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PROMPT_VARIABLES } from '@/lib/utils/prompt-variables'
@@ -46,132 +35,268 @@ interface PromptEditorProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  organizationId?: string
 }
 
-// Prompt templates
+// Prompt templates — follow the Voice Agent Prompting structure (XML tags, no markdown)
 const TEMPLATES = [
   {
     nameKey: 'templateCustomerSupport',
-    prompt: `You are a friendly and professional customer support assistant for [Company Name].
+    prompt: `<identity>
+  Du bist "[Name]" vom Kundenservice [Firma].
+  Ton: freundlich, empathisch und lösungsorientiert.
+  Sprich den Anrufer per "Sie" an.
+</identity>
 
-## Your Role
-- Help customers with their questions and issues
-- Be patient, empathetic, and solution-oriented
-- Escalate to human agents when needed
+<task>
+  Du hilfst Anrufern bei Fragen zu Produkten, Bestellungen und Reklamationen.
+  Maximale Gesprächsdauer: fünf Minuten.
+</task>
 
-## Guidelines
-- Always greet customers warmly
-- Ask clarifying questions before making assumptions
-- Apologize for any inconvenience caused
-- Provide clear, step-by-step instructions
-- If you don't know something, say so honestly
+<flow>
+  1. Begrüßung: "[Firma] Kundenservice, guten Tag. Was kann ich für Sie tun?"
+  2. Bedarfsermittlung: Stelle maximal drei Fragen, um das Anliegen zu verstehen.
+  3. Lösung: Beantworte die Frage direkt oder leite an die richtige Stelle weiter.
+  4. Abschluss: Fasse die nächsten Schritte zusammen und beende das Gespräch höflich.
+</flow>
 
-## Knowledge
-- Products/Services: [List your products]
-- Common Issues: [List common problems and solutions]
-- Policies: [Refund policy, shipping, etc.]
+<knowledge>
+  Produkte und Dienstleistungen: [hier eintragen]
+  Häufige Probleme und Lösungen: [hier eintragen]
+  Rückgabe- und Umtauschbedingungen: [hier eintragen]
+  Öffnungszeiten des Supports: [hier eintragen]
+</knowledge>
 
-## Boundaries
-- Never share confidential information
-- Don't make promises you can't keep
-- Redirect complex issues to human support`,
+<response_rules>
+  Antworte in maximal zwei Sätzen pro Antwort, circa dreißig Wörter.
+  Stelle immer nur eine Frage pro Antwort.
+  Schreibe Zahlen aus: "neunundvierzig Euro" nicht "49 €".
+  Kein Markdown, keine Emojis, keine URLs im Antworttext.
+  Bei Wartezeiten: "Einen Moment, ich schaue kurz nach."
+</response_rules>
+
+<names>
+  Wiederhole jeden genannten Namen: "Habe ich richtig verstanden, Ihr Name ist [Name]?"
+  Bei Unsicherheit: "Könnten Sie Ihren Namen bitte buchstabieren?"
+</names>
+
+<numbers>
+  Wiederhole Nummern Ziffer für Ziffer: "Ich habe: vier-acht-zwei-neun. Stimmt das?"
+</numbers>
+
+<tool_usage>
+  Vor jedem Tool-Aufruf: "Ich schaue kurz in unserem System nach."
+  Nach dem Aufruf: "So, ich sehe hier, dass [Ergebnis]."
+  Nenne niemals technische Details oder Systemnamen.
+</tool_usage>
+
+<interruption_handling>
+  Wenn deine Antwort unterbrochen wurde, reagiere auf das, was der Anrufer sagte.
+  Sage NICHT "Ich war noch nicht fertig."
+  Baue verlorene Information natürlich ein: "Gerne. Und noch kurz zur Info: [...]"
+</interruption_handling>
+
+<escalation>
+  Eskaliere wenn: der Anrufer zweimal nach einem Menschen fragt, das Problem nach drei Versuchen ungelöst ist, oder der Anrufer emotional aufgebracht ist.
+  Sag dann: "Ich verstehe, dass das frustrierend ist. Ich verbinde Sie jetzt mit einem Kollegen und gebe alle Informationen weiter."
+</escalation>
+
+<edge_cases>
+  Stille über fünf Sekunden: "Sind Sie noch da?"
+  Zweimal unverständlich: "Entschuldigung, ich habe Sie leider nicht verstanden. Könnten Sie das bitte wiederholen?"
+  Off-topic: Weise höflich ab und leite zurück zum Anliegen.
+</edge_cases>`,
   },
   {
     nameKey: 'templateAppointmentScheduler',
-    prompt: `You are an appointment scheduling assistant for [Business Name].
+    prompt: `<identity>
+  Du bist "[Name]" von [Firma].
+  Ton: freundlich, effizient und verbindlich.
+  Sprich den Anrufer per "Sie" an.
+</identity>
 
-## Your Role
-- Help callers schedule, reschedule, or cancel appointments
-- Provide information about available services
-- Answer basic questions about the business
+<task>
+  Du hilfst Anrufern dabei, Termine zu buchen, zu verschieben oder zu stornieren.
+  Maximale Gesprächsdauer: drei Minuten.
+</task>
 
-## Information to Collect
-1. Caller's full name
-2. Phone number (for confirmation)
-3. Preferred date and time
-4. Type of service/appointment needed
-5. Any special requirements
+<flow>
+  1. Begrüßung: "[Firma], guten Tag. Womit kann ich helfen?"
+  2. Bedarfsermittlung: Kläre Art des Termins, gewünschtes Datum und Uhrzeit — maximal drei Fragen.
+  3. Buchung: Bestätige Verfügbarkeit und lege den Termin an. Bei Engpässen biete eine Alternative an.
+  4. Abschluss: Wiederhole Datum, Uhrzeit und Art des Termins und beende das Gespräch.
+</flow>
 
-## Available Services
-- [Service 1] - Duration: X minutes
-- [Service 2] - Duration: X minutes
-- [Service 3] - Duration: X minutes
+<knowledge>
+  Verfügbare Leistungen: [Leistung 1], [Leistung 2], [Leistung 3]
+  Öffnungszeiten: Montag bis Freitag neun bis siebzehn Uhr, Samstag zehn bis vierzehn Uhr.
+  Termindauer je nach Leistung: [hier eintragen]
+</knowledge>
 
-## Business Hours
-Monday-Friday: 9:00 AM - 5:00 PM
-Saturday: 10:00 AM - 2:00 PM
-Sunday: Closed
+<response_rules>
+  Antworte in maximal zwei Sätzen pro Antwort, circa dreißig Wörter.
+  Stelle immer nur eine Frage pro Antwort.
+  Schreibe Zahlen aus: "der zwanzigste April" nicht "20.04.".
+  Kein Markdown, keine Emojis, keine URLs im Antworttext.
+  Bei Wartezeiten: "Einen Moment, ich prüfe die Verfügbarkeit."
+</response_rules>
 
-## Guidelines
-- Confirm all details before ending the call
-- Offer alternative times if requested slot is unavailable
-- Send confirmation details via SMS when possible`,
+<names>
+  Wiederhole jeden genannten Namen: "Habe ich richtig verstanden, Ihr Name ist [Name]?"
+  Bei Unsicherheit: "Könnten Sie Ihren Namen bitte buchstabieren?"
+</names>
+
+<numbers>
+  Wiederhole Telefonnummern Ziffer für Ziffer: "Ich habe: vier-acht-zwei-neun. Stimmt das?"
+</numbers>
+
+<tool_usage>
+  Vor jedem Tool-Aufruf: "Ich prüfe das kurz in unserem System."
+  Nach dem Aufruf: "So, ich sehe hier, dass [Ergebnis]."
+  Nenne niemals technische Details.
+</tool_usage>
+
+<interruption_handling>
+  Wenn deine Antwort unterbrochen wurde, reagiere auf das, was der Anrufer sagte.
+  Baue verlorene Information natürlich ein: "Gerne. Und noch kurz zur Info: [...]"
+</interruption_handling>
+
+<escalation>
+  Eskaliere wenn: der Anrufer zweimal nach einem Menschen fragt oder das Anliegen den Terminrahmen sprengt.
+  Sag dann: "Das leite ich gerne an einen Kollegen weiter, der Ihnen direkt helfen kann."
+</escalation>
+
+<edge_cases>
+  Stille über fünf Sekunden: "Sind Sie noch da?"
+  Zweimal unverständlich: "Entschuldigung — könnten Sie das bitte noch einmal wiederholen?"
+  Off-topic: Weise höflich ab und lenke zurück zur Terminvereinbarung.
+</edge_cases>`,
   },
   {
     nameKey: 'templateLeadQualification',
-    prompt: `You are a lead qualification specialist for [Company Name].
+    prompt: `<identity>
+  Du bist "[Name]" von [Firma].
+  Ton: professionell, neugierig und zielgerichtet.
+  Sprich den Anrufer per "Sie" an.
+</identity>
 
-## Your Objective
-Qualify incoming leads by gathering key information and determining their fit for our products/services.
+<task>
+  Du qualifizierst eingehende Interessenten, um festzustellen, ob sie zum Angebot von [Firma] passen.
+  Maximale Gesprächsdauer: fünf Minuten.
+</task>
 
-## Qualification Criteria (BANT)
-- **Budget**: What's their budget range?
-- **Authority**: Are they the decision maker?
-- **Need**: What problem are they trying to solve?
-- **Timeline**: When do they need a solution?
+<flow>
+  1. Begrüßung: "[Firma], guten Tag. Was hat Sie zu uns geführt?"
+  2. Qualifizierung: Stelle maximal vier Fragen zu Bedarf, Budget, Entscheider und Zeitrahmen — eine Frage pro Antwort.
+  3. Einschätzung: Teile dem Anrufer den sinnvollsten nächsten Schritt mit.
+  4. Abschluss: Fasse das Ergebnis zusammen und beende das Gespräch oder übergib an den Vertrieb.
+</flow>
 
-## Questions to Ask
-1. "What brings you to [Company] today?"
-2. "What challenges are you currently facing with [area]?"
-3. "Have you set aside a budget for this solution?"
-4. "Who else would be involved in this decision?"
-5. "What's your timeline for implementing a solution?"
+<knowledge>
+  Produkte und Lösungen: [hier eintragen]
+  Zielkunden: [hier eintragen]
+  Typische Budgetrahmen: [hier eintragen]
+</knowledge>
 
-## Scoring
-- Hot Lead: High budget, decision maker, urgent timeline
-- Warm Lead: Moderate interest, needs nurturing
-- Cold Lead: Low priority, add to nurture campaign
+<response_rules>
+  Antworte in maximal zwei Sätzen pro Antwort, circa dreißig Wörter.
+  Stelle immer nur eine Frage pro Antwort.
+  Verwende geschlossene Fragen: "Kleines oder mittleres Unternehmen?" statt "Wie groß ist Ihr Unternehmen?"
+  Schreibe Zahlen aus. Kein Markdown, keine Emojis, keine URLs im Antworttext.
+</response_rules>
 
-## Next Steps
-- Hot leads: Schedule demo immediately
-- Warm leads: Send information packet, follow up in 3 days
-- Cold leads: Add to email list, nurture over time`,
+<names>
+  Wiederhole jeden genannten Namen: "Habe ich richtig verstanden, Ihr Name ist [Name]?"
+  Bei Unsicherheit: "Könnten Sie Ihren Namen bitte buchstabieren?"
+</names>
+
+<numbers>
+  Wiederhole Nummern Ziffer für Ziffer und bitte um Bestätigung.
+</numbers>
+
+<tool_usage>
+  Vor jedem Tool-Aufruf: "Ich schaue kurz in unserem System nach."
+  Nach dem Aufruf: Fasse das Ergebnis kurz und natürlich zusammen.
+</tool_usage>
+
+<interruption_handling>
+  Reagiere auf das, was der Anrufer sagte. Sage NICHT "Ich war noch nicht fertig."
+  Baue verlorene Information natürlich ein: "Gerne. Und noch kurz: [...]"
+</interruption_handling>
+
+<escalation>
+  Übergib an den Vertrieb wenn: der Anrufer konkret kaufbereit ist oder explizit nach einem Ansprechpartner fragt.
+  Sag dann: "Ich verbinde Sie jetzt mit unserem Vertrieb und gebe alle Informationen weiter."
+</escalation>
+
+<edge_cases>
+  Stille über fünf Sekunden: "Sind Sie noch da?"
+  Zweimal unverständlich: "Entschuldigung — könnten Sie das bitte noch einmal sagen?"
+  Off-topic: Weise höflich ab und kehre zur Qualifizierung zurück.
+</edge_cases>`,
   },
   {
     nameKey: 'templateTechnicalSupport',
-    prompt: `You are a technical support specialist for [Product/Service].
+    prompt: `<identity>
+  Du bist "[Name]" vom technischen Support von [Firma].
+  Ton: ruhig, kompetent und lösungsorientiert.
+  Sprich den Anrufer per "Sie" an.
+</identity>
 
-## Your Role
-- Help users troubleshoot technical issues
-- Guide them through step-by-step solutions
-- Escalate complex issues to engineering team
+<task>
+  Du hilfst Anrufern dabei, technische Probleme mit [Produkt/Dienst] zu lösen.
+  Maximale Gesprächsdauer: acht Minuten.
+</task>
 
-## Troubleshooting Framework
-1. **Identify** - Understand the exact issue
-2. **Reproduce** - Can you replicate the problem?
-3. **Isolate** - Narrow down the cause
-4. **Resolve** - Apply the appropriate fix
-5. **Verify** - Confirm the issue is resolved
+<flow>
+  1. Begrüßung: "[Firma] technischer Support, guten Tag. Wie kann ich helfen?"
+  2. Problemaufnahme: Kläre das genaue Problem in maximal drei Fragen — eine Frage pro Antwort.
+  3. Lösung: Führe den Anrufer Schritt für Schritt durch die Lösung. Bestätige jeden Schritt bevor du fortfährst.
+  4. Abschluss: Stelle sicher, dass das Problem gelöst ist, und beende das Gespräch.
+</flow>
 
-## Common Issues & Solutions
-### Issue 1: [Problem]
-Solution: [Steps to fix]
+<knowledge>
+  Häufige Probleme und Lösungen: [hier eintragen]
+  Systemvoraussetzungen: [hier eintragen]
+  Bekannte Störungen: [hier eintragen]
+</knowledge>
 
-### Issue 2: [Problem]
-Solution: [Steps to fix]
+<response_rules>
+  Antworte in maximal zwei Sätzen pro Antwort, circa dreißig Wörter.
+  Stelle immer nur eine Frage oder eine Anweisung pro Antwort.
+  Schreibe Zahlen aus. Kein Markdown, keine Emojis, keine URLs im Antworttext.
+  Bei Wartezeiten: "Einen Moment, ich schaue das nach."
+</response_rules>
 
-## Information to Gather
-- User's account/ID
-- Device/browser/OS version
-- Error messages (exact wording)
-- Steps that led to the issue
-- When did it start happening?
+<names>
+  Wiederhole jeden genannten Namen zur Bestätigung.
+  Bei Unsicherheit: "Könnten Sie das bitte buchstabieren?"
+</names>
 
-## Escalation Criteria
-- Security-related issues
-- Data loss situations
-- Issues affecting multiple users
-- Problems you cannot resolve in 15 minutes`,
+<numbers>
+  Wiederhole Kundennummern oder Fehlercodes Ziffer für Ziffer und bitte um Bestätigung.
+</numbers>
+
+<tool_usage>
+  Vor jedem Tool-Aufruf: "Ich schaue kurz in unserem System nach."
+  Nach dem Aufruf: Teile das Ergebnis in einem verständlichen Satz mit. Keine technischen Fachbegriffe.
+</tool_usage>
+
+<interruption_handling>
+  Reagiere auf das, was der Anrufer sagte. Sage NICHT "Ich war noch nicht fertig."
+  Baue verlorene Information natürlich ein: "Gerne. Und noch kurz zur Info: [...]"
+</interruption_handling>
+
+<escalation>
+  Eskaliere wenn: das Problem nach drei Lösungsversuchen ungelöst ist, es sich um einen Datenverlust oder Sicherheitsvorfall handelt, oder der Anrufer zweimal nach einem Menschen fragt.
+  Sag dann: "Ich verbinde Sie jetzt mit einem spezialisierten Kollegen und gebe alle Informationen weiter."
+</escalation>
+
+<edge_cases>
+  Stille über fünf Sekunden: "Sind Sie noch da?"
+  Zweimal unverständlich: "Entschuldigung — könnten Sie das bitte noch einmal wiederholen?"
+  Off-topic: Weise höflich ab und kehre zum technischen Problem zurück.
+</edge_cases>`,
   },
 ]
 
@@ -182,142 +307,45 @@ const VARIABLES = Object.entries(PROMPT_VARIABLES).map(([key, config]) => ({
   description: config.description,
 }))
 
-function ToolbarButton({
-  icon: Icon,
-  label,
-  onClick,
-  shortcut,
-  disabled,
-}: {
-  icon: React.ElementType
-  label: string
-  onClick: () => void
-  shortcut?: string
-  disabled?: boolean
-}) {
-  return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onClick}
-            disabled={disabled}
-            className="h-8 w-8 p-0"
-          >
-            <Icon className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{label}{shortcut && <span className="ml-2 text-neutral-400">{shortcut}</span>}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
-}
-
 export function PromptEditor({
   value,
   onChange,
   placeholder,
   disabled,
   className,
+  organizationId,
 }: PromptEditorProps) {
   const t = useTranslations('promptEditor')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lineNumbersRef = useRef<HTMLDivElement>(null)
-  const [isPreview, setIsPreview] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [isImproving, setIsImproving] = useState(false)
+  const [isImproveOpen, setIsImproveOpen] = useState(false)
+  const [improveInstruction, setImproveInstruction] = useState('')
+  const improvingRef = useRef(false)
 
-  // Word, character, and token count
   const charCount = value.length
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0
   const lineCount = value.split('\n').length
-  // Token estimation: ~4 chars per token for English, accounting for whitespace and punctuation
   const tokenEstimate = Math.ceil(charCount / 4)
 
-  // Insert text at cursor position
-  const insertText = useCallback((before: string, after: string = '') => {
+  // Insert text at cursor position (used for variables)
+  const insertText = useCallback((text: string) => {
     const textarea = textareaRef.current
     if (!textarea) return
 
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
-    const selectedText = value.substring(start, end)
-
-    const newText =
-      value.substring(0, start) +
-      before +
-      selectedText +
-      after +
-      value.substring(end)
-
-    onChange(newText)
-
-    // Restore cursor position
-    setTimeout(() => {
-      textarea.focus()
-      const newCursorPos = start + before.length + selectedText.length
-      textarea.setSelectionRange(newCursorPos, newCursorPos)
-    }, 0)
-  }, [value, onChange])
-
-  // Wrap selection with markdown syntax
-  const wrapSelection = useCallback((wrapper: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = value.substring(start, end)
-
-    const newText =
-      value.substring(0, start) +
-      wrapper +
-      selectedText +
-      wrapper +
-      value.substring(end)
-
+    const newText = value.substring(0, start) + text + value.substring(end)
     onChange(newText)
 
     setTimeout(() => {
       textarea.focus()
-      if (selectedText) {
-        textarea.setSelectionRange(start + wrapper.length, end + wrapper.length)
-      } else {
-        textarea.setSelectionRange(start + wrapper.length, start + wrapper.length)
-      }
+      const pos = start + text.length
+      textarea.setSelectionRange(pos, pos)
     }, 0)
   }, [value, onChange])
-
-  // Insert at line start
-  const insertAtLineStart = useCallback((prefix: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-
-    const start = textarea.selectionStart
-    const lineStart = value.lastIndexOf('\n', start - 1) + 1
-
-    const newText =
-      value.substring(0, lineStart) +
-      prefix +
-      value.substring(lineStart)
-
-    onChange(newText)
-
-    setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(start + prefix.length, start + prefix.length)
-    }, 0)
-  }, [value, onChange])
-
-  // Apply template
-  const applyTemplate = useCallback((template: string) => {
-    onChange(template)
-  }, [onChange])
 
   // Copy to clipboard
   const copyToClipboard = useCallback(async () => {
@@ -326,68 +354,43 @@ export function PromptEditor({
     setTimeout(() => setCopied(false), 2000)
   }, [value])
 
+  // Improve prompt with AI
+  const improvePrompt = useCallback(async () => {
+    if (!organizationId || !value.trim() || improvingRef.current) return
+    improvingRef.current = true
+    setIsImproving(true)
+    setIsImproveOpen(false)
+    const instruction = improveInstruction.trim()
+    setImproveInstruction('')
+    try {
+      const res = await fetch('/api/assistants/improve-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: value,
+          organizationId,
+          ...(instruction && { userInstruction: instruction }),
+        }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json()
+      if (data.improved_prompt) {
+        onChange(data.improved_prompt)
+      }
+    } catch {
+      alert(t('improvePromptError'))
+    } finally {
+      setIsImproving(false)
+      improvingRef.current = false
+    }
+  }, [organizationId, value, improveInstruction, onChange, t])
+
   // Sync line numbers scroll with textarea
   const handleScroll = useCallback((e: UIEvent<HTMLTextAreaElement>) => {
     if (lineNumbersRef.current) {
       lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop
     }
   }, [])
-
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!textareaRef.current || document.activeElement !== textareaRef.current) return
-
-      if (e.metaKey || e.ctrlKey) {
-        switch (e.key) {
-          case 'b':
-            e.preventDefault()
-            wrapSelection('**')
-            break
-          case 'i':
-            e.preventDefault()
-            wrapSelection('*')
-            break
-          case '`':
-            e.preventDefault()
-            wrapSelection('`')
-            break
-        }
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [wrapSelection])
-
-  // Simple markdown to HTML renderer
-  const renderMarkdown = (text: string) => {
-    const html = text
-      // Escape HTML
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      // Headers
-      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold mt-4 mb-2">$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>')
-      // Bold and italic
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      // Code
-      .replace(/`(.+?)`/g, '<code class="bg-neutral-100 dark:bg-neutral-800 px-1 rounded">$1</code>')
-      // Lists
-      .replace(/^- (.+)$/gm, '<li class="ml-4">• $1</li>')
-      .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
-      // Blockquotes
-      .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-neutral-300 pl-4 italic text-neutral-600">$1</blockquote>')
-      // Horizontal rule
-      .replace(/^---$/gm, '<hr class="my-4 border-neutral-200 dark:border-neutral-700" />')
-      // Line breaks
-      .replace(/\n/g, '<br />')
-
-    return html
-  }
 
   const editorContent = (
     <div className={cn(
@@ -397,34 +400,6 @@ export function PromptEditor({
     )}>
       {/* Toolbar */}
       <div className="flex items-center gap-1 p-2 border-b bg-neutral-50 dark:bg-neutral-800/50 flex-wrap">
-        {/* Text formatting */}
-        <div className="flex items-center gap-0.5">
-          <ToolbarButton icon={Bold} label={t('toolbarBold')} onClick={() => wrapSelection('**')} shortcut="⌘B" disabled={disabled || isPreview} />
-          <ToolbarButton icon={Italic} label={t('toolbarItalic')} onClick={() => wrapSelection('*')} shortcut="⌘I" disabled={disabled || isPreview} />
-          <ToolbarButton icon={Code} label={t('toolbarCode')} onClick={() => wrapSelection('`')} shortcut="⌘`" disabled={disabled || isPreview} />
-        </div>
-
-        <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-1" />
-
-        {/* Headers */}
-        <div className="flex items-center gap-0.5">
-          <ToolbarButton icon={Heading1} label={t('toolbarH1')} onClick={() => insertAtLineStart('# ')} disabled={disabled || isPreview} />
-          <ToolbarButton icon={Heading2} label={t('toolbarH2')} onClick={() => insertAtLineStart('## ')} disabled={disabled || isPreview} />
-          <ToolbarButton icon={Heading3} label={t('toolbarH3')} onClick={() => insertAtLineStart('### ')} disabled={disabled || isPreview} />
-        </div>
-
-        <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-1" />
-
-        {/* Lists and blocks */}
-        <div className="flex items-center gap-0.5">
-          <ToolbarButton icon={List} label={t('toolbarBulletList')} onClick={() => insertAtLineStart('- ')} disabled={disabled || isPreview} />
-          <ToolbarButton icon={ListOrdered} label={t('toolbarNumberedList')} onClick={() => insertAtLineStart('1. ')} disabled={disabled || isPreview} />
-          <ToolbarButton icon={Quote} label={t('toolbarQuote')} onClick={() => insertAtLineStart('> ')} disabled={disabled || isPreview} />
-          <ToolbarButton icon={Minus} label={t('toolbarHorizontalRule')} onClick={() => insertText('\n---\n')} disabled={disabled || isPreview} />
-        </div>
-
-        <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-1" />
-
         {/* Templates dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -438,7 +413,7 @@ export function PromptEditor({
             {TEMPLATES.map((template) => (
               <DropdownMenuItem
                 key={template.nameKey}
-                onClick={() => applyTemplate(template.prompt)}
+                onClick={() => onChange(template.prompt)}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 {t(template.nameKey as Parameters<typeof t>[0])}
@@ -450,7 +425,7 @@ export function PromptEditor({
         {/* Variables dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 gap-1" disabled={disabled || isPreview}>
+            <Button variant="ghost" size="sm" className="h-8 gap-1" disabled={disabled}>
               <span className="font-mono text-xs">{'{}'}</span>
               <span className="hidden sm:inline">{t('variables')}</span>
               <ChevronDown className="h-3 w-3" />
@@ -475,92 +450,111 @@ export function PromptEditor({
 
         <div className="flex-1" />
 
-        {/* Right side controls */}
-        <div className="flex items-center gap-0.5">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={copyToClipboard}
-            className="h-8 w-8 p-0"
-          >
-            {copied ? <Check className="h-4 w-4 text-lime-600" /> : <Copy className="h-4 w-4" />}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsPreview(!isPreview)}
-            className="h-8 gap-1"
-          >
-            {isPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            <span className="hidden sm:inline">{isPreview ? t('edit') : t('preview')}</span>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="h-8 w-8 p-0"
-          >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-        </div>
+        {/* Improve prompt */}
+        {organizationId && (
+          <Popover open={isImproveOpen} onOpenChange={setIsImproveOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={disabled || isImproving || !value.trim()}
+                className="h-8 gap-1.5"
+              >
+                {isImproving
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Wand2 className="h-4 w-4" />
+                }
+                <span className="hidden sm:inline">
+                  {isImproving ? t('improvingPrompt') : t('improvePrompt')}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-3" align="end">
+              <div className="space-y-2">
+                <Textarea
+                  value={improveInstruction}
+                  onChange={(e) => setImproveInstruction(e.target.value)}
+                  placeholder={t('improveInstructionPlaceholder')}
+                  className="min-h-[72px] resize-none text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault()
+                      improvePrompt()
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={improvePrompt}
+                  className="w-full gap-1.5"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  {t('improvePrompt')}
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
+
+        {/* Copy + Fullscreen */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={copyToClipboard}
+          className="h-8 w-8 p-0"
+        >
+          {copied ? <Check className="h-4 w-4 text-lime-600" /> : <Copy className="h-4 w-4" />}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className="h-8 w-8 p-0"
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </Button>
       </div>
 
-      {/* Editor / Preview */}
+      {/* Editor */}
       <div className={cn("relative", isFullscreen ? "flex-1 overflow-hidden" : "h-[400px]")}>
-        {isPreview ? (
+        <div className={cn("relative h-full", isFullscreen && "h-full")}>
+          {/* Line numbers */}
           <div
-            className={cn(
-              "p-4 prose prose-sm dark:prose-invert max-w-none overflow-auto h-full",
-              isFullscreen && "h-full"
-            )}
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(value) || `<p class="text-neutral-400">${t('nothingToPreview')}</p>` }}
-          />
-        ) : (
-          <div className={cn("relative h-full", isFullscreen && "h-full")}>
-            {/* Line numbers */}
-            <div
-              ref={lineNumbersRef}
-              className="absolute left-0 top-0 w-10 h-full bg-neutral-50 dark:bg-neutral-800/30 text-neutral-400 text-xs font-mono text-right pr-2 pt-3 select-none border-r border-neutral-200 dark:border-neutral-700 overflow-hidden pointer-events-none"
-              style={{ lineHeight: '1.5rem' }}
-            >
-              {Array.from({ length: lineCount }, (_, i) => (
-                <div key={i + 1}>{i + 1}</div>
-              ))}
-            </div>
-            <Textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              onScroll={handleScroll}
-              placeholder={placeholder}
-              disabled={disabled}
-              className="pl-12 h-full font-mono text-sm border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              style={{ lineHeight: '1.5rem' }}
-            />
+            ref={lineNumbersRef}
+            className="absolute left-0 top-0 w-10 h-full bg-neutral-50 dark:bg-neutral-800/30 text-neutral-400 text-xs font-mono text-right pr-2 pt-3 select-none border-r border-neutral-200 dark:border-neutral-700 overflow-hidden pointer-events-none"
+            style={{ lineHeight: '1.5rem' }}
+          >
+            {Array.from({ length: lineCount }, (_, i) => (
+              <div key={i + 1}>{i + 1}</div>
+            ))}
           </div>
-        )}
+          <Textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onScroll={handleScroll}
+            placeholder={placeholder}
+            disabled={disabled}
+            className="pl-12 h-full font-mono text-sm border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            style={{ lineHeight: '1.5rem' }}
+          />
+        </div>
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-t bg-neutral-50 dark:bg-neutral-800/50 text-xs text-neutral-500">
-        <div className="flex items-center gap-4">
-          <span>{charCount.toLocaleString()} {t('chars')}</span>
-          <span>{wordCount.toLocaleString()} {t('words')}</span>
-          <span>{lineCount} {t('lines')}</span>
-          <span title={t('tokenEstimateTitle')}>~{tokenEstimate.toLocaleString()} {t('tokens')}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span>{t('markdownSupported')}</span>
-          {isPreview && <span className="text-blue-500">{t('previewMode')}</span>}
-        </div>
+      <div className="flex items-center gap-4 px-3 py-1.5 border-t bg-neutral-50 dark:bg-neutral-800/50 text-xs text-neutral-500">
+        <span>{charCount.toLocaleString()} {t('chars')}</span>
+        <span>{wordCount.toLocaleString()} {t('words')}</span>
+        <span>{lineCount} {t('lines')}</span>
+        <span title={t('tokenEstimateTitle')}>~{tokenEstimate.toLocaleString()} {t('tokens')}</span>
       </div>
     </div>
   )
 
-  // Fullscreen backdrop
   if (isFullscreen) {
     return (
       <>

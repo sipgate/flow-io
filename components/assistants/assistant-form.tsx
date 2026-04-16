@@ -1018,6 +1018,7 @@ export function AssistantForm({
               onChange={setSystemPrompt}
               placeholder={t('systemPromptPlaceholder')}
               disabled={isLoading}
+              organizationId={organizationId}
             />
           </SectionCollapsible>
         </TabsContent>
