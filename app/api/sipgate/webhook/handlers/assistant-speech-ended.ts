@@ -21,9 +21,9 @@ import { sessionState } from '@/lib/services/session-state'
 import { HANGUP_CLICK_AUDIO_BASE64 } from '@/lib/services/hangup-audio'
 import { buildSpeakResponse, buildTTSConfig } from './lib/speak-response'
 import { loadAssistantConfig } from './lib/routing'
-import { persistActiveNodeId, generateScenarioGreeting } from './lib/scenario-state'
+import { persistActiveNodeId, generateScenarioGreeting, rebuildScenarioState } from './lib/scenario-state'
 import { saveToolTranscriptEntries } from './user-speak'
-import type { AssistantSpeechEndedEvent, CallSessionWithAssistant } from './lib/types'
+import type { AssistantSpeechEndedEvent, CallSessionWithAssistant, AssistantConfig } from './lib/types'
 
 /**
  * Handle AssistantSpeechEnded event - called when assistant finishes speaking.
@@ -70,7 +70,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
   }
 
   // Check for a pending greeting from a scenario transfer
-  const scenarioState = sessionState.getScenarioState(sessionId)
+  let scenarioState = sessionState.getScenarioState(sessionId)
   if (scenarioState?.pendingGreeting) {
     const { assistantId, textPromise } = scenarioState.pendingGreeting
     scenarioState.pendingGreeting = undefined
@@ -164,7 +164,28 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
     return new NextResponse(null, { status: 204 })
   }
 
-  const assistant = session.assistants
+  // Determine active assistant: for scenario sessions, use the active node's assistant.
+  // Rebuild scenarioState from DB if missing (e.g. different serverless instance).
+  if (!scenarioState && session.scenario_id) {
+    scenarioState = await rebuildScenarioState(session, sessionId) ?? undefined
+  }
+  let assistant: AssistantConfig = session.assistants
+  if (scenarioState) {
+    const activeNode = scenarioState.nodes.find((n) => n.id === scenarioState!.activeNodeId)
+    if (activeNode?.data.assistant_id) {
+      const scenarioAssistant = await loadAssistantConfig(activeNode.data.assistant_id)
+      if (scenarioAssistant) {
+        assistant = activeNode.data.inherit_voice
+          ? {
+              ...scenarioAssistant,
+              voice_provider: scenarioState.entryVoiceConfig.voice_provider,
+              voice_id: scenarioState.entryVoiceConfig.voice_id,
+              voice_language: scenarioState.entryVoiceConfig.voice_language,
+            }
+          : scenarioAssistant
+      }
+    }
+  }
 
   // Wait for MCP to complete (up to ~4 seconds)
   const mcpResult = await waitForMCPWithTimeout(sessionId)
