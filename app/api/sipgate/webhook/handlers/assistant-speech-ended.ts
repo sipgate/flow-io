@@ -22,6 +22,7 @@ import { HANGUP_CLICK_AUDIO_BASE64 } from '@/lib/services/hangup-audio'
 import { buildSpeakResponse, buildTTSConfig } from './lib/speak-response'
 import { loadAssistantConfig } from './lib/routing'
 import { persistActiveNodeId, generateScenarioGreeting } from './lib/scenario-state'
+import { saveToolTranscriptEntries } from './user-speak'
 import type { AssistantSpeechEndedEvent, CallSessionWithAssistant } from './lib/types'
 
 /**
@@ -251,6 +252,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
       }
     }
 
+    saveToolTranscriptEntries(session.id, mcpResult.toolCalls).catch(() => {})
     const mcpSpeak = buildSpeakResponse(sessionId, mcpResult.response, assistant, bargeIn)
     await addTranscriptMessage({
       call_session_id: session.id,
@@ -287,6 +289,7 @@ export async function handleAssistantSpeechEnded(event: AssistantSpeechEndedEven
       })
     }
 
+    saveToolTranscriptEntries(session.id, result.toolCalls).catch(() => {})
     const forcedSpeak = buildSpeakResponse(sessionId, result.response, assistant, bargeIn)
     await addTranscriptMessage({
       call_session_id: session.id,

@@ -13,6 +13,7 @@ import { debug } from '@/lib/utils/logger'
 interface MCPResult {
   response: string
   error?: string
+  toolCalls?: Array<{ name: string; arguments: Record<string, unknown>; result: string }>
   callAction?: {
     type: 'hangup' | 'forward'
     farewellMessage?: string
