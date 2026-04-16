@@ -62,6 +62,7 @@ export async function generateLLMResponse(params: {
   seamlessTransfer?: boolean  // When true, suppress self-introduction (caller doesn't know they were transferred)
   disableHesitation?: boolean  // When true, skip hesitate tool (used for follow-up calls after hesitation)
   priorHesitationMessage?: string  // When set, inject a fake hesitate tool-call + result into messages so the model knows to proceed to the real tool
+  rawHesitateContent?: unknown  // Raw Gemini Content from the hesitate call — restores thought_signature for Gemini 3 thinking models
 }): Promise<LLMResponseResult> {
   const supabase = createServiceRoleClient()
   let mcpExecutor: MCPToolExecutor | null = null
@@ -177,6 +178,7 @@ export async function generateLLMResponse(params: {
     // knows it already made the announcement and should now call the actual tool.
     // Without this, some models (e.g. Gemini 2.5 Flash) generate an empty response
     // because they "want" to call hesitate but the tool is disabled.
+    let preloadedRawContents: Map<string, unknown> | undefined
     if (params.priorHesitationMessage && params.disableHesitation) {
       const fakeHesitateCallId = 'prior-hesitation-call'
       messages.push({
@@ -199,6 +201,11 @@ export async function generateLLMResponse(params: {
         tool_call_id: fakeHesitateCallId,
         name: 'hesitate',
       })
+      // For Gemini 3 thinking models: restore the original raw Content (with thought_signature)
+      // so convertHistoryMessages can pass it back unchanged, avoiding a 400 error.
+      if (params.rawHesitateContent) {
+        preloadedRawContents = new Map([[fakeHesitateCallId, params.rawHesitateContent]])
+      }
       debug('[LLM Service] Injected prior hesitation context:', params.priorHesitationMessage)
     }
 
@@ -309,6 +316,7 @@ export async function generateLLMResponse(params: {
       maxTokens: 4000, // High limit to accommodate Gemini's thinking tokens + response
       tools: allTools.length > 0 ? allTools : undefined,
       thinkingLevel,
+      preloadedRawContents,
     })
 
     // Handle tool calls (KB, MCP, and Call Control tools)
@@ -322,6 +330,7 @@ export async function generateLLMResponse(params: {
         return {
           response: hesitateArgs.message,
           hesitationMessage: hesitateArgs.message,
+          rawHesitateContent: llmResponse.rawToolCallContent,
         }
       }
 
@@ -360,6 +369,7 @@ export async function generateLLMResponse(params: {
           return {
             response: hesitateArgs.message,
             hesitationMessage: hesitateArgs.message,
+            rawHesitateContent: llmResponse.rawToolCallContent,
           }
         }
         // Model still didn't call hesitate — fall through to normal tool execution

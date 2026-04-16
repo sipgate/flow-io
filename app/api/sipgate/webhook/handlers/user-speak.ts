@@ -312,12 +312,12 @@ async function handleUserSpeakMCPPath(
   }).then(result => {
     const responseLatencyMs = Date.now() - llmStartMs
     if (result.error || !result.response) {
-      return { response: '', error: result.error || 'No response from LLM', callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, usage: undefined, performance: undefined, responseLatencyMs }
+      return { response: '', error: result.error || 'No response from LLM', callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, rawHesitateContent: undefined, usage: undefined, performance: undefined, responseLatencyMs }
     }
-    return { response: result.response, callAction: result.callAction, scenarioTransfer: result.scenarioTransfer, toolCalls: result.toolCalls, hesitationMessage: result.hesitationMessage, usage: result.usage, performance: result.performance, responseLatencyMs }
+    return { response: result.response, callAction: result.callAction, scenarioTransfer: result.scenarioTransfer, toolCalls: result.toolCalls, hesitationMessage: result.hesitationMessage, rawHesitateContent: result.rawHesitateContent, usage: result.usage, performance: result.performance, responseLatencyMs }
   }).catch(error => {
     console.error('[Webhook] Async LLM call failed:', error)
-    return { response: '', error: String(error), callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, usage: undefined, performance: undefined, responseLatencyMs: Date.now() - llmStartMs }
+    return { response: '', error: String(error), callAction: undefined, scenarioTransfer: undefined, toolCalls: undefined, hesitationMessage: undefined, rawHesitateContent: undefined, usage: undefined, performance: undefined, responseLatencyMs: Date.now() - llmStartMs }
   })
 
   const INITIAL_WAIT_MS = 4000
@@ -326,7 +326,6 @@ async function handleUserSpeakMCPPath(
 
   if (quickResult !== null) {
     debug('[Webhook] LLM completed quickly, returning direct response')
-
     if (quickResult.error) {
       const fallbackResponse = 'Es tut mir leid, es gab einen Fehler. Können Sie das bitte wiederholen?'
       await addTranscriptMessage({
@@ -372,6 +371,7 @@ async function handleUserSpeakMCPPath(
         validationContext,
         scenarioTransferNodes,
         hesitationMessage: quickResult.hesitationMessage,
+        rawHesitateContent: quickResult.rawHesitateContent,
       })
       const speak = buildSpeakResponse(event.session.id, quickResult.hesitationMessage, assistant, bargeIn)
       await addTranscriptMessage({
@@ -507,6 +507,7 @@ async function handleUserSpeakFastPath(
         validationContext,
         scenarioTransferNodes,
         hesitationMessage: llmResult.hesitationMessage,
+        rawHesitateContent: llmResult.rawHesitateContent,
       })
       const speak = buildSpeakResponse(event.session.id, llmResult.hesitationMessage, assistant, bargeIn)
       await addTranscriptMessage({

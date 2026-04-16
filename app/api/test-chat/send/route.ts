@@ -349,6 +349,7 @@ export async function POST(request: NextRequest) {
         sessionId: test_session_id,
         scenarioTransferNodes: scenarioTransferNodes.length > 0 ? scenarioTransferNodes : undefined,
         hesitationMessage: llmResult.hesitationMessage,
+        rawHesitateContent: llmResult.rawHesitateContent,
       })
 
       return NextResponse.json({

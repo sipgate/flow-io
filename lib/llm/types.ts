@@ -45,6 +45,12 @@ export interface LLMGenerateOptions {
   tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } }
   /** Thinking level for Gemini 3 models. Use 'none' to disable thinking entirely. */
   thinkingLevel?: 'none' | 'minimal' | 'low' | 'medium' | 'high'
+  /**
+   * Pre-seed raw provider Content for specific tool-call IDs.
+   * Used by GeminiProvider to restore thought_signature for fake hesitation replays.
+   * Key: tool_call id, Value: raw Gemini Content object.
+   */
+  preloadedRawContents?: Map<string, unknown>
 }
 
 export interface LLMPerformanceMetrics {
@@ -69,6 +75,12 @@ export interface LLMGenerateResponse {
   performance?: LLMPerformanceMetrics
   /** The model that was used for this generation */
   model?: string
+  /**
+   * Raw provider Content for the first tool call (Gemini-specific).
+   * Contains thought_signature required for Gemini 3 thinking models when
+   * replaying this tool call in subsequent conversation history.
+   */
+  rawToolCallContent?: unknown
 }
 
 export interface LLMProvider {
@@ -122,4 +134,10 @@ export interface LLMResponseResult {
    * so the real tool call happens in the next turn.
    */
   hesitationMessage?: string
+  /**
+   * Raw provider Content from the hesitate tool call response (Gemini-specific).
+   * Must be stored and passed back in the follow-up call so GeminiProvider can
+   * restore the thought_signature required by Gemini 3 thinking models.
+   */
+  rawHesitateContent?: unknown
 }

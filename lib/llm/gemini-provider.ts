@@ -113,6 +113,13 @@ export class GeminiProvider implements LLMProvider {
   }
 
   async generate(options: LLMGenerateOptions): Promise<LLMGenerateResponse> {
+    // Pre-seed rawModelContents from caller (used to restore thought_signature for fake hesitation replays)
+    if (options.preloadedRawContents) {
+      for (const [id, content] of options.preloadedRawContents) {
+        this.rawModelContents.set(id, content as import('@google/generative-ai').Content)
+      }
+    }
+
     // Convert tools to Gemini format if provided
     const geminiTools = options.tools ? this.convertToolsToGeminiFormat(options.tools) : undefined
 
@@ -230,6 +237,7 @@ export class GeminiProvider implements LLMProvider {
         content: '', // Gemini doesn't return text content with function calls
         tool_calls: toolCalls,
         finish_reason: 'tool_calls',
+        rawToolCallContent: rawContent,
         usage: response.usageMetadata
           ? {
               promptTokens: response.usageMetadata.promptTokenCount ?? 0,
@@ -396,7 +404,10 @@ export class GeminiProvider implements LLMProvider {
           // required by Gemini thinking models (e.g. gemini-3-flash-preview)
           const rawContent = this.rawModelContents.get(msg.tool_calls[0].id)
           if (rawContent) {
-            this.rawModelContents.delete(msg.tool_calls[0].id)
+            // Do NOT delete — the same instance may call generate() multiple times
+            // (e.g. hesitate → real tool → final response), and each call rebuilds
+            // the full history via convertHistoryMessages. Keeping the entry lets
+            // subsequent calls pass thought_signature back correctly.
             return {
               role: 'model' as const,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any

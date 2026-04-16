@@ -39,7 +39,7 @@ TARGET STRUCTURE — the output must use these XML sections in this order:
   Spell out abbreviations: "for example" not "e.g.", "that is" not "i.e.".
   No markdown, emojis, or URLs in responses.
   Use closed questions: "DSL or cable?" not "Tell me about your connection."
-  Bridge wait time with a filler: "One moment, let me check."
+  Never mention technical details, system names, or internal identifiers in responses.
 </response_rules>
 
 <names>
@@ -53,13 +53,6 @@ TARGET STRUCTURE — the output must use these XML sections in this order:
   Always repeat number sequences digit by digit: "I have: four-six-two-eight. Is that correct?"
   Also write digit sequences as words in your responses: "four-six" not "46", "zero-eight-zero" not "080".
 </numbers>
-
-<tool_usage>
-  [Write in the prompt's language. Good example:]
-  Before every tool call: "Let me check that in our system."
-  After the call: "Alright, I can see here that [result]."
-  Never mention technical details, system names, or internal identifiers.
-</tool_usage>
 
 <interruption_handling>
   [Write in the prompt's language. Good example:]
@@ -86,7 +79,7 @@ RULES:
 - If the input uses markdown headers (##), bullet points, or prose paragraphs, restructure it into the XML sections above.
 - Remove any markdown formatting characters (**, *, ##, ---) from the content — this is voice output.
 - Second person throughout. Never third person.
-- Add any missing sections (<names>, <numbers>, <tool_usage>, <interruption_handling>, <escalation>, <edge_cases>) with sensible defaults for the use case.
+- Add any missing sections (<names>, <numbers>, <interruption_handling>, <escalation>, <edge_cases>) with sensible defaults for the use case.
 - Output ONLY the improved prompt text. No explanation, no preamble, no code fences.`
 
 export async function POST(request: NextRequest) {

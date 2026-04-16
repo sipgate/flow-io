@@ -25,6 +25,12 @@ export interface HesitationParams {
   scenarioTransferNodes?: ScenarioTransferNode[]
   /** The hesitation message that was announced — injected as a prior tool call in the follow-up LLM request */
   hesitationMessage?: string
+  /**
+   * Raw provider Content from the Gemini hesitate response.
+   * Passed back in the follow-up call so GeminiProvider can restore thought_signature
+   * required by Gemini 3 thinking models when replaying the function call.
+   */
+  rawHesitateContent?: unknown
 }
 
 const hesitationStates = new Map<string, HesitationParams>()
