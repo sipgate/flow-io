@@ -245,6 +245,9 @@
       "connected": "conectados",
       "webhookTools": "Herramientas Webhook HTTP",
       "webhookToolsHint": "Endpoints HTTP que el asistente puede llamar como herramientas para obtener datos en tiempo real",
+      "selectWebhookTool": "Seleccionar herramienta webhook para añadir...",
+      "noWebhookTools": "No hay herramientas webhook disponibles.",
+      "createWebhookToolFirst": "Cree herramientas webhook primero en Knowledge & Tools.",
       "callTools": "Acciones de llamada",
       "callToolsHint": "Habilita herramientas que permiten al asistente realizar acciones durante llamadas",
       "contextWebhooks": "Contexto de llamada",
@@ -447,6 +450,7 @@
     "description": "Gestiona bases de conocimiento y servidores MCP externos para tus asistentes",
     "tabKnowledge": "Bases de conocimiento",
     "tabMcp": "Servidores MCP",
+    "tabWebhooks": "Herramientas Webhook",
     "createNew": "Nueva base de conocimiento",
     "empty": {
       "title": "Sin bases de conocimiento aún",
@@ -1399,6 +1403,8 @@
     "testButton": "Probar conexión",
     "testSuccess": "Exitoso ({status})",
     "testFailed": "Fallido: {statusText}",
+    "deleteTitle": "Eliminar herramienta webhook",
+    "deleteDescription": "Esta herramienta será eliminada de todos los asistentes. Esta acción no se puede deshacer.",
     "cancel": "Cancelar",
     "save": "Guardar",
     "update": "Actualizar"

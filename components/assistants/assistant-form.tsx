@@ -85,6 +85,10 @@ import {
   assignPhonemeSetToAssistant,
   removePhonemeSetFromAssistant,
 } from '@/lib/actions/phoneme-sets'
+import {
+  getOrganizationWebhookTools,
+  getAssistantWebhookTools,
+} from '@/lib/actions/webhook-tools'
 import type { PhonemeSet } from '@/types/phoneme-sets'
 import { VariableDefinitionsSection } from '@/components/variables/variable-definitions-section'
 import { WebhookConfigSection } from '@/components/variables/webhook-config-section'
@@ -570,7 +574,6 @@ export function AssistantForm({
 
   // ── Sub-component summary state (for collapsed previews) ────────────────────
   const [toolsSummary, setToolsSummary] = useState('—')
-  const [webhookToolsSummary, setWebhookToolsSummary] = useState('—')
   const [bargeInSummary, setBargeInSummary] = useState('—')
   const [contextSummary, setContextSummary] = useState('—')
   const [varsSummary, setVarsSummary] = useState('—')
@@ -592,6 +595,10 @@ export function AssistantForm({
   const [assignedMCPServers, setAssignedMCPServers] = useState<{ id: string; name: string; description?: string | null }[]>([])
   const [selectedMCPToAdd, setSelectedMCPToAdd] = useState<string>('')
   const [mcpLoading, setMcpLoading] = useState(false)
+
+  // ── Webhook Tools state ─────────────────────────────────────────────────────
+  const [orgWebhookTools, setOrgWebhookTools] = useState<import('@/types/webhook-tools').WebhookTool[]>([])
+  const [assignedWebhookTools, setAssignedWebhookTools] = useState<import('@/types/webhook-tools').WebhookTool[]>([])
 
   // ── Phoneme Sets state ──────────────────────────────────────────────────────
   const [orgPhonemeSets, setOrgPhonemeSets] = useState<PhonemeSet[]>([])
@@ -632,17 +639,31 @@ export function AssistantForm({
     setPhonemeLoading(false)
   }
 
+  const loadWebhookTools = async () => {
+    const [orgResult, assignedResult] = await Promise.all([
+      getOrganizationWebhookTools(organizationId),
+      getAssistantWebhookTools(assistant!.id),
+    ])
+    setOrgWebhookTools(orgResult.tools)
+    setAssignedWebhookTools(assignedResult.tools)
+  }
+
   useEffect(() => {
     if (assistant?.id) {
       loadKnowledgeBases()
       loadMCPServers()
       loadPhonemeSets()
+      loadWebhookTools()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistant?.id])
 
   const availableKBs = orgKnowledgeBases.filter(
     (kb) => !assignedKBs.some((a) => a.id === kb.id)
+  )
+
+  const availableWebhookTools = orgWebhookTools.filter(
+    (t) => !assignedWebhookTools.some((a) => a.id === t.id)
   )
   const availableMCPServers = orgMCPServers.filter(
     (s) => !assignedMCPServers.some((a) => a.id === s.id)
@@ -1497,9 +1518,25 @@ export function AssistantForm({
               open={openSections[SECTION_IDS.KW_WEBHOOK_TOOLS]}
               onToggle={toggleSection}
               className="border-t mt-4 pt-4"
-              preview={<PreviewText>{webhookToolsSummary}</PreviewText>}
+              preview={
+                <PreviewText>
+                  {assignedWebhookTools.length > 0
+                    ? assignedWebhookTools.map(wt => wt.name).join(', ')
+                    : '—'}
+                </PreviewText>
+              }
+              headerExtra={
+                assignedWebhookTools.length > 0 ? (
+                  <Badge variant="secondary">{assignedWebhookTools.length} {t('connected')}</Badge>
+                ) : undefined
+              }
             >
-              <WebhookToolsSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setWebhookToolsSummary} />
+              <WebhookToolsSection
+                assistantId={assistant.id}
+                assignedTools={assignedWebhookTools}
+                availableTools={availableWebhookTools}
+                orgSlug={orgSlug}
+              />
             </SectionCollapsible>
 
             {/* Anruf-Tools */}

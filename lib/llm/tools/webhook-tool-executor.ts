@@ -53,10 +53,9 @@ export class WebhookToolExecutor {
     const errors: string[] = []
 
     const { data, error } = await supabase
-      .from('webhook_tools')
-      .select('*')
+      .from('assistant_webhook_tools')
+      .select('webhook_tools(*)')
       .eq('assistant_id', assistantId)
-      .eq('enabled', true)
 
     if (error) {
       errors.push(`Failed to load webhook tools: ${error.message}`)
@@ -67,7 +66,8 @@ export class WebhookToolExecutor {
     this.toolMap.clear()
 
     for (const row of data ?? []) {
-      const tool = row as unknown as WebhookTool
+      const tool = (row as unknown as { webhook_tools: WebhookTool }).webhook_tools
+      if (!tool || !tool.enabled) continue
       this.toolMap.set(tool.name, tool)
       tools.push(webhookToolToLLMTool(tool))
     }

@@ -3,8 +3,10 @@ import { getTranslations } from 'next-intl/server'
 import { getOrganizationBySlug } from '@/lib/actions/organizations'
 import { getOrganizationMCPServers } from '@/lib/actions/mcp-servers'
 import { getOrganizationKnowledgeBases, getKBAnalyticsSummary } from '@/lib/actions/knowledge-base'
+import { getOrganizationWebhookTools } from '@/lib/actions/webhook-tools'
 import { KnowledgeBaseManager } from '@/components/knowledge-base/knowledge-base-manager'
 import { MCPServerList } from '@/components/mcp-servers/mcp-server-list'
+import { WebhookToolList } from '@/components/webhook-tools/webhook-tool-list'
 import {
   Tabs,
   TabsContent,
@@ -34,13 +36,16 @@ export default async function KnowledgePage({
     { knowledgeBases },
     { analytics },
     { servers },
+    { tools: webhookTools },
   ] = await Promise.all([
     getOrganizationKnowledgeBases(organization.id),
     getKBAnalyticsSummary(organization.id),
     isAdmin ? getOrganizationMCPServers(organization.id) : Promise.resolve({ servers: [] }),
+    isAdmin ? getOrganizationWebhookTools(organization.id) : Promise.resolve({ tools: [] }),
   ])
 
-  const defaultTab = tab === 'mcp' && isAdmin ? 'mcp' : 'knowledge'
+  const validTabs = ['knowledge', isAdmin && 'mcp', isAdmin && 'webhooks'].filter(Boolean) as string[]
+  const defaultTab = validTabs.includes(tab ?? '') ? (tab as string) : 'knowledge'
 
   return (
     <div className="p-6 lg:p-8">
@@ -52,6 +57,9 @@ export default async function KnowledgePage({
             <TabsTrigger value="knowledge">{t('tabKnowledge')}</TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="mcp">{t('tabMcp')}</TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="webhooks">{t('tabWebhooks')}</TabsTrigger>
             )}
           </TabsList>
 
@@ -72,6 +80,15 @@ export default async function KnowledgePage({
                 organizationId={organization.id}
                 orgSlug={orgSlug}
                 servers={servers}
+              />
+            </TabsContent>
+          )}
+
+          {isAdmin && (
+            <TabsContent value="webhooks" className="space-y-6">
+              <WebhookToolList
+                organizationId={organization.id}
+                tools={webhookTools}
               />
             </TabsContent>
           )}

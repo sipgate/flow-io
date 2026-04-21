@@ -284,6 +284,9 @@
       "connected": "connected",
       "webhookTools": "HTTP Webhook Tools",
       "webhookToolsHint": "HTTP endpoints the assistant can call as tools to fetch real-time data",
+      "selectWebhookTool": "Select a webhook tool to add...",
+      "noWebhookTools": "No webhook tools available.",
+      "createWebhookToolFirst": "Create webhook tools first under Knowledge & Tools.",
       "callTools": "Call Actions",
       "callToolsHint": "Enable tools that allow the assistant to perform actions during calls",
       "contextWebhooks": "Call Context",
@@ -524,6 +527,7 @@
     "description": "Manage knowledge bases and external MCP servers for your assistants",
     "tabKnowledge": "Knowledge Bases",
     "tabMcp": "MCP Servers",
+    "tabWebhooks": "Webhook Tools",
     "createNew": "New Knowledge Base",
     "empty": {
       "title": "No knowledge bases yet",
@@ -1593,6 +1597,8 @@
     "testButton": "Test Connection",
     "testSuccess": "Successful ({status})",
     "testFailed": "Failed: {statusText}",
+    "deleteTitle": "Delete Webhook Tool",
+    "deleteDescription": "This tool will be removed from all assistants. This action cannot be undone.",
     "cancel": "Cancel",
     "save": "Save",
     "update": "Update"

@@ -19,7 +19,6 @@ export interface WebhookToolAuthConfig {
 
 export interface WebhookTool {
   id: string
-  assistant_id: string
   organization_id: string
   name: string
   description: string
@@ -36,7 +35,6 @@ export interface WebhookTool {
 }
 
 export interface WebhookToolInsert {
-  assistant_id: string
   organization_id: string
   name: string
   description: string
