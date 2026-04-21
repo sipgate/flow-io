@@ -31,7 +31,7 @@ export function WebhookToolsSection({
   availableTools: initialAvailable,
   orgSlug,
 }: WebhookToolsSectionProps) {
-  const t = useTranslations('assistantForm')
+  const t = useTranslations('assistants.form')
   const [assigned, setAssigned] = useState(initialAssigned)
   const [available, setAvailable] = useState(initialAvailable)
   const [selected, setSelected] = useState('')
