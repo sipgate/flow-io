@@ -123,7 +123,10 @@ export async function POST(request: NextRequest) {
         },
         opening_message: openingMessage,
         voice: { provider: assistant.voice_provider, voiceId: assistant.voice_id },
-        agent: { name: assistant.name, avatarUrl: assistant.avatar_url },
+        // No agent attribution for DTMF prompts; agent info for agent-entry scenarios
+        agent: (entryNode.type === 'dtmf_collect' || entryNode.type === 'dtmf_menu')
+          ? null
+          : { name: assistant.name, avatarUrl: assistant.avatar_url },
         active_node_type: entryNode.type,
       })
     }

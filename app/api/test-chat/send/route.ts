@@ -159,20 +159,26 @@ export async function POST(request: NextRequest) {
         // Determine next node response text
         let assistantText: string | null = null
         let nextAssistantId: string | null = null
+        let nextAssistantName: string | null = null
+        let nextAssistantAvatar: string | null = null
 
         if (isInvalidKey) {
           assistantText = currentActiveNode.data.error_prompt || currentActiveNode.data.prompt || null
+          // isInvalidKey: no agent (DTMF system prompt)
         } else if (nextNode) {
           if (nextNode.data.prompt) {
+            // Next node is also a DTMF node — no agent
             assistantText = nextNode.data.prompt
           } else if (nextNode.data.assistant_id) {
             nextAssistantId = nextNode.data.assistant_id
             const { data: nextAssistant } = await supabaseForDtmf
               .from('assistants')
-              .select('opening_message')
+              .select('opening_message, name, avatar_url')
               .eq('id', nextNode.data.assistant_id)
               .single()
             assistantText = nextAssistant?.opening_message ?? null
+            nextAssistantName = nextAssistant?.name ?? null
+            nextAssistantAvatar = nextAssistant?.avatar_url ?? null
           }
         }
 
@@ -206,7 +212,7 @@ export async function POST(request: NextRequest) {
           dtmfAssistantMsg = dtmfAssTranscript as { id: string; content: string; timestamp: string } | null
         }
 
-        // Determine voice config for response
+        // Determine voice config for response (nextAssistantId was already loaded above)
         let dtmfVoiceProvider = assistant.voice_provider
         let dtmfVoiceId = assistant.voice_id
         if (nextAssistantId) {
@@ -218,6 +224,11 @@ export async function POST(request: NextRequest) {
           if (nxtAss) { dtmfVoiceProvider = nxtAss.voice_provider; dtmfVoiceId = nxtAss.voice_id }
         }
 
+        // Agent info: null for DTMF-node prompts, real agent for agent-node responses
+        const dtmfResponseAgent = nextAssistantName
+          ? { name: nextAssistantName, avatarUrl: nextAssistantAvatar }
+          : null
+
         return NextResponse.json({
           user_message: dtmfUser
             ? { id: dtmfUser.id, content: dtmfUser.content, timestamp: dtmfUser.timestamp }
@@ -227,7 +238,7 @@ export async function POST(request: NextRequest) {
                 id: dtmfAssistantMsg.id,
                 content: dtmfAssistantMsg.content,
                 timestamp: dtmfAssistantMsg.timestamp,
-                agent: { name: assistant.name, avatarUrl: assistant.avatar_url },
+                agent: dtmfResponseAgent,
               }
             : null,
           active_node_type: isInvalidKey ? currentActiveNode.type : (nextNode?.type ?? null),
