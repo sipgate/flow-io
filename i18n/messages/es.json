@@ -1318,6 +1318,8 @@
     "noHeaders": "Añade cabeceras personalizadas como tokens de autorización",
     "testSuccess": "Prueba exitosa ({status})",
     "testFailed": "Prueba fallida: {statusText}",
+    "includeTranscriptLabel": "Incluir transcripción de la llamada",
+    "includeTranscriptHint": "Envía la transcripción completa de la llamada en el payload",
     "testButton": "Probar webhook",
     "removeButton": "Eliminar",
     "saveButton": "Guardar",

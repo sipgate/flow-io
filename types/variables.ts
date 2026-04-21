@@ -84,6 +84,7 @@ export interface VariableWebhook {
   url: string
   enabled: boolean
   headers: Record<string, string>
+  include_transcript: boolean
   created_at: string
   updated_at: string
 }
@@ -95,6 +96,7 @@ export interface VariableWebhookInsert {
   url: string
   enabled?: boolean
   headers?: Record<string, string>
+  include_transcript?: boolean
 }
 
 export interface VariableWebhookUpdate {
@@ -102,6 +104,7 @@ export interface VariableWebhookUpdate {
   url?: string
   enabled?: boolean
   headers?: Record<string, string>
+  include_transcript?: boolean
 }
 
 // LLM extraction result type
@@ -153,5 +156,11 @@ export interface VariableWebhookPayload {
     value: string | null
     confidence: number | null
     required: boolean
+  }>
+  transcript?: Array<{
+    role: 'user' | 'assistant' | 'system'
+    content: string
+    timestamp: string
+    sequence_number: number
   }>
 }

@@ -1512,6 +1512,8 @@
     "noHeaders": "Benutzerdefinierte Header wie Autorisierungs-Token hinzufügen",
     "testSuccess": "Test erfolgreich ({status})",
     "testFailed": "Test fehlgeschlagen: {statusText}",
+    "includeTranscriptLabel": "Gesprächsprotokoll einschließen",
+    "includeTranscriptHint": "Sendet das vollständige Transkript des Anrufs mit im Payload",
     "testButton": "Webhook testen",
     "removeButton": "Entfernen",
     "saveButton": "Speichern",

@@ -1,7 +1,7 @@
 # Flow-IO - Project Guidelines for Claude
 
 ## Overview
-Flow-IO is an AI voice assistant platform built with Next.js 15, Supabase, and sipgate AI Flow SDK. It provides full multi-tenancy, knowledge base integration, and real-time analytics.
+Flow-IO is an AI voice assistant platform built with Next.js 15, Supabase, and sipgate AI Flow SDK. It provides full multi-tenancy, knowledge base with RAG, real-time analytics, MCP tool support, variable extraction, call criteria/CSAT evaluation, and multi-agent scenarios.
 
 ## Core Development Principles
 
@@ -56,9 +56,12 @@ Before EVERY commit:
 
 #### Telephony & AI
 - **Voice**: sipgate AI Flow SDK
-- **LLM**: OpenAI GPT-4 and Google Gemini (abstracted)
+- **LLM**: OpenAI, Google Gemini, Mistral (abstracted via `lib/llm/provider.ts`)
+  - Models: `lib/models.ts` — GPT-5/4.1/4o, Gemini 2.5/3.x, Mistral small/medium/large
+  - Params: `llm_temperature`, `thinking_level` (Gemini)
 - **Embeddings**: OpenAI text-embedding-3-small
 - **Vector Search**: pgvector with similarity search
+- **Tool Calls**: MCP Servers (SSE + HTTP), Knowledge Base Tool
 
 ### 4. Architecture Patterns
 
@@ -74,7 +77,7 @@ Before EVERY commit:
 import { createLLMProvider } from '@/lib/llm/provider'
 
 const llm = createLLMProvider({
-  provider: 'openai', // or 'gemini'
+  provider: 'openai', // or 'gemini' or 'mistral'
   apiKey: process.env.OPENAI_API_KEY
 })
 
@@ -85,11 +88,13 @@ const response = await llm.generateCompletion({
 ```
 
 #### sipgate Integration Patterns
-- Event-driven architecture
-- Handle events: SessionStart, UserSpeak, AssistantSpeak, SessionEnd, UserBargeIn
-- Return actions: Speak, Audio, Transfer, Hangup
-- Always store transcripts and session state
-- Use WebSocket for real-time, HTTP webhooks as fallback
+- Event-driven architecture via WebSocket (`lib/ws/server.ts`) + HTTP fallback
+- **Events handled**: `session_start`, `user_speak`, `assistant_speech_ended`, `session_end`, `user_barge_in`, `dtmf_received`, `user_input_timeout`
+- **Actions returned**: `speak`, `audio`, `hangup`, `transfer`, `barge_in`, `configure_transcription`
+- Barge-In strategies: `none`, `minimum_characters`, `immediate`
+- Always store transcripts and session state in Supabase
+- **IMPORTANT**: When adding new events ALWAYS add a `case` in `lib/ws/server.ts` switch
+- LLM Reference: https://sipgate.github.io/sipgate-ai-flow-api/LLM_REFERENCE.txt
 
 #### sipgate v3 API
 - Swagger: https://api.sipgate.com/v3/swagger.json
@@ -103,37 +108,93 @@ const response = await llm.generateCompletion({
 - Document → Chunking (1000 chars, 200 overlap) → Embeddings → pgvector
 - Semantic search using pgvector similarity functions
 - Context injection into LLM prompts
-- Background processing with BullMQ (optional for MVP)
+- Many-to-many: one KB can serve multiple assistants (`assistant_knowledge_bases` junction table)
+- LLM can call `search_knowledge_base` as a tool (configurable via `enable_kb_tool`)
+- Analytics tracked: `kb_search_events`, `kb_chunk_retrievals`
+
+#### Variables System
+- Types: `string`, `number`, `boolean`, `date`, `phone`, `email`
+- Features per variable: `validation_regex`, `validation_endpoint` (webhook), `mandatory_collection`, `confirm_with_caller`
+- Sources during a call:
+  1. Context Webhook (injected at session start via `{{context.key}}`)
+  2. DTMF input → `dtmfVariables`
+  3. Real-time LLM extraction during conversation
+  4. Post-call LLM extraction fallback
+- Post-call delivery: `variable_webhooks` table, custom headers, payload includes `call_session`, `assistant`, `variables[]`
+
+#### Scenarios (Multi-Agent Flows)
+Node types: `entry_agent`, `agent`, `dtmf_collect`, `dtmf_menu`, `phone_transfer`
+- Transfer types: phone transfer, seamless transfer (same voice), agent transfer (handoff message)
+- `dtmf_collect`: `max_digits`, `terminator`, `timeout_seconds`, `variable_name`
+- `dtmf_menu`: `max_retries`, `error_prompt`, digit-based routing
+- Routing logic: `lib/services/routing.ts`, state: `lib/services/scenario-state.ts`
+
+#### MCP Servers
+- Configured per organization, assigned many-to-many to assistants
+- Auth types: `none`, `bearer`, `api_key` (stored encrypted in `auth_config` JSONB)
+- Tools cached in `mcp_cached_tools`, analytics in `mcp_analytics`
+- Hold Messages pattern: LLM announces action, then executes (see `user-speak.ts`)
+
+#### Call Quality / CSAT
+- `call_criteria` table: configurable pass/fail checkpoints evaluated post-call
+- `csat_evaluator.ts`: synthetic CSAT score 1–5
+- Analytics: Success Rate, CSAT by day, Criteria pass rates
+- Assistant versions tracked: `assistant_versions`, `prompt_versions`
+
+#### Analytics Dashboard
+`lib/actions/analytics.ts` — all analytics server actions:
+- `getAnalyticsSummary`, `getCallsByDay/Hour`, `getDurationDistribution`
+- `getAssistantStats`, `getCSATOverview/ByDay`, `getCallHeatmap`
+- `getPeriodComparison`, `getTopExtractedVariables`
+- PDF Report export, Drill-Down modal per call
 
 ### 5. File Organization
 
 ```
 lib/
   supabase/       - Supabase client setup (client.ts, server.ts)
-  sipgate/        - sipgate AI Flow integration
-  llm/            - LLM provider abstraction
-  embeddings/     - Vector generation and search
-  flow-engine/    - Flow execution engine
-  webhooks/       - Webhook dispatch and retry
+  llm/            - LLM provider abstraction + tools (knowledge-base-tool.ts)
+    provider.ts   - createLLMProvider factory
+    openai-provider.ts / gemini-provider.ts / mistral-provider.ts
+    tools/        - LLM-callable tools
+  mcp/            - MCP client, tool converter, analytics
+  services/       - Core business logic
+    llm-conversation.ts       - Main LLM orchestration
+    variable-extractor.ts     - Post-call variable extraction
+    variable-collection-state.ts  - In-call variable state
+    variable-realtime-extractor.ts
+    context-webhook.ts        - Call-start context injection
+    session-state.ts          - In-memory session state
+    scenario-state.ts         - Multi-agent routing state
+    routing.ts                - Node routing logic
+    csat-evaluator.ts         - CSAT scoring
+    call-criteria-evaluator.ts
+  actions/        - Next.js server actions
+    analytics.ts / variable-webhooks.ts / ...
+  ws/
+    server.ts     - WebSocket server (ALL events handled here)
+  models.ts       - All supported LLM models
   utils/          - Utility functions
 
-components/
-  ui/             - shadcn/ui base components
-  flows/          - Flow builder components
-  assistants/     - Assistant management UI
-  knowledge/      - Knowledge base UI
-  calls/          - Call management UI
-  analytics/      - Analytics dashboards
-  layouts/        - Layout components
-
 app/
-  (auth)/         - Authentication pages
-  (dashboard)/    - Main application (org-scoped)
-  api/            - API routes
+  [orgSlug]/      - Org-scoped dashboard pages
+    analytics/    - Analytics dashboard
+    assistants/   - Assistant management
+    calls/        - Call sessions & transcripts
+    knowledge/    - Knowledge base management
+    scenarios/    - Multi-agent scenario builder
+    settings/     - Org settings, members, integrations
+    phone-numbers/ - Phone number management
+  api/
+    sipgate/webhook/[orgId]/  - HTTP webhook endpoint
+      handlers/   - Per-event handlers (session-start.ts, user-speak.ts, ...)
+        lib/      - Shared handler utilities (types.ts, speak-response.ts, routing.ts)
+  (auth)/         - Auth pages
 
-hooks/            - Custom React hooks
 types/            - TypeScript type definitions
-tests/            - Test files mirroring src structure
+  scenarios.ts / variables.ts / context-webhook.ts / call-tools.ts / ...
+tests/            - Tests mirroring src structure (unit/ + integration/)
+supabase/migrations/ - All DB migrations (schema source of truth)
 ```
 
 ### 6. Supabase Patterns
@@ -293,6 +354,7 @@ async function fetchData() {
 
 ## References
 - sipgate AI Flow: https://sipgate.github.io/sipgate-ai-flow-api/
+- sipgate AI Flow LLM Reference: https://sipgate.github.io/sipgate-ai-flow-api/LLM_REFERENCE.txt
 - sipgate v3 API Swagger: https://api.sipgate.com/v3/swagger.json
 - Supabase Docs: Use context7
 - Next.js Docs: Use context7
@@ -311,5 +373,6 @@ use the supabase tool for all supabase interactions
 ```
 
 ## Project Status
-- **Current Phase**: Phase 1 - Foundation
-- **Next Steps**: Create database schema and Supabase client setup
+- **Current Phase**: Production-ready MVP
+- **Implemented**: Multi-tenancy, sipgate WebSocket+HTTP, Multi-agent Scenarios, Variables System, Knowledge Base RAG, MCP Tool Support, Analytics Dashboard, CSAT/Call Criteria, Context Webhooks, DTMF (Collect + Menu), Barge-In, Hold Messages, Chat Simulator, Phoneme Sets
+- **Not yet implemented**: Backup LLM, URL-Sync für KB, Knowledge Silos per Node, Post-Call generic webhooks, Calendar Integration, Zero Retention Mode, Content Guardrails, A/B Testing

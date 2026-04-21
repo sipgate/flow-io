@@ -51,6 +51,7 @@ export function WebhookConfigSection({
   const [url, setUrl] = useState('')
   const [enabled, setEnabled] = useState(true)
   const [headers, setHeaders] = useState<Array<{ key: string; value: string }>>([])
+  const [includeTranscript, setIncludeTranscript] = useState(false)
 
   // Report summary to parent
   useEffect(() => {
@@ -73,6 +74,7 @@ export function WebhookConfigSection({
         setName(existing.name)
         setUrl(existing.url)
         setEnabled(existing.enabled)
+        setIncludeTranscript(existing.include_transcript ?? false)
         const headerEntries = Object.entries(existing.headers || {}).map(
           ([key, value]) => ({ key, value: value as string })
         )
@@ -102,6 +104,7 @@ export function WebhookConfigSection({
       url,
       enabled,
       headers: headersObj,
+      include_transcript: includeTranscript,
     })
 
     if (saved) {
@@ -118,6 +121,7 @@ export function WebhookConfigSection({
     setUrl('')
     setEnabled(true)
     setHeaders([])
+    setIncludeTranscript(false)
     setSaving(false)
   }
 
@@ -223,6 +227,23 @@ export function WebhookConfigSection({
           <Label htmlFor="webhook-enabled" className="cursor-pointer font-normal">
             {t('enableLabel')}
           </Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="webhook-include-transcript"
+            checked={includeTranscript}
+            onCheckedChange={(checked) => setIncludeTranscript(checked as boolean)}
+            disabled={saving}
+          />
+          <div>
+            <Label htmlFor="webhook-include-transcript" className="cursor-pointer font-normal">
+              {t('includeTranscriptLabel')}
+            </Label>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              {t('includeTranscriptHint')}
+            </p>
+          </div>
         </div>
 
         {/* Custom Headers */}

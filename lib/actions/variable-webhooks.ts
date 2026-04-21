@@ -72,6 +72,7 @@ export async function upsertAssistantWebhook(data: VariableWebhookInsert) {
         url: data.url,
         enabled: data.enabled,
         headers: data.headers,
+        include_transcript: data.include_transcript,
       })
       .eq('id', existing.id)
       .select()
@@ -206,6 +207,18 @@ export async function sendVariableWebhook(
         required: def?.required || false,
       }
     }),
+  }
+
+  if (typedWebhook.include_transcript) {
+    const { data: transcriptRows } = await supabase
+      .from('call_transcripts')
+      .select('role, content, timestamp, sequence_number')
+      .eq('call_session_id', callSessionId)
+      .order('sequence_number', { ascending: true })
+
+    if (transcriptRows) {
+      payload.transcript = transcriptRows as VariableWebhookPayload['transcript']
+    }
   }
 
   // Send webhook
