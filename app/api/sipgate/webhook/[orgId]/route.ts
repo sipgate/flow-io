@@ -68,7 +68,7 @@ export async function POST(
     }
 
     const event: SipgateEvent = JSON.parse(rawBody)
-    debug('📨 Received sipgate event:', event.type, 'orgId:', orgId)
+    console.log('[Webhook]', event.type, 'session:', (event as { session?: { id?: string } }).session?.id, 'orgId:', orgId)
 
     switch (event.type) {
       case 'session_start':

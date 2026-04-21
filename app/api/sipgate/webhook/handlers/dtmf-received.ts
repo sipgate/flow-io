@@ -144,10 +144,9 @@ async function handleDTMFCollect(
   const { max_digits = 20, terminator = '#', variable_name = 'dtmfInput', timeout_seconds = 5 } = activeNode.data
 
   const digits = sessionState.appendDTMFDigit(sid, event.digit)
-  debug(`[DTMF Collect] digit="${event.digit}" accumulated="${digits}" max=${max_digits} terminator="${terminator}"`)
-
   const isTerminator = terminator && event.digit === terminator
   const isComplete = isTerminator || digits.length >= max_digits
+  console.log(`[DTMF Collect] digit="${event.digit}" accumulated="${digits}" max=${max_digits} terminator="${terminator}" isComplete=${isComplete}`)
 
   if (!isComplete) {
     // Still collecting — 204 No Content signals sipgate to keep listening for more digits
@@ -203,11 +202,12 @@ async function handleDTMFMenu(
   const matchingEdge = scenarioState_.edges.find(
     (e) => e.source === activeNode.id && String(e.label) === event.digit
   )
+  console.log(`[DTMF Menu] digit="${event.digit}" matchingEdge=${matchingEdge ? matchingEdge.target : 'none'} availableLabels=${scenarioState_.edges.filter(e => e.source === activeNode.id).map(e => e.label).join(',')}`)
 
   if (!matchingEdge) {
     // Invalid key
     const retries = sessionState.incrementDTMFMenuRetries(sid)
-    debug(`[DTMF Menu] Invalid key "${event.digit}" (retry ${retries}/${max_retries})`)
+    console.log(`[DTMF Menu] invalid key "${event.digit}" (retry ${retries}/${max_retries})`)
 
     if (retries > max_retries) {
       // Too many retries — hang up or fallback
@@ -234,7 +234,7 @@ async function handleDTMFMenu(
   scenarioState_.activeNodeId = matchingEdge.target
   persistActiveNodeId(sid, matchingEdge.target).catch(() => {})
 
-  debug(`[DTMF Menu] Key "${event.digit}" → node ${matchingEdge.target} (${nextNode?.data.label})`)
+  console.log(`[DTMF Menu] key "${event.digit}" → node ${matchingEdge.target} (${nextNode?.data.label ?? 'unknown'}) type=${nextNode?.type}`)
 
   addTranscriptMessage({
     call_session_id: callSessionId,
@@ -253,8 +253,8 @@ async function handleDTMFMenu(
  * Dispatches to dtmf_collect or dtmf_menu handler based on the active node type.
  */
 export async function handleDTMFReceived(event: DTMFReceivedEvent): Promise<NextResponse> {
-  debug('🔢 DTMF Received:', event.digit, 'session:', event.session.id)
   const sid = event.session.id
+  console.log('[DTMF] digit:', event.digit, 'session:', sid)
 
   // Load call session from DB
   const supabase = createServiceRoleClient()
@@ -267,20 +267,32 @@ export async function handleDTMFReceived(event: DTMFReceivedEvent): Promise<Next
   const session = sessionData as { id: string; session_id: string; organization_id: string; assistant_id: string | null; scenario_id: string | null; metadata: Record<string, unknown> } | null
 
   if (!session) {
-    console.error('[DTMF] Call session not found:', sid)
-    return NextResponse.json({ success: true })
+    console.error('[DTMF] Call session not found in DB:', sid)
+    return new NextResponse(null, { status: 204 })
   }
+  console.log('[DTMF] session found, scenario_id:', session.scenario_id)
 
   // Get or rebuild scenario state
   let scenarioState_ = sessionState.getScenarioState(sid)
   if (!scenarioState_) {
+    console.log('[DTMF] scenario state not in memory, rebuilding from DB...')
     const rebuilt = await rebuildScenarioState(session as unknown as CallSessionWithAssistant, sid)
-    if (!rebuilt) return NextResponse.json({ success: true })
+    if (!rebuilt) {
+      console.error('[DTMF] failed to rebuild scenario state for session:', sid)
+      return new NextResponse(null, { status: 204 })
+    }
     scenarioState_ = rebuilt
+    console.log('[DTMF] scenario state rebuilt, activeNodeId:', scenarioState_.activeNodeId)
+  } else {
+    console.log('[DTMF] scenario state in memory, activeNodeId:', scenarioState_.activeNodeId)
   }
 
   const activeNode = scenarioState_.nodes.find((n) => n.id === scenarioState_!.activeNodeId)
-  if (!activeNode) return NextResponse.json({ success: true })
+  if (!activeNode) {
+    console.error('[DTMF] active node not found, activeNodeId:', scenarioState_.activeNodeId)
+    return new NextResponse(null, { status: 204 })
+  }
+  console.log('[DTMF] active node type:', activeNode.type, 'id:', activeNode.id)
 
   if (activeNode.type === 'dtmf_collect') {
     return handleDTMFCollect(event, activeNode, scenarioState_!, sid, session.id, session.organization_id)
@@ -291,6 +303,6 @@ export async function handleDTMFReceived(event: DTMFReceivedEvent): Promise<Next
   }
 
   // Active node is an agent — DTMF input ignored (agent handles voice)
-  debug(`[DTMF] Ignoring digit "${event.digit}" — active node is type "${activeNode.type}"`)
+  console.log('[DTMF] ignoring digit — active node is type:', activeNode.type)
   return new NextResponse(null, { status: 204 })
 }
