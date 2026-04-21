@@ -5,7 +5,7 @@ import { sessionState } from '@/lib/services/session-state'
 import type { ScenarioSessionState } from '@/lib/services/session-state'
 import { debug } from '@/lib/utils/logger'
 import { DEFAULT_ELEVENLABS_VOICE_ID, DEFAULT_TTS_PROVIDER } from '@/lib/constants/voices'
-import { persistActiveNodeId, rebuildScenarioState } from './lib/scenario-state'
+import { generateScenarioGreeting, persistActiveNodeId, rebuildScenarioState } from './lib/scenario-state'
 import { loadAssistantConfig } from './lib/routing'
 import type { DTMFReceivedEvent, CallSessionWithAssistant } from './lib/types'
 import type { ScenarioNode } from '@/types/scenarios'
@@ -62,7 +62,7 @@ function buildDTMFSpeak(
 /**
  * After transitioning to a new node, build the appropriate response:
  * - DTMF nodes: speak their announcement text
- * - Agent nodes: speak the opening_message if set, so the caller knows they've been routed
+ * - Agent nodes: speak opening_message, or generate a greeting if send_greeting is enabled
  */
 async function buildNextNodeResponse(
   sessionId: string,
@@ -70,6 +70,7 @@ async function buildNextNodeResponse(
   voiceProvider: string | null,
   voiceId: string | null,
   voiceLanguage: string | null,
+  organizationId?: string,
 ): Promise<Record<string, unknown>> {
   if (!nextNode) return { success: true }
 
@@ -95,20 +96,36 @@ async function buildNextNodeResponse(
     )
   }
 
-  // Agent node — speak opening_message if available so the caller hears something
+  // Agent node — speak opening_message, or generate a greeting when send_greeting is enabled
   if ((nextNode.type === 'agent' || nextNode.type === 'entry_agent') && nextNode.data.assistant_id) {
     const assistant = await loadAssistantConfig(nextNode.data.assistant_id)
-    if (assistant?.opening_message) {
+    if (assistant) {
       const tts: Record<string, unknown> = {
         provider: (assistant.voice_provider === 'elevenlabs' ? 'eleven_labs' : assistant.voice_provider) || DEFAULT_TTS_PROVIDER,
         voice: assistant.voice_id || DEFAULT_ELEVENLABS_VOICE_ID,
         ...(assistant.voice_language && assistant.voice_provider !== 'elevenlabs' ? { language: assistant.voice_language } : {}),
       }
-      return { type: 'speak', session_id: sessionId, text: assistant.opening_message, tts }
+
+      if (assistant.opening_message) {
+        return { type: 'speak', session_id: sessionId, text: assistant.opening_message, tts }
+      }
+
+      if (nextNode.data.send_greeting && organizationId) {
+        const greeting = await generateScenarioGreeting(
+          nextNode,
+          organizationId,
+          [],
+          'The caller was routed here via the keypad menu.',
+          sessionId,
+        )
+        if (greeting) {
+          return { type: 'speak', session_id: sessionId, text: greeting, tts }
+        }
+      }
     }
   }
 
-  // No opening message — caller has to speak first to trigger the LLM
+  // No greeting configured — caller speaks first to trigger the LLM
   return { success: true }
 }
 
@@ -121,6 +138,7 @@ async function handleDTMFCollect(
   scenarioState_: ScenarioSessionState,
   sessionId: string,
   callSessionId: string,
+  organizationId: string,
 ): Promise<NextResponse> {
   const sid = event.session.id
   const { max_digits = 20, terminator = '#', variable_name = 'dtmfInput', timeout_seconds = 5 } = activeNode.data
@@ -164,7 +182,7 @@ async function handleDTMFCollect(
   persistActiveNodeId(sid, outboundEdge.target).catch(() => {})
 
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
-  const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language)
+  const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language, organizationId)
   return NextResponse.json(responseJson)
 }
 
@@ -177,6 +195,7 @@ async function handleDTMFMenu(
   scenarioState_: ScenarioSessionState,
   sessionId: string,
   callSessionId: string,
+  organizationId: string,
 ): Promise<NextResponse> {
   const sid = event.session.id
   const { max_retries = 2, error_prompt = '', timeout_seconds = 10 } = activeNode.data
@@ -226,7 +245,7 @@ async function handleDTMFMenu(
   }).catch(() => {})
 
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
-  const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language)
+  const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language, organizationId)
   return NextResponse.json(responseJson)
 }
 
@@ -265,11 +284,11 @@ export async function handleDTMFReceived(event: DTMFReceivedEvent): Promise<Next
   if (!activeNode) return NextResponse.json({ success: true })
 
   if (activeNode.type === 'dtmf_collect') {
-    return handleDTMFCollect(event, activeNode, scenarioState_!, sid, session.id)
+    return handleDTMFCollect(event, activeNode, scenarioState_!, sid, session.id, session.organization_id)
   }
 
   if (activeNode.type === 'dtmf_menu') {
-    return handleDTMFMenu(event, activeNode, scenarioState_!, sid, session.id)
+    return handleDTMFMenu(event, activeNode, scenarioState_!, sid, session.id, session.organization_id)
   }
 
   // Active node is an agent — DTMF input ignored (agent handles voice)
