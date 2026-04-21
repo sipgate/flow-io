@@ -181,7 +181,8 @@ async function handleDTMFCollect(
 
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
   const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language, organizationId)
-  return responseJson ? NextResponse.json(responseJson) : new NextResponse(null, { status: 204 })
+  if (!responseJson) return new NextResponse(null, { status: 204 })
+  return NextResponse.json([{ type: 'barge_in', session_id: sid }, responseJson])
 }
 
 /**
@@ -220,12 +221,13 @@ async function handleDTMFMenu(
 
     // Re-announce menu (error prompt if set, else main prompt)
     const text = error_prompt || activeNode.data.prompt || ''
-    if (!text) return NextResponse.json({ success: true })
+    if (!text) return new NextResponse(null, { status: 204 })
 
     const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
-    return NextResponse.json(
-      buildDTMFSpeak(sid, text, voice_provider, voice_id, voice_language, timeout_seconds)
-    )
+    return NextResponse.json([
+      { type: 'barge_in', session_id: sid },
+      buildDTMFSpeak(sid, text, voice_provider, voice_id, voice_language, timeout_seconds),
+    ])
   }
 
   // Valid key — transition to target node
@@ -245,7 +247,8 @@ async function handleDTMFMenu(
 
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
   const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language, organizationId)
-  return responseJson ? NextResponse.json(responseJson) : new NextResponse(null, { status: 204 })
+  if (!responseJson) return new NextResponse(null, { status: 204 })
+  return NextResponse.json([{ type: 'barge_in', session_id: sid }, responseJson])
 }
 
 /**
