@@ -46,14 +46,14 @@ export async function handleUserInputTimeout(event: UserInputTimeoutEvent): Prom
       .select('id, session_id, organization_id, assistant_id, scenario_id, metadata')
       .eq('session_id', sid)
       .single()
-    if (!sessionData) return NextResponse.json({ success: true })
+    if (!sessionData) return new NextResponse(null, { status: 204 })
     const rebuilt = await rebuildScenarioState(sessionData as unknown as CallSessionWithAssistant, sid)
-    if (!rebuilt) return NextResponse.json({ success: true })
+    if (!rebuilt) return new NextResponse(null, { status: 204 })
     scenarioState_ = rebuilt
   }
 
   const activeNode = scenarioState_.nodes.find((n) => n.id === scenarioState_!.activeNodeId)
-  if (!activeNode) return NextResponse.json({ success: true })
+  if (!activeNode) return new NextResponse(null, { status: 204 })
 
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
 
@@ -67,13 +67,13 @@ export async function handleUserInputTimeout(event: UserInputTimeoutEvent): Prom
       sessionState.setDTMFVariable(sid, variable_name, digits)
 
       const outboundEdge = scenarioState_.edges.find((e) => e.source === activeNode.id)
-      if (!outboundEdge) return NextResponse.json({ success: true })
+      if (!outboundEdge) return new NextResponse(null, { status: 204 })
 
       const nextNode = scenarioState_.nodes.find((n) => n.id === outboundEdge.target)
       scenarioState_.activeNodeId = outboundEdge.target
       persistActiveNodeId(sid, outboundEdge.target).catch(() => {})
 
-      if (!nextNode) return NextResponse.json({ success: true })
+      if (!nextNode) return new NextResponse(null, { status: 204 })
 
       if ((nextNode.type === 'dtmf_collect' || nextNode.type === 'dtmf_menu') && nextNode.data.prompt) {
         return NextResponse.json(
@@ -93,7 +93,7 @@ export async function handleUserInputTimeout(event: UserInputTimeoutEvent): Prom
           return NextResponse.json({ type: 'speak', session_id: sid, text: assistant.opening_message, tts })
         }
       }
-      return NextResponse.json({ success: true })
+      return new NextResponse(null, { status: 204 })
     }
 
     // No digits — re-announce prompt
@@ -102,7 +102,7 @@ export async function handleUserInputTimeout(event: UserInputTimeoutEvent): Prom
         buildDTMFSpeak(sid, activeNode.data.prompt, voice_provider, voice_id, voice_language, activeNode.data.timeout_seconds ?? 5)
       )
     }
-    return NextResponse.json({ success: true })
+    return new NextResponse(null, { status: 204 })
   }
 
   if (activeNode.type === 'dtmf_menu') {
@@ -115,12 +115,12 @@ export async function handleUserInputTimeout(event: UserInputTimeoutEvent): Prom
     }
 
     const text = activeNode.data.error_prompt || activeNode.data.prompt || ''
-    if (!text) return NextResponse.json({ success: true })
+    if (!text) return new NextResponse(null, { status: 204 })
 
     return NextResponse.json(
       buildDTMFSpeak(sid, text, voice_provider, voice_id, voice_language, timeout_seconds)
     )
   }
 
-  return NextResponse.json({ success: true })
+  return new NextResponse(null, { status: 204 })
 }

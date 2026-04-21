@@ -71,8 +71,8 @@ async function buildNextNodeResponse(
   voiceId: string | null,
   voiceLanguage: string | null,
   organizationId?: string,
-): Promise<Record<string, unknown>> {
-  if (!nextNode) return { success: true }
+): Promise<Record<string, unknown> | null> {
+  if (!nextNode) return null
 
   if (nextNode.type === 'dtmf_collect' && nextNode.data.prompt) {
     return buildDTMFSpeak(
@@ -126,7 +126,7 @@ async function buildNextNodeResponse(
   }
 
   // No greeting configured — caller speaks first to trigger the LLM
-  return { success: true }
+  return null
 }
 
 /**
@@ -150,8 +150,8 @@ async function handleDTMFCollect(
   const isComplete = isTerminator || digits.length >= max_digits
 
   if (!isComplete) {
-    // Still collecting — return empty (wait for more digits)
-    return NextResponse.json({ success: true })
+    // Still collecting — 204 No Content signals sipgate to keep listening for more digits
+    return new NextResponse(null, { status: 204 })
   }
 
   // Strip terminator from collected value
@@ -173,8 +173,7 @@ async function handleDTMFCollect(
   // Find next node via outbound edge
   const outboundEdge = scenarioState_.edges.find((e) => e.source === activeNode.id)
   if (!outboundEdge) {
-    // No next node — stay put, nothing to do
-    return NextResponse.json({ success: true })
+    return new NextResponse(null, { status: 204 })
   }
 
   const nextNode = scenarioState_.nodes.find((n) => n.id === outboundEdge.target)
@@ -183,7 +182,7 @@ async function handleDTMFCollect(
 
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
   const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language, organizationId)
-  return NextResponse.json(responseJson)
+  return responseJson ? NextResponse.json(responseJson) : new NextResponse(null, { status: 204 })
 }
 
 /**
@@ -246,7 +245,7 @@ async function handleDTMFMenu(
 
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
   const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language, organizationId)
-  return NextResponse.json(responseJson)
+  return responseJson ? NextResponse.json(responseJson) : new NextResponse(null, { status: 204 })
 }
 
 /**
@@ -293,5 +292,5 @@ export async function handleDTMFReceived(event: DTMFReceivedEvent): Promise<Next
 
   // Active node is an agent — DTMF input ignored (agent handles voice)
   debug(`[DTMF] Ignoring digit "${event.digit}" — active node is type "${activeNode.type}"`)
-  return NextResponse.json({ success: true })
+  return new NextResponse(null, { status: 204 })
 }
