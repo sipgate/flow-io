@@ -125,11 +125,12 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     const { prompt, timeout_seconds } = entryNode.data
     if (!prompt) return NextResponse.json({ success: true })
 
+    const ev = entryVoiceConfig
     const tts: Record<string, unknown> = {
-      provider: voiceAssistant.voice_provider === 'elevenlabs' ? 'eleven_labs' : (voiceAssistant.voice_provider || DEFAULT_TTS_PROVIDER),
-      voice: voiceAssistant.voice_id || DEFAULT_ELEVENLABS_VOICE_ID,
-      ...(voiceAssistant.voice_language && voiceAssistant.voice_provider !== 'elevenlabs'
-        ? { language: voiceAssistant.voice_language }
+      provider: ev.voice_provider === 'elevenlabs' ? 'eleven_labs' : (ev.voice_provider || DEFAULT_TTS_PROVIDER),
+      voice: ev.voice_id || DEFAULT_ELEVENLABS_VOICE_ID,
+      ...(ev.voice_language && ev.voice_provider !== 'elevenlabs'
+        ? { language: ev.voice_language }
         : {}),
     }
     return NextResponse.json({
