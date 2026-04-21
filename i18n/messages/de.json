@@ -985,6 +985,13 @@
       "stopListening": "Spracheingabe stoppen",
       "listening": "Ich höre zu...",
       "ttsFallback": "ElevenLabs fehlgeschlagen — Browser-Stimme aktiv"
+    },
+    "dtmf": {
+      "menuMode": "DTMF-Menü – Taste drücken",
+      "collectMode": "DTMF-Eingabe",
+      "collectPlaceholder": "Ziffern eingeben…",
+      "collectSubmit": "Senden",
+      "invalidKey": "Ungültige Taste – bitte erneut versuchen"
     }
   },
   "autotest": {

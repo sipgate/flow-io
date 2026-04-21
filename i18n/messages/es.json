@@ -791,6 +791,13 @@
       "stopListening": "Detener entrada de voz",
       "listening": "Escuchando...",
       "ttsFallback": "ElevenLabs falló — usando voz del navegador"
+    },
+    "dtmf": {
+      "menuMode": "Menú DTMF – presione una tecla",
+      "collectMode": "Entrada DTMF",
+      "collectPlaceholder": "Ingrese dígitos…",
+      "collectSubmit": "Enviar",
+      "invalidKey": "Tecla no válida – por favor intente de nuevo"
     }
   },
   "autotest": {

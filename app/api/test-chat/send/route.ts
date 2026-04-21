@@ -13,6 +13,7 @@ import {
   clearHesitation,
 } from '@/lib/services/hesitation-state'
 import type { ScenarioTransferNode } from '@/lib/llm/tools/scenario-transfer-tool'
+import type { ScenarioNode } from '@/types/scenarios'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +27,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // For normal messages, require the message text
-    if (!continue_after_hesitation && !message) {
+    // For normal messages, require the message text (DTMF input is allowed as alternative)
+    if (!continue_after_hesitation && !message && body.dtmf_input === undefined) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -108,6 +109,131 @@ export async function POST(request: NextRequest) {
             transferInstruction: n.data.transfer_instruction ?? '',
             inheritVoice: n.data.inherit_voice ?? false,
           }))
+      }
+    }
+
+    // ── DTMF routing (bypasses LLM entirely) ─────────────────────────────────
+    const dtmfInput = body.dtmf_input as string | undefined
+    if (dtmfInput !== undefined && scenarioId && activeNodeId && scenarioNodes) {
+      const currentActiveNode = scenarioNodes.nodes.find((n) => n.id === activeNodeId)
+
+      if (currentActiveNode?.type === 'dtmf_menu' || currentActiveNode?.type === 'dtmf_collect') {
+        const supabaseForDtmf = supabase
+
+        // Determine user label and next node
+        let userText: string
+        let nextNode: ScenarioNode | undefined
+        let isInvalidKey = false
+
+        if (currentActiveNode.type === 'dtmf_menu') {
+          const digit = dtmfInput[0] || ''
+          userText = `[DTMF Menu] Key ${digit}`
+          const matchingEdge = scenarioNodes.edges.find(
+            (e) => e.source === activeNodeId && String(e.label) === digit
+          )
+          if (!matchingEdge) {
+            isInvalidKey = true
+            nextNode = currentActiveNode // stay on same node
+          } else {
+            nextNode = scenarioNodes.nodes.find((n) => n.id === matchingEdge.target)
+          }
+        } else {
+          // dtmf_collect — full value submitted at once
+          userText = `[DTMF] ${dtmfInput}`
+          const outboundEdge = scenarioNodes.edges.find((e) => e.source === activeNodeId)
+          nextNode = outboundEdge ? scenarioNodes.nodes.find((n) => n.id === outboundEdge.target) : undefined
+        }
+
+        // Save user DTMF message
+        const { sequenceNumber: dtmfUserSeq } = await getNextSequenceNumber(test_session_id)
+        const { transcript: dtmfUserTranscript } = await addTestTranscriptMessage({
+          test_session_id,
+          organization_id,
+          role: 'user',
+          content: userText,
+          sequence_number: dtmfUserSeq,
+          metadata: { dtmf: true },
+        })
+        const dtmfUser = dtmfUserTranscript as { id: string; content: string; timestamp: string } | null
+
+        // Determine next node response text
+        let assistantText: string | null = null
+        let nextAssistantId: string | null = null
+
+        if (isInvalidKey) {
+          assistantText = currentActiveNode.data.error_prompt || currentActiveNode.data.prompt || null
+        } else if (nextNode) {
+          if (nextNode.data.prompt) {
+            assistantText = nextNode.data.prompt
+          } else if (nextNode.data.assistant_id) {
+            nextAssistantId = nextNode.data.assistant_id
+            const { data: nextAssistant } = await supabaseForDtmf
+              .from('assistants')
+              .select('opening_message')
+              .eq('id', nextNode.data.assistant_id)
+              .single()
+            assistantText = nextAssistant?.opening_message ?? null
+          }
+        }
+
+        // Update session metadata to new active node (unless invalid key)
+        if (!isInvalidKey && nextNode && nextNode.id !== activeNodeId) {
+          await supabaseForDtmf
+            .from('test_sessions')
+            .update({
+              metadata: {
+                ...(meta || {}),
+                active_node_id: nextNode.id,
+                active_node_label: nextNode.data.label,
+                ...(nextAssistantId ? { active_assistant_id: nextAssistantId } : {}),
+              },
+            })
+            .eq('id', test_session_id)
+        }
+
+        // Save assistant response if any
+        let dtmfAssistantMsg: { id: string; content: string; timestamp: string } | null = null
+        if (assistantText) {
+          const { sequenceNumber: dtmfAssSeq } = await getNextSequenceNumber(test_session_id)
+          const { transcript: dtmfAssTranscript } = await addTestTranscriptMessage({
+            test_session_id,
+            organization_id,
+            role: 'assistant',
+            content: assistantText,
+            sequence_number: dtmfAssSeq,
+            metadata: { dtmf_response: true, invalid_key: isInvalidKey || undefined },
+          })
+          dtmfAssistantMsg = dtmfAssTranscript as { id: string; content: string; timestamp: string } | null
+        }
+
+        // Determine voice config for response
+        let dtmfVoiceProvider = assistant.voice_provider
+        let dtmfVoiceId = assistant.voice_id
+        if (nextAssistantId) {
+          const { data: nxtAss } = await supabaseForDtmf
+            .from('assistants')
+            .select('voice_provider, voice_id')
+            .eq('id', nextAssistantId)
+            .single()
+          if (nxtAss) { dtmfVoiceProvider = nxtAss.voice_provider; dtmfVoiceId = nxtAss.voice_id }
+        }
+
+        return NextResponse.json({
+          user_message: dtmfUser
+            ? { id: dtmfUser.id, content: dtmfUser.content, timestamp: dtmfUser.timestamp }
+            : { id: `dtmf-${Date.now()}`, content: userText, timestamp: new Date().toISOString() },
+          assistant_message: dtmfAssistantMsg
+            ? {
+                id: dtmfAssistantMsg.id,
+                content: dtmfAssistantMsg.content,
+                timestamp: dtmfAssistantMsg.timestamp,
+                agent: { name: assistant.name, avatarUrl: assistant.avatar_url },
+              }
+            : null,
+          active_node_type: isInvalidKey ? currentActiveNode.type : (nextNode?.type ?? null),
+          active_node_label: isInvalidKey ? currentActiveNode.data.label : (nextNode?.data.label ?? null),
+          voice: { provider: dtmfVoiceProvider, voiceId: dtmfVoiceId },
+        })
       }
     }
 

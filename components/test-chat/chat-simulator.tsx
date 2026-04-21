@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, Send, GitBranch, Bot, Mic, MicOff, Volume2, VolumeX, TriangleAlert } from 'lucide-react'
+import { Plus, Send, GitBranch, Bot, Mic, MicOff, Volume2, VolumeX, TriangleAlert, Hash } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -82,6 +83,8 @@ export function ChatSimulator({
   const [isLoading, setIsLoading] = useState(false)
   const [sessions, setSessions] = useState<TestSession[]>(initialSessions)
   const [activeAgentLabel, setActiveAgentLabel] = useState<string | null>(null)
+  const [activeNodeType, setActiveNodeType] = useState<string | null>(null)
+  const [dtmfCollectValue, setDtmfCollectValue] = useState('')
 
   // Voice state
   const [ttsEnabled, setTtsEnabled] = useState(false)
@@ -186,6 +189,8 @@ export function ChatSimulator({
     setMessages([])
     setInputValue('')
     setActiveAgentLabel(null)
+    setActiveNodeType(null)
+    setDtmfCollectValue('')
   }
 
   const handleNewChat = async () => {
@@ -223,6 +228,8 @@ export function ChatSimulator({
       } else {
         setActiveAgentLabel(null)
       }
+      setActiveNodeType(data.active_node_type ?? null)
+      setDtmfCollectValue('')
 
       const newMessages: Message[] = []
       if (data.opening_message) {
@@ -454,6 +461,8 @@ export function ChatSimulator({
       setCurrentSessionId(sessionId)
       setSelectedValue(session?.assistant_id ? `assistant:${session.assistant_id}` : null)
       setActiveAgentLabel(null)
+      setActiveNodeType(null)
+      setDtmfCollectValue('')
       const loadedMessages: Message[] = []
       for (const h of data.history as Array<{ id: string; role: string; content: string; timestamp: string; metadata?: Record<string, unknown> }>) {
         // Insert virtual tool messages from metadata before assistant messages
@@ -503,6 +512,8 @@ export function ChatSimulator({
         setCurrentSessionId(null)
         setMessages([])
         setActiveAgentLabel(null)
+        setActiveNodeType(null)
+        setDtmfCollectValue('')
       }
 
       toast.success(t('success.sessionDeleted'))
@@ -511,6 +522,75 @@ export function ChatSimulator({
       toast.error(t('errors.deleteSession'))
     }
   }
+
+  const handleDTMFSend = useCallback(async (dtmfValue: string) => {
+    if (!currentSessionId || !dtmfValue || isLoading) return
+
+    const optimisticId = `dtmf-opt-${Date.now()}`
+    const displayText = activeNodeType === 'dtmf_menu'
+      ? `[DTMF Menu] Key ${dtmfValue}`
+      : `[DTMF] ${dtmfValue}`
+
+    setMessages((prev) => [...prev, {
+      id: optimisticId,
+      role: 'user' as const,
+      content: displayText,
+      timestamp: new Date().toISOString(),
+    }])
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/test-chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test_session_id: currentSessionId,
+          dtmf_input: dtmfValue,
+          organization_id: organizationId,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to send DTMF')
+      const data = await response.json()
+
+      // Replace optimistic message with real one
+      if (data.user_message) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === optimisticId
+              ? { ...m, id: data.user_message.id, timestamp: data.user_message.timestamp }
+              : m
+          )
+        )
+      }
+
+      // Add assistant response
+      if (data.assistant_message) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: data.assistant_message.id,
+            role: 'assistant' as const,
+            content: data.assistant_message.content,
+            timestamp: data.assistant_message.timestamp,
+            agentLabel: data.assistant_message.agent?.name,
+            agentAvatarUrl: data.assistant_message.agent?.avatarUrl,
+          },
+        ])
+        await speakText(data.assistant_message.content)
+      }
+
+      // Update active node type and label
+      if (data.active_node_type !== undefined) setActiveNodeType(data.active_node_type)
+      if (data.active_node_label) setActiveAgentLabel(data.active_node_label)
+      if (data.voice) setVoiceConfig({ provider: data.voice.provider, voiceId: data.voice.voiceId })
+    } catch {
+      toast.error(t('errors.sendMessage'))
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentSessionId, isLoading, activeNodeType, organizationId, speakText, t])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -629,8 +709,58 @@ export function ChatSimulator({
         )}
       </div>
 
-      {/* Input Area */}
-      {currentSessionId && (
+      {/* DTMF Input Area */}
+      {currentSessionId && (activeNodeType === 'dtmf_menu' || activeNodeType === 'dtmf_collect') && (
+        <div className="border-t px-6 py-4">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3 flex items-center gap-1.5">
+            <Hash className="h-3 w-3" />
+            {activeNodeType === 'dtmf_menu' ? t('dtmf.menuMode') : t('dtmf.collectMode')}
+          </p>
+          {activeNodeType === 'dtmf_menu' ? (
+            <div className="grid grid-cols-3 gap-1.5 w-fit">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((key) => (
+                <Button
+                  key={key}
+                  variant="outline"
+                  size="sm"
+                  className="w-12 h-10 font-mono text-base"
+                  disabled={isLoading}
+                  onClick={() => handleDTMFSend(key)}
+                >
+                  {key}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                value={dtmfCollectValue}
+                onChange={(e) => setDtmfCollectValue(e.target.value.replace(/[^0-9*#]/g, ''))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleDTMFSend(dtmfCollectValue)
+                    setDtmfCollectValue('')
+                  }
+                }}
+                placeholder={t('dtmf.collectPlaceholder')}
+                className="font-mono w-44"
+                disabled={isLoading}
+              />
+              <Button
+                onClick={() => { handleDTMFSend(dtmfCollectValue); setDtmfCollectValue('') }}
+                disabled={!dtmfCollectValue || isLoading}
+                className="bg-lime-500 hover:bg-lime-600 dark:bg-lime-600 dark:hover:bg-lime-500 text-white"
+              >
+                {t('dtmf.collectSubmit')}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Text Input Area (hidden in DTMF mode) */}
+      {currentSessionId && activeNodeType !== 'dtmf_menu' && activeNodeType !== 'dtmf_collect' && (
         <div className="border-t px-6 py-4">
           <div className="flex gap-2">
             <Textarea

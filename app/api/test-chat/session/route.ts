@@ -83,16 +83,23 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', session.id)
 
-      // Add opening message if entry assistant has one
+      // Opening message: for DTMF nodes use the node prompt, for agent nodes use assistant.opening_message
       let openingMessage = null
-      if (assistant.opening_message) {
+      const openingText = (entryNode.type === 'dtmf_collect' || entryNode.type === 'dtmf_menu')
+        ? (entryNode.data.prompt ?? null)
+        : (assistant.opening_message ?? null)
+
+      if (openingText) {
         const { sequenceNumber } = await getNextSequenceNumber(session.id)
         const { transcript: transcriptData } = await addTestTranscriptMessage({
           test_session_id: session.id,
           organization_id,
           role: 'assistant',
-          content: assistant.opening_message,
+          content: openingText,
           sequence_number: sequenceNumber,
+          metadata: (entryNode.type === 'dtmf_collect' || entryNode.type === 'dtmf_menu')
+            ? { dtmf_prompt: true, node_type: entryNode.type }
+            : undefined,
         })
 
         const transcript = transcriptData as { id: string; content: string; timestamp: string } | null
@@ -117,6 +124,7 @@ export async function POST(request: NextRequest) {
         opening_message: openingMessage,
         voice: { provider: assistant.voice_provider, voiceId: assistant.voice_id },
         agent: { name: assistant.name, avatarUrl: assistant.avatar_url },
+        active_node_type: entryNode.type,
       })
     }
 
