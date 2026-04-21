@@ -99,7 +99,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     edges: scenario.edges,
     dtmfVariables: {},
   })
-  debug(`[SessionStart] Scenario routing: scenarioId=${scenario.id} entryNode=${entryNode.id} (type=${entryNode.type})`)
+  console.log(`[SessionStart] entryNode type=${entryNode.type} id=${entryNode.id} scenarioId=${scenario.id}`)
 
   // ── DTMF entry: speak the prompt and wait for keypad input ───────────────
   if (entryNode.type === 'dtmf_collect' || entryNode.type === 'dtmf_menu') {
@@ -124,7 +124,10 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     }
 
     const { prompt, timeout_seconds } = entryNode.data
-    if (!prompt) return NextResponse.json({ success: true })
+    if (!prompt) {
+      console.warn('[SessionStart] DTMF entry node has no prompt configured, node id:', entryNode.id)
+      return new NextResponse(null, { status: 204 })
+    }
 
     const ev = entryVoiceConfig
     const tts: Record<string, unknown> = {
@@ -134,12 +137,14 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
         ? { language: ev.voice_language }
         : {}),
     }
+    const timeout = timeout_seconds ?? (entryNode.type === 'dtmf_collect' ? 5 : 10)
+    console.log(`[SessionStart] DTMF speak: prompt="${prompt.slice(0, 60)}..." timeout=${timeout}s`)
     return NextResponse.json({
       type: 'speak',
       session_id: sessionId,
       text: prompt,
       tts,
-      user_input_timeout_seconds: timeout_seconds ?? (entryNode.type === 'dtmf_collect' ? 5 : 10),
+      user_input_timeout_seconds: timeout,
     })
   }
 
