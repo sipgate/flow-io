@@ -3,7 +3,6 @@ import { debug } from '@/lib/utils/logger'
 import { createLLMProvider } from '@/lib/llm/provider'
 import { getAssistantVariableDefinitionsForExtraction } from '@/lib/repositories/variables.repository'
 import { storeExtractedVariables, hasAssistantVariables } from '@/lib/actions/variables'
-import { sendVariableWebhook } from '@/lib/actions/variable-webhooks'
 import type { VariableDefinition, LLMExtractionResult, CollectedVariable } from '@/types/variables'
 
 /**
@@ -185,8 +184,7 @@ export async function extractAndDeliverVariables(
       debug('[VariableExtractor] Missing required variables:', missingRequired.map((d) => d.name))
     }
 
-    // Send webhook if configured
-    await sendVariableWebhook(assistantId, callSessionId, stored, definitions)
+    // Webhook is sent separately via sendCallCompletedWebhook in session-end handler
 
   } catch (error) {
     console.error('[VariableExtractor] Error during extraction:', error)

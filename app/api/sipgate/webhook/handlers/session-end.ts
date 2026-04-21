@@ -3,6 +3,8 @@ import { debug } from '@/lib/utils/logger'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { updateCallSession } from '@/lib/repositories/calls.repository'
 import { extractAndDeliverVariables } from '@/lib/services/variable-extractor'
+import { sendCallCompletedWebhook } from '@/lib/actions/variable-webhooks'
+import { getAssistantVariableDefinitionsForExtraction } from '@/lib/actions/variables'
 import { cancelPendingMCP } from '@/lib/services/pending-mcp-state'
 import { clearPendingTurn } from '@/lib/services/pending-turn-state'
 import { getVariableCollection, cleanupVariableCollection } from '@/lib/services/variable-collection-state'
@@ -58,17 +60,37 @@ export async function handleSessionEnd(event: SessionEndEvent) {
   cancelPendingMCP(event.session.id)
   clearPendingTurn(event.session.id)
 
-  // Extract variables asynchronously (non-blocking)
+  // Extract variables and send post-call webhook asynchronously (non-blocking)
   const varCollection = getVariableCollection(event.session.id)
   if (session.assistant_id && session.organization_id) {
+    const assistantId = session.assistant_id
+
     extractAndDeliverVariables(
       session.id,
-      session.assistant_id,
+      assistantId,
       session.organization_id,
       varCollection ? { preCollected: varCollection.collected } : undefined
-    ).catch((error) => {
-      console.error('[SessionEnd] Variable extraction failed:', error)
-    })
+    )
+      .then(async () => {
+        // Send webhook after extraction (variables may be empty — fires regardless)
+        const [{ data: extracted }, { definitions }] = await Promise.all([
+          supabase
+            .from('extracted_variables')
+            .select('*')
+            .eq('call_session_id', session.id)
+            .order('extracted_at', { ascending: true }),
+          getAssistantVariableDefinitionsForExtraction(assistantId),
+        ])
+        await sendCallCompletedWebhook(
+          assistantId,
+          session.id,
+          (extracted ?? []) as unknown as Parameters<typeof sendCallCompletedWebhook>[2],
+          definitions ?? []
+        )
+      })
+      .catch((error) => {
+        console.error('[SessionEnd] Variable extraction/webhook failed:', error)
+      })
   }
 
   cleanupVariableCollection(event.session.id)

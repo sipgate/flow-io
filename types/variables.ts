@@ -136,7 +136,7 @@ export interface VariableCollectionState {
 
 // Webhook payload type
 export interface VariableWebhookPayload {
-  event: 'variables_extracted'
+  event: 'call_completed'
   timestamp: string
   call_session: {
     id: string

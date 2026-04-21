@@ -125,7 +125,11 @@ export async function deleteAssistantWebhook(assistantId: string) {
  * Send extracted variables to webhook
  * Called by the variable extractor service
  */
-export async function sendVariableWebhook(
+/**
+ * Send post-call webhook. Fires for every completed call if a webhook is configured,
+ * regardless of whether variables were extracted.
+ */
+export async function sendCallCompletedWebhook(
   assistantId: string,
   callSessionId: string,
   extractedVariables: ExtractedVariable[],
@@ -181,9 +185,9 @@ export async function sendVariableWebhook(
 
   const typedSession = session as unknown as CallSessionForWebhook
 
-  // Build payload
+  // Build payload — variables may be empty if none were defined/extracted
   const payload: VariableWebhookPayload = {
-    event: 'variables_extracted',
+    event: 'call_completed',
     timestamp: new Date().toISOString(),
     call_session: {
       id: typedSession.id,
@@ -257,7 +261,7 @@ export async function testWebhook(
   headers: Record<string, string> = {}
 ) {
   const testPayload: VariableWebhookPayload = {
-    event: 'variables_extracted',
+    event: 'call_completed',
     timestamp: new Date().toISOString(),
     call_session: {
       id: 'test-session-id',
