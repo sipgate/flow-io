@@ -89,6 +89,7 @@ export function ChatSimulator({
   // Voice state
   const [ttsEnabled, setTtsEnabled] = useState(false)
   const [ttsWarning, setTtsWarning] = useState<string | null>(null)
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const [voiceConfig, setVoiceConfig] = useState<{ provider: string | null; voiceId: string | null }>({ provider: null, voiceId: null })
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const { isListening, transcript, isSupported: sttSupported, start: startListening, stop: stopListening, reset: resetTranscript } = useSpeechRecognition()
@@ -112,44 +113,49 @@ export function ChatSimulator({
 
     const vc = voice ?? voiceConfig
 
-    // ElevenLabs TTS via server route
-    if (vc.provider === 'elevenlabs' && vc.voiceId) {
-      try {
-        const res = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, voiceId: vc.voiceId }),
-        })
-        if (res.ok) {
-          setTtsWarning(null)
-          const blob = await res.blob()
-          const url = URL.createObjectURL(blob)
-          const audio = new Audio(url)
-          audioRef.current = audio
-          await new Promise<void>((resolve) => {
-            audio.onended = () => { URL.revokeObjectURL(url); resolve() }
-            audio.onerror = () => { URL.revokeObjectURL(url); resolve() }
-            audio.play()
+    setIsSpeaking(true)
+    try {
+      // ElevenLabs TTS via server route
+      if (vc.provider === 'elevenlabs' && vc.voiceId) {
+        try {
+          const res = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, voiceId: vc.voiceId }),
           })
-          return
+          if (res.ok) {
+            setTtsWarning(null)
+            const blob = await res.blob()
+            const url = URL.createObjectURL(blob)
+            const audio = new Audio(url)
+            audioRef.current = audio
+            await new Promise<void>((resolve) => {
+              audio.onended = () => { URL.revokeObjectURL(url); resolve() }
+              audio.onerror = () => { URL.revokeObjectURL(url); resolve() }
+              audio.play()
+            })
+            return
+          }
+          const err = await res.json().catch(() => null)
+          const msg = err?.error || `ElevenLabs ${res.status}`
+          setTtsWarning(msg)
+        } catch (e) {
+          setTtsWarning(String(e))
         }
-        const err = await res.json().catch(() => null)
-        const msg = err?.error || `ElevenLabs ${res.status}`
-        setTtsWarning(msg)
-      } catch (e) {
-        setTtsWarning(String(e))
       }
-    }
 
-    // Browser TTS fallback
-    if (window.speechSynthesis) {
-      await new Promise<void>((resolve) => {
-        const utterance = new SpeechSynthesisUtterance(text)
-        utterance.lang = 'de-DE'
-        utterance.onend = () => resolve()
-        utterance.onerror = () => resolve()
-        window.speechSynthesis.speak(utterance)
-      })
+      // Browser TTS fallback
+      if (window.speechSynthesis) {
+        await new Promise<void>((resolve) => {
+          const utterance = new SpeechSynthesisUtterance(text)
+          utterance.lang = 'de-DE'
+          utterance.onend = () => resolve()
+          utterance.onerror = () => resolve()
+          window.speechSynthesis.speak(utterance)
+        })
+      }
+    } finally {
+      setIsSpeaking(false)
     }
   }, [ttsEnabled, voiceConfig])
 
@@ -355,6 +361,7 @@ export function ChatSimulator({
       }
 
       setMessages((prev) => [...prev, ...msgs])
+      setIsLoading(false)
 
       const newVoice = voiceOverride ?? (d.voice ? { provider: d.voice.provider, voiceId: d.voice.voiceId } : null)
       if (d.transfer && d.greeting_message) {
@@ -577,6 +584,7 @@ export function ChatSimulator({
             agentAvatarUrl: data.assistant_message.agent?.avatarUrl,
           },
         ])
+        setIsLoading(false)
         await speakText(data.assistant_message.content)
       }
 
@@ -705,7 +713,7 @@ export function ChatSimulator({
             </div>
           </div>
         ) : (
-          <MessageList messages={messages} isLoading={isLoading} />
+          <MessageList messages={messages} isLoading={isLoading} isSpeaking={isSpeaking} />
         )}
       </div>
 

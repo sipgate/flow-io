@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { useTranslations } from 'next-intl'
-import { User, Bot, Loader2, Wrench, ArrowRightLeft, Info, Hourglass } from 'lucide-react'
+import { User, Bot, Loader2, Volume2, Wrench, ArrowRightLeft, Info, Hourglass } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Tooltip,
@@ -34,6 +34,7 @@ interface Message {
 interface MessageListProps {
   messages: Message[]
   isLoading?: boolean
+  isSpeaking?: boolean
 }
 
 function formatMs(ms: number): string {
@@ -41,7 +42,7 @@ function formatMs(ms: number): string {
   return `${(ms / 1000).toFixed(2)}s`
 }
 
-export function MessageList({ messages, isLoading = false }: MessageListProps) {
+export function MessageList({ messages, isLoading = false, isSpeaking = false }: MessageListProps) {
   const t = useTranslations('chatSimulator')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -249,8 +250,8 @@ export function MessageList({ messages, isLoading = false }: MessageListProps) {
               )
             })}
 
-            {/* Loading indicator */}
-            {isLoading && (
+            {/* Loading / Speaking indicator */}
+            {(isLoading || isSpeaking) && (
               <div className="flex gap-3 justify-start">
                 <div className="flex gap-2 max-w-[85%] flex-row">
                   <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900">
@@ -258,8 +259,17 @@ export function MessageList({ messages, isLoading = false }: MessageListProps) {
                   </div>
                   <div className="rounded-lg px-3 py-2 bg-neutral-100 dark:bg-neutral-800">
                     <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>{t('assistantTyping')}</span>
+                      {isSpeaking ? (
+                        <>
+                          <Volume2 className="h-4 w-4 animate-pulse" />
+                          <span>{t('assistantSpeaking')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>{t('assistantTyping')}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

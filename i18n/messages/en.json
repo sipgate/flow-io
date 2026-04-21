@@ -955,6 +955,7 @@
     "you": "You",
     "assistant": "Assistant",
     "assistantTyping": "Assistant is typing...",
+    "assistantSpeaking": "Assistant is speaking...",
     "errors": {
       "selectAssistant": "Please select an assistant first",
       "createSession": "Failed to create new chat session",

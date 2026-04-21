@@ -955,6 +955,7 @@
     "you": "Sie",
     "assistant": "Assistent",
     "assistantTyping": "Assistent schreibt...",
+    "assistantSpeaking": "Assistent spricht...",
     "errors": {
       "selectAssistant": "Bitte wählen Sie zuerst einen Assistenten",
       "createSession": "Chat-Sitzung konnte nicht erstellt werden",

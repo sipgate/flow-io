@@ -761,6 +761,7 @@
     "you": "Tú",
     "assistant": "Asistente",
     "assistantTyping": "El asistente está escribiendo...",
+    "assistantSpeaking": "El asistente está hablando...",
     "errors": {
       "selectAssistant": "Por favor selecciona un asistente primero",
       "createSession": "Error al crear la sesión de chat",
