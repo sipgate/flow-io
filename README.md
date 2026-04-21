@@ -2,6 +2,8 @@
 
 **Open-source AI voice assistant platform.** Connect your sipgate phone numbers to AI assistants — built with Next.js, Supabase, and the sipgate AI Flow SDK.
 
+![Flow-IO Scenario Builder](docs/images/screenshot.png)
+
 **App only (requires external Supabase):**
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/sipgate/flow-io)
