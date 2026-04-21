@@ -8,6 +8,7 @@ import {
 } from '@/lib/llm/tools/knowledge-base-tool'
 import { MCPToolExecutor, createMCPToolExecutor } from './mcp-tool-executor'
 import { isMCPTool } from '@/lib/mcp'
+import { WebhookToolExecutor, createWebhookToolExecutor } from '@/lib/llm/tools/webhook-tool-executor'
 import { hesitateToolDefinition, isHesitateTool } from '@/lib/llm/tools/hesitate-tool'
 import { waitForTurnToolDefinition, isWaitForTurnTool } from '@/lib/llm/tools/wait-for-turn-tool'
 import { substitutePromptVariables, PromptVariableContext } from '@/lib/utils/prompt-variables'
@@ -68,6 +69,7 @@ export async function generateLLMResponse(params: {
 }): Promise<LLMResponseResult> {
   const supabase = createServiceRoleClient()
   let mcpExecutor: MCPToolExecutor | null = null
+  let webhookExecutor: WebhookToolExecutor | null = null
 
   try {
     // Fetch assistant configuration
@@ -270,8 +272,16 @@ export async function generateLLMResponse(params: {
 
     allTools.push(...mcpTools)
 
-    // Add hesitate tool when enabled for this assistant and tools are present (KB or MCP)
-    const hasTools = mcpTools.length > 0 || (hasKnowledgeBases && assistant.enable_kb_tool !== false)
+    // Initialize Webhook tools
+    webhookExecutor = createWebhookToolExecutor()
+    const { tools: webhookTools, errors: webhookErrors } = await webhookExecutor.initialize(assistant.id)
+    if (webhookErrors.length > 0) {
+      console.warn('[LLM Service] Webhook tool initialization errors:', webhookErrors)
+    }
+    allTools.push(...webhookTools)
+
+    // Add hesitate tool when enabled for this assistant and tools are present (KB or MCP or Webhook)
+    const hasTools = mcpTools.length > 0 || webhookTools.length > 0 || (hasKnowledgeBases && assistant.enable_kb_tool !== false)
     if (assistant.enable_hesitation && hasTools && !params.disableHesitation) {
       allTools.unshift(hesitateToolDefinition)
       debug('[LLM Service] Hesitate tool enabled')
@@ -302,6 +312,7 @@ export async function generateLLMResponse(params: {
     debug('[LLM Service] Tools available:', {
       knowledgeBase: hasKnowledgeBases && assistant.enable_kb_tool !== false ? 1 : 0,
       mcp: mcpTools.length,
+      webhookTools: webhookTools.length,
       callControl: callToolConfig ? buildCallControlTools(callToolConfig).length : 0,
       scenarioTransfer: params.scenarioTransferNodes?.length ?? 0,
       total: allTools.length,
@@ -567,6 +578,15 @@ export async function generateLLMResponse(params: {
             params.sessionId,
             params.testSessionId
           )
+          toolCallResults.push({
+            name: toolCall.function.name,
+            arguments: args,
+            result: toolResult,
+          })
+        } else if (webhookExecutor?.isWebhookTool(toolCall.function.name)) {
+          // HTTP Webhook tool
+          const args = JSON.parse(toolCall.function.arguments)
+          toolResult = await webhookExecutor.executeTool(toolCall.function.name, args)
           toolCallResults.push({
             name: toolCall.function.name,
             arguments: args,

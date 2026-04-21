@@ -91,6 +91,7 @@ import { WebhookConfigSection } from '@/components/variables/webhook-config-sect
 import { ContextWebhookSection } from '@/components/variables/context-webhook-section'
 import { CallToolsSection } from '@/components/calls/call-tools/call-tools-section'
 import { BargeInSection } from '@/components/calls/call-tools/barge-in-section'
+import { WebhookToolsSection } from '@/components/assistants/webhook-tools-section'
 import { AssistantCriteriaList } from '@/components/calls/call-criteria/assistant-criteria-list'
 import { PromptEditor } from '@/components/assistants/prompt-editor'
 import { PromptVersionHistory } from '@/components/assistants/prompt-version-history'
@@ -110,6 +111,7 @@ const SECTION_IDS = {
   PROPS_BARGEIN: 'props-bargein',
   KW_KB: 'kw-kb',
   KW_MCP: 'kw-mcp',
+  KW_WEBHOOK_TOOLS: 'kw-webhook-tools',
   KW_TOOLS: 'kw-tools',
   KW_CONTEXT: 'kw-context',
   ANA_VARS: 'ana-vars',
@@ -129,6 +131,7 @@ const DEFAULT_OPEN: Record<string, boolean> = {
   [SECTION_IDS.PROPS_BARGEIN]: false,
   [SECTION_IDS.KW_KB]: true,
   [SECTION_IDS.KW_MCP]: false,
+  [SECTION_IDS.KW_WEBHOOK_TOOLS]: false,
   [SECTION_IDS.KW_TOOLS]: false,
   [SECTION_IDS.KW_CONTEXT]: false,
   [SECTION_IDS.ANA_VARS]: true,
@@ -567,6 +570,7 @@ export function AssistantForm({
 
   // ── Sub-component summary state (for collapsed previews) ────────────────────
   const [toolsSummary, setToolsSummary] = useState('—')
+  const [webhookToolsSummary, setWebhookToolsSummary] = useState('—')
   const [bargeInSummary, setBargeInSummary] = useState('—')
   const [contextSummary, setContextSummary] = useState('—')
   const [varsSummary, setVarsSummary] = useState('—')
@@ -1483,6 +1487,19 @@ export function AssistantForm({
                   <p className="text-xs text-neutral-400 mt-1">{t('createMcpServerFirst')}</p>
                 </div>
               )}
+            </SectionCollapsible>
+
+            {/* HTTP-Webhook-Tools */}
+            <SectionCollapsible
+              id={SECTION_IDS.KW_WEBHOOK_TOOLS}
+              title={t('webhookTools')}
+              hint={t('webhookToolsHint')}
+              open={openSections[SECTION_IDS.KW_WEBHOOK_TOOLS]}
+              onToggle={toggleSection}
+              className="border-t mt-4 pt-4"
+              preview={<PreviewText>{webhookToolsSummary}</PreviewText>}
+            >
+              <WebhookToolsSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setWebhookToolsSummary} />
             </SectionCollapsible>
 
             {/* Anruf-Tools */}
