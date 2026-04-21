@@ -182,6 +182,16 @@ async function handleDTMFCollect(
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
   const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language, organizationId)
   if (!responseJson) return new NextResponse(null, { status: 204 })
+
+  if (responseJson.type === 'speak' && responseJson.text) {
+    addTranscriptMessage({
+      call_session_id: callSessionId,
+      speaker: 'assistant',
+      text: responseJson.text as string,
+      metadata: { dtmf_response: true, variable_name, value: finalValue },
+    }).catch(() => {})
+  }
+
   return NextResponse.json([{ type: 'barge_in', session_id: sid }, responseJson])
 }
 
@@ -223,6 +233,13 @@ async function handleDTMFMenu(
     const text = error_prompt || activeNode.data.prompt || ''
     if (!text) return new NextResponse(null, { status: 204 })
 
+    addTranscriptMessage({
+      call_session_id: callSessionId,
+      speaker: 'assistant',
+      text,
+      metadata: { dtmf_retry_prompt: true, retry: retries },
+    }).catch(() => {})
+
     const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
     return NextResponse.json([
       { type: 'barge_in', session_id: sid },
@@ -248,6 +265,16 @@ async function handleDTMFMenu(
   const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
   const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language, organizationId)
   if (!responseJson) return new NextResponse(null, { status: 204 })
+
+  if (responseJson.type === 'speak' && responseJson.text) {
+    addTranscriptMessage({
+      call_session_id: callSessionId,
+      speaker: 'assistant',
+      text: responseJson.text as string,
+      metadata: { dtmf_response: true, target_node_id: matchingEdge.target },
+    }).catch(() => {})
+  }
+
   return NextResponse.json([{ type: 'barge_in', session_id: sid }, responseJson])
 }
 

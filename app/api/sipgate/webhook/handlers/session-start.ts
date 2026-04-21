@@ -139,6 +139,14 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     }
     const timeout = timeout_seconds ?? (entryNode.type === 'dtmf_collect' ? 5 : 10)
     console.log(`[SessionStart] DTMF speak: prompt="${prompt.slice(0, 60)}..." timeout=${timeout}s`)
+
+    addTranscriptMessage({
+      call_session_id: callSession.id,
+      speaker: 'assistant',
+      text: prompt,
+      metadata: { dtmf_prompt: true, node_type: entryNode.type, node_id: entryNode.id },
+    }).catch(() => {})
+
     return NextResponse.json({
       type: 'speak',
       session_id: sessionId,
