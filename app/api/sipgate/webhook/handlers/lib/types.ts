@@ -43,12 +43,26 @@ export interface UserBargeInEvent {
   session: SipgateSession
 }
 
+export interface DTMFReceivedEvent {
+  type: 'dtmf_received'
+  session: SipgateSession
+  /** Pressed key: "0"–"9", "*", or "#" */
+  digit: string
+}
+
+export interface UserInputTimeoutEvent {
+  type: 'user_input_timeout'
+  session: SipgateSession
+}
+
 export type SipgateEvent =
   | SessionStartEvent
   | UserSpeakEvent
   | SessionEndEvent
   | AssistantSpeechEndedEvent
   | UserBargeInEvent
+  | DTMFReceivedEvent
+  | UserInputTimeoutEvent
 
 // ── Database / domain types ────────────────────────────────────────────────
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Bot, Star, X, Sparkles, Loader2, Trash2 } from 'lucide-react'
+import { Bot, X, Sparkles, Loader2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,10 +16,12 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { generateTransferInstruction } from '@/lib/actions/generate-transfer-instruction'
-import type { ScenarioNode, ScenarioNodeType } from '@/types/scenarios'
+import type { ScenarioNode, ScenarioEdge } from '@/types/scenarios'
 import { LLMButtonTooltip } from '@/components/ui/llm-button-tooltip'
 import type { ToolModelConfig } from '@/lib/tool-model'
 import { getModelLabel } from '@/lib/models'
+import { DTMFCollectConfig } from './dtmf-collect-config'
+import { DTMFMenuConfig } from './dtmf-menu-config'
 
 interface AssistantOption {
   id: string
@@ -31,8 +33,11 @@ interface AssistantOption {
 interface ScenarioNodeConfigProps {
   node: ScenarioNode
   assistants: AssistantOption[]
-  hasEntryNode: boolean
-  onUpdate: (nodeId: string, data: Partial<ScenarioNode['data']> & { type?: ScenarioNodeType }) => void
+  /** All scenario edges — passed to dtmf_menu config to display routes */
+  edges: ScenarioEdge[]
+  /** All scenario nodes — passed to dtmf_menu config to resolve target labels */
+  nodes: ScenarioNode[]
+  onUpdate: (nodeId: string, data: Partial<ScenarioNode['data']>) => void
   onDelete: (nodeId: string) => void
   onClose: () => void
   toolModel: ToolModelConfig
@@ -41,14 +46,14 @@ interface ScenarioNodeConfigProps {
 export function ScenarioNodeConfig({
   node,
   assistants,
-  hasEntryNode,
+  edges,
+  nodes,
   onUpdate,
   onDelete,
   onClose,
   toolModel,
 }: ScenarioNodeConfigProps) {
   const t = useTranslations('scenarios')
-  const isEntry = node.type === 'entry_agent'
   const [generating, setGenerating] = useState(false)
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization -- existing manual memoization that the React Compiler cannot preserve
@@ -67,26 +72,20 @@ export function ScenarioNodeConfig({
     onUpdate(node.id, { transfer_instruction: instruction })
   }, [node.id, node.data.assistant_id, onUpdate])
 
-  const handleTypeToggle = useCallback(
-    (makeEntry: boolean) => {
-      const newType: ScenarioNodeType = makeEntry ? 'entry_agent' : 'agent'
-      onUpdate(node.id, { type: newType })
-    },
-    [node.id, onUpdate]
-  )
+  // Delegate DTMF node configs to their own components (after all hooks)
+  if (node.type === 'dtmf_collect') {
+    return <DTMFCollectConfig node={node} onUpdate={onUpdate} onDelete={onDelete} onClose={onClose} />
+  }
+  if (node.type === 'dtmf_menu') {
+    return <DTMFMenuConfig node={node} edges={edges} nodes={nodes} onUpdate={onUpdate} onDelete={onDelete} onClose={onClose} />
+  }
 
   return (
     <div className="w-72 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg p-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {isEntry ? (
-            <Star className="h-4 w-4 text-violet-500" />
-          ) : (
-            <Bot className="h-4 w-4 text-neutral-400" />
-          )}
-          <span className="font-semibold text-sm">
-            {isEntry ? t('node.entryAgent') : t('node.agentNode')}
-          </span>
+          <Bot className="h-4 w-4 text-neutral-400" />
+          <span className="font-semibold text-sm">{t('node.agentNode')}</span>
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -103,17 +102,6 @@ export function ScenarioNodeConfig({
           </Button>
         </div>
       </div>
-
-      {/* Node type toggle — only show if either not entry or becoming entry is allowed */}
-      {(!hasEntryNode || isEntry) && (
-        <div className="flex items-center justify-between">
-          <Label className="text-xs">{t('node.entryAgent')}</Label>
-          <Switch
-            checked={isEntry}
-            onCheckedChange={handleTypeToggle}
-          />
-        </div>
-      )}
 
       {/* Assistant selector */}
       <div className="space-y-1.5">
@@ -144,71 +132,65 @@ export function ScenarioNodeConfig({
         </Select>
       </div>
 
-      {/* Transfer instruction — only for non-entry nodes */}
-      {!isEntry && (
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs">{t('node.transferInstruction')}</Label>
-            <LLMButtonTooltip model={getModelLabel(toolModel.tool_provider, toolModel.tool_model)} side="left">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs gap-1"
-                onClick={handleGenerate}
-                disabled={generating || !node.data.assistant_id}
-              >
-                {generating ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3 w-3" />
-                )}
-                {t('node.generate')}
-              </Button>
-            </LLMButtonTooltip>
-          </div>
-          <Textarea
-            className="text-xs resize-none h-20"
-            placeholder={t('node.transferInstructionPlaceholder')}
-            value={node.data.transfer_instruction}
-            onChange={(e) =>
-              onUpdate(node.id, { transfer_instruction: e.target.value })
-            }
-          />
-        </div>
-      )}
-
-      {/* Inherit voice — only for non-entry nodes */}
-      {!isEntry && (
+      {/* Transfer instruction */}
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <div>
-            <Label className="text-xs">{t('node.inheritVoice')}</Label>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              {t('node.inheritVoiceDescription')}
-            </p>
-          </div>
-          <Switch
-            checked={node.data.inherit_voice}
-            onCheckedChange={(val) => onUpdate(node.id, { inherit_voice: val, ...(val ? { send_greeting: false } : {}) })}
-          />
+          <Label className="text-xs">{t('node.transferInstruction')}</Label>
+          <LLMButtonTooltip model={getModelLabel(toolModel.tool_provider, toolModel.tool_model)} side="left">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs gap-1"
+              onClick={handleGenerate}
+              disabled={generating || !node.data.assistant_id}
+            >
+              {generating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
+              {t('node.generate')}
+            </Button>
+          </LLMButtonTooltip>
         </div>
-      )}
+        <Textarea
+          className="text-xs resize-none h-20"
+          placeholder={t('node.transferInstructionPlaceholder')}
+          value={node.data.transfer_instruction ?? ''}
+          onChange={(e) =>
+            onUpdate(node.id, { transfer_instruction: e.target.value })
+          }
+        />
+      </div>
 
-      {/* Send greeting — only for non-entry nodes */}
-      {!isEntry && (
-        <div className={`flex items-center justify-between ${node.data.inherit_voice ? 'opacity-40' : ''}`}>
-          <div>
-            <Label className="text-xs">{t('node.sendGreeting')}</Label>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              {t('node.sendGreetingDescription')}
-            </p>
-          </div>
-          <Switch
-            checked={node.data.inherit_voice ? false : node.data.send_greeting}
-            onCheckedChange={(val) => onUpdate(node.id, { send_greeting: val })}
-            disabled={node.data.inherit_voice}
-          />
+      {/* Inherit voice */}
+      <div className="flex items-center justify-between">
+        <div>
+          <Label className="text-xs">{t('node.inheritVoice')}</Label>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            {t('node.inheritVoiceDescription')}
+          </p>
         </div>
-      )}
+        <Switch
+          checked={node.data.inherit_voice ?? false}
+          onCheckedChange={(val) => onUpdate(node.id, { inherit_voice: val, ...(val ? { send_greeting: false } : {}) })}
+        />
+      </div>
+
+      {/* Send greeting */}
+      <div className={`flex items-center justify-between ${node.data.inherit_voice ? 'opacity-40' : ''}`}>
+        <div>
+          <Label className="text-xs">{t('node.sendGreeting')}</Label>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            {t('node.sendGreetingDescription')}
+          </p>
+        </div>
+        <Switch
+          checked={node.data.inherit_voice ? false : (node.data.send_greeting ?? false)}
+          onCheckedChange={(val) => onUpdate(node.id, { send_greeting: val })}
+          disabled={node.data.inherit_voice ?? false}
+        />
+      </div>
     </div>
   )
 }

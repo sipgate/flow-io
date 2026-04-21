@@ -6,6 +6,7 @@ import {
   getNextSequenceNumber,
 } from '@/lib/actions/test-chat'
 import { getScenarioByIdServiceRole } from '@/lib/actions/scenarios'
+import { findScenarioEntryNode, findScenarioVoiceNode } from '@/app/api/sipgate/webhook/handlers/lib/scenario-state'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,19 +30,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Scenario not found' }, { status: 404 })
       }
 
-      const entryNode = scenario.nodes.find((n) => n.type === 'entry_agent')
-      if (!entryNode || !entryNode.data.assistant_id) {
+      // Find entry node topologically and get first agent for the session
+      const entryNode = findScenarioEntryNode(scenario.nodes, scenario.edges)
+      const voiceNode = findScenarioVoiceNode(scenario.nodes)
+      if (!entryNode || !voiceNode?.data.assistant_id) {
         return NextResponse.json(
-          { error: 'Scenario has no entry agent with an assigned assistant' },
+          { error: 'Scenario has no agent node with an assigned assistant' },
           { status: 400 }
         )
       }
 
-      // Verify entry assistant belongs to org
+      // Verify first agent assistant belongs to org
       const { data: assistant, error: assistantError } = await supabase
         .from('assistants')
         .select('id, name, opening_message, is_active, voice_provider, voice_id, avatar_url')
-        .eq('id', entryNode.data.assistant_id)
+        .eq('id', voiceNode.data.assistant_id)
         .eq('organization_id', organization_id)
         .single()
 

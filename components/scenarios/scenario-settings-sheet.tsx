@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
-import { Settings, Plus, GripVertical, Trash2, Pencil, Building2, Loader2 } from 'lucide-react'
+import { Settings, Plus, GripVertical, Trash2, Pencil, Building2, Loader2, ChevronsUpDown, Check, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Sheet,
@@ -18,6 +18,18 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Dialog,
   DialogContent,
@@ -36,6 +48,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { cn } from '@/lib/utils'
 import type { CallCriterion } from '@/types/call-criteria'
 import {
   getOrgLevelCriteria,
@@ -46,11 +59,19 @@ import {
   reorderCallCriteria,
 } from '@/lib/actions/call-criteria'
 import { updateScenarioSettings } from '@/lib/actions/scenarios'
+import { AZURE_VOICES, ELEVENLABS_VOICES, DEFAULT_ELEVENLABS_VOICE_ID, type VoiceOption } from '@/lib/constants/voices'
+
+function getVoicesForProvider(provider: string): VoiceOption[] {
+  return provider === 'azure' ? AZURE_VOICES : ELEVENLABS_VOICES
+}
 
 interface ScenarioSettingsSheetProps {
   scenarioId: string
   organizationId: string
   enableCsat: boolean
+  voiceProvider: string | null
+  voiceId: string | null
+  voiceLanguage: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSettingsChange: () => void
@@ -60,6 +81,9 @@ export function ScenarioSettingsSheet({
   scenarioId,
   organizationId,
   enableCsat,
+  voiceProvider: initialVoiceProvider,
+  voiceId: initialVoiceId,
+  voiceLanguage: initialVoiceLanguage,
   open,
   onOpenChange,
   onSettingsChange,
@@ -71,6 +95,14 @@ export function ScenarioSettingsSheet({
   // CSAT
   const [csatEnabled, setCsatEnabled] = useState(enableCsat)
   const [csatSaving, startCsatSave] = useTransition()
+
+  // Voice — default to ElevenLabs "Phil" (optimised for phone conversations)
+  const [voiceProvider, setVoiceProvider] = useState(initialVoiceProvider || 'elevenlabs')
+  const [voiceId, setVoiceId] = useState(initialVoiceId || DEFAULT_ELEVENLABS_VOICE_ID)
+  const [voiceLanguage, setVoiceLanguage] = useState(initialVoiceLanguage || '')
+  const [voiceOpen, setVoiceOpen] = useState(false)
+  const [voiceSearch, setVoiceSearch] = useState('')
+  const [voiceSaving, startVoiceSave] = useTransition()
 
   // Criteria
   const [orgCriteria, setOrgCriteria] = useState<CallCriterion[]>([])
@@ -121,6 +153,36 @@ export function ScenarioSettingsSheet({
       } else {
         onSettingsChange()
       }
+    })
+  }
+
+  function handleVoiceProviderChange(provider: string) {
+    setVoiceProvider(provider)
+    setVoiceId('')
+    setVoiceLanguage('')
+    startVoiceSave(async () => {
+      await updateScenarioSettings(scenarioId, { voice_provider: provider, voice_id: null, voice_language: null })
+    })
+  }
+
+  function handleVoiceSelect(voice: VoiceOption) {
+    setVoiceId(voice.id)
+    if (voice.lang) setVoiceLanguage(voice.lang)
+    setVoiceOpen(false)
+    setVoiceSearch('')
+    startVoiceSave(async () => {
+      await updateScenarioSettings(scenarioId, {
+        voice_provider: voiceProvider,
+        voice_id: voice.id,
+        voice_language: voice.lang || voiceLanguage || null,
+      })
+    })
+  }
+
+  function handleVoiceLanguageChange(lang: string) {
+    setVoiceLanguage(lang)
+    startVoiceSave(async () => {
+      await updateScenarioSettings(scenarioId, { voice_language: lang })
     })
   }
 
@@ -256,6 +318,125 @@ export function ScenarioSettingsSheet({
           </SheetHeader>
 
           <div className="space-y-8 mt-4">
+            {/* Voice Settings */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold tracking-tight">{t('voiceTitle')}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('voiceDescription')}</p>
+              </div>
+
+              {/* Provider */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('voiceProvider')}</Label>
+                <Select value={voiceProvider} onValueChange={handleVoiceProviderChange} disabled={voiceSaving}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="azure" className="text-xs">{t('voiceProviderAzure')}</SelectItem>
+                    <SelectItem value="elevenlabs" className="text-xs">{t('voiceProviderElevenLabs')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Voice picker */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('voiceId')}</Label>
+                <Popover open={voiceOpen} onOpenChange={(o) => { setVoiceOpen(o); if (!o) setVoiceSearch('') }}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      disabled={voiceSaving}
+                      className="w-full h-8 justify-between font-normal text-xs"
+                    >
+                      {(() => {
+                        const voice = getVoicesForProvider(voiceProvider).find((v) => v.id === voiceId)
+                        if (voice) return <span>{voice.flag ? `${voice.flag} ` : ''}{voice.name} ({voice.gender})</span>
+                        return <span className="text-muted-foreground">{t('voiceId')}…</span>
+                      })()}
+                      <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-0" align="start">
+                    <div className="flex items-center border-b px-3 py-2">
+                      <Search className="h-3.5 w-3.5 shrink-0 opacity-50 mr-2" />
+                      <input
+                        className="flex h-6 w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                        placeholder={t('voiceSearch')}
+                        value={voiceSearch}
+                        onChange={(e) => setVoiceSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto p-1">
+                      {(() => {
+                        const voices = getVoicesForProvider(voiceProvider)
+                        const query = voiceSearch.toLowerCase()
+                        const filtered = query
+                          ? voices.filter((v) =>
+                              v.name.toLowerCase().includes(query) ||
+                              (v.desc && v.desc.toLowerCase().includes(query)) ||
+                              (v.lang && v.lang.toLowerCase().includes(query))
+                            )
+                          : voices
+                        if (filtered.length === 0) {
+                          return <p className="py-4 text-center text-xs text-muted-foreground">{t('noVoicesFound')}</p>
+                        }
+                        return filtered.map((voice) => (
+                          <button
+                            key={voice.id}
+                            type="button"
+                            className={cn(
+                              'w-full text-left rounded-sm px-2 py-1.5 text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground',
+                              voiceId === voice.id && 'bg-accent text-accent-foreground'
+                            )}
+                            onClick={() => handleVoiceSelect(voice)}
+                          >
+                            <div className="flex items-center gap-1">
+                              {voice.flag && <span>{voice.flag}</span>}
+                              <span className="font-medium">{voice.name}</span>
+                              <span className="text-muted-foreground">({voice.gender})</span>
+                              {voiceId === voice.id && <Check className="ml-auto h-3 w-3" />}
+                            </div>
+                            {voice.desc && (
+                              <p className="text-xs text-muted-foreground mt-0.5 ml-0.5 line-clamp-1">{voice.desc}</p>
+                            )}
+                          </button>
+                        ))
+                      })()}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Language — only for Azure */}
+              {voiceProvider === 'azure' && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{t('voiceLanguage')}</Label>
+                  <Select value={voiceLanguage || ''} onValueChange={handleVoiceLanguageChange} disabled={voiceSaving}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="de-DE" className="text-xs">🇩🇪 Deutsch</SelectItem>
+                      <SelectItem value="en-US" className="text-xs">🇺🇸 English (US)</SelectItem>
+                      <SelectItem value="en-GB" className="text-xs">🇬🇧 English (UK)</SelectItem>
+                      <SelectItem value="es-ES" className="text-xs">🇪🇸 Español</SelectItem>
+                      <SelectItem value="fr-FR" className="text-xs">🇫🇷 Français</SelectItem>
+                      <SelectItem value="it-IT" className="text-xs">🇮🇹 Italiano</SelectItem>
+                      <SelectItem value="nl-NL" className="text-xs">🇳🇱 Nederlands</SelectItem>
+                      <SelectItem value="pl-PL" className="text-xs">🇵🇱 Polski</SelectItem>
+                      <SelectItem value="pt-BR" className="text-xs">🇧🇷 Português (BR)</SelectItem>
+                      <SelectItem value="tr-TR" className="text-xs">🇹🇷 Türkçe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             {/* CSAT Toggle */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold tracking-tight">{t('csatTitle')}</h3>

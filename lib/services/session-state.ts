@@ -45,6 +45,12 @@ export interface ScenarioSessionState {
     /** Pre-started promise so the LLM call runs in parallel with assistant speech */
     textPromise: Promise<string | null>
   }
+  /** Digits accumulated so far for the active dtmf_collect node */
+  pendingDTMFDigits?: string
+  /** Number of invalid-key retries for the active dtmf_menu node */
+  dtmfMenuRetries?: number
+  /** Variables captured by dtmf_collect nodes — accessible as {{varname}} in prompts */
+  dtmfVariables: Record<string, string>
 }
 
 /**
@@ -136,6 +142,47 @@ export class SessionStateManager {
 
   deleteScenarioState(sessionId: string): void {
     this.scenarioStates.delete(sessionId)
+  }
+
+  // ── DTMF state ────────────────────────────────────────────────────────────
+
+  /** Append a digit to the pending DTMF buffer and return all digits so far. */
+  appendDTMFDigit(sessionId: string, digit: string): string {
+    const state = this.scenarioStates.get(sessionId)
+    if (!state) return digit
+    state.pendingDTMFDigits = (state.pendingDTMFDigits ?? '') + digit
+    return state.pendingDTMFDigits
+  }
+
+  /** Clear the pending DTMF digit buffer. */
+  clearPendingDTMF(sessionId: string): void {
+    const state = this.scenarioStates.get(sessionId)
+    if (state) state.pendingDTMFDigits = undefined
+  }
+
+  /** Store a DTMF-captured variable for use as {{varname}} in prompts. */
+  setDTMFVariable(sessionId: string, name: string, value: string): void {
+    const state = this.scenarioStates.get(sessionId)
+    if (state) state.dtmfVariables[name] = value
+  }
+
+  /** Get all DTMF-captured variables for this session. */
+  getDTMFVariables(sessionId: string): Record<string, string> {
+    return this.scenarioStates.get(sessionId)?.dtmfVariables ?? {}
+  }
+
+  /** Increment the menu retry counter and return the new count. */
+  incrementDTMFMenuRetries(sessionId: string): number {
+    const state = this.scenarioStates.get(sessionId)
+    if (!state) return 1
+    state.dtmfMenuRetries = (state.dtmfMenuRetries ?? 0) + 1
+    return state.dtmfMenuRetries
+  }
+
+  /** Reset menu retry counter (e.g. after successful key press). */
+  clearDTMFMenuRetries(sessionId: string): void {
+    const state = this.scenarioStates.get(sessionId)
+    if (state) state.dtmfMenuRetries = undefined
   }
 
   // ── Phoneme replacements ─────────────────────────────────────────────────

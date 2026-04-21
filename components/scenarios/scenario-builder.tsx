@@ -14,13 +14,22 @@ import {
   type NodeMouseHandler,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Plus, Loader2, ArrowLeft, Zap, Check, RotateCcw, History, Settings } from 'lucide-react'
+import { Plus, Loader2, ArrowLeft, Zap, Check, RotateCcw, History, Settings, Hash, ListTree, Bot, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import type { ScenarioNode, ScenarioEdge, CallScenario } from '@/types/scenarios'
-import { ScenarioNodeComponent, PhoneNumberNodeComponent } from './scenario-node'
+import { ScenarioNodeComponent, PhoneNumberNodeComponent, DTMFCollectNodeComponent, DTMFMenuNodeComponent } from './scenario-node'
 import { ScenarioNodeConfig } from './scenario-node-config'
+import { DTMFMenuEdge, DTMFEdgeClickContext } from './dtmf-menu-edge'
+import { DTMFKeypadWheel } from './dtmf-keypad-wheel'
 import { ScenarioHistorySheet } from './scenario-history-sheet'
 import { ScenarioSettingsSheet } from './scenario-settings-sheet'
 import { updateScenario, deployScenario, revertScenario } from '@/lib/actions/scenarios'
@@ -56,7 +65,13 @@ interface ScenarioBuilderProps {
 const nodeTypes = {
   entry_agent: ScenarioNodeComponent,
   agent: ScenarioNodeComponent,
+  dtmf_collect: DTMFCollectNodeComponent,
+  dtmf_menu: DTMFMenuNodeComponent,
   phone_number: PhoneNumberNodeComponent,
+}
+
+const edgeTypes = {
+  dtmf_menu_edge: DTMFMenuEdge,
 }
 
 function buildPhoneNode(phoneNumber: string, entryNode?: ScenarioNode): ScenarioNode {
@@ -87,6 +102,7 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
   const [nodes, setNodes, onNodesChange] = useNodesState<ScenarioNode>(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState<ScenarioEdge>(scenario.edges)
   const [selectedNode, setSelectedNode] = useState<ScenarioNode | null>(null)
+  const [editingEdgeLabel, setEditingEdgeLabel] = useState<{ edgeId: string; label: string; x: number; y: number } | null>(null)
   const [deploying, setDeploying] = useState(false)
   const [reverting, setReverting] = useState(false)
   const [showRevertConfirm, setShowRevertConfirm] = useState(false)
@@ -125,15 +141,13 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     }
   }, [scenario.phone_number, nodes])
 
-  const displayEdges = useMemo(
-    () => (phoneEdge ? [phoneEdge, ...edges] : edges),
-    [phoneEdge, edges]
-  )
-
-  const hasEntryNode = useMemo(
-    () => nodes.some((n) => n.type === 'entry_agent' && n.id !== selectedNode?.id),
-    [nodes, selectedNode]
-  )
+  const displayEdges = useMemo(() => {
+    const dtmfMenuIds = new Set(nodes.filter((n) => n.type === 'dtmf_menu').map((n) => n.id))
+    const typedEdges = edges.map((e) =>
+      dtmfMenuIds.has(e.source) ? { ...e, type: 'dtmf_menu_edge' } : e
+    )
+    return phoneEdge ? [phoneEdge, ...typedEdges] : typedEdges
+  }, [phoneEdge, edges, nodes])
 
   // Auto-save on change (debounced 1.5s)
   const triggerAutoSave = useCallback(
@@ -197,15 +211,20 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     setSelectedNode(null)
   }, [])
 
-  const addAgentNode = useCallback(() => {
+  /** Returns a position just to the right of the existing node cluster, at its vertical midpoint. */
+  const nextNodePosition = useCallback((): { x: number; y: number } => {
     const realNodes = nodes.filter((n) => n.id !== PHONE_NODE_ID)
-    const x = 100 + realNodes.length * 220
-    const hasEntry = realNodes.some((n) => n.type === 'entry_agent')
+    if (realNodes.length === 0) return { x: 100, y: 200 }
+    const maxX = Math.max(...realNodes.map((n) => n.position.x))
+    const avgY = realNodes.reduce((sum, n) => sum + n.position.y, 0) / realNodes.length
+    return { x: maxX + 220, y: Math.round(avgY) }
+  }, [nodes])
 
+  const addAgentNode = useCallback(() => {
     const newNode: ScenarioNode = {
       id: crypto.randomUUID(),
-      type: hasEntry ? 'agent' : 'entry_agent',
-      position: { x, y: 200 },
+      type: 'agent',
+      position: nextNodePosition(),
       data: {
         assistant_id: null,
         label: t('node.unnamedAgent'),
@@ -215,10 +234,54 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
         send_greeting: false,
       },
     }
-
     setNodes((nds) => [...nds, newNode])
     setSelectedNode(newNode)
-  }, [nodes, setNodes])
+  }, [nextNodePosition, setNodes, t])
+
+  const addDTMFCollectNode = useCallback(() => {
+    const newNode: ScenarioNode = {
+      id: crypto.randomUUID(),
+      type: 'dtmf_collect',
+      position: nextNodePosition(),
+      data: {
+        label: t('node.dtmfCollect'),
+        prompt: '',
+        variable_name: '',
+        max_digits: 20,
+        terminator: '#',
+        timeout_seconds: 5,
+      },
+    }
+    setNodes((nds) => [...nds, newNode])
+    setSelectedNode(newNode)
+  }, [nextNodePosition, setNodes, t])
+
+  const addDTMFMenuNode = useCallback(() => {
+    const newNode: ScenarioNode = {
+      id: crypto.randomUUID(),
+      type: 'dtmf_menu',
+      position: nextNodePosition(),
+      data: {
+        label: t('node.dtmfMenu'),
+        prompt: '',
+        timeout_seconds: 10,
+        max_retries: 2,
+        error_prompt: '',
+      },
+    }
+    setNodes((nds) => [...nds, newNode])
+    setSelectedNode(newNode)
+  }, [nextNodePosition, setNodes, t])
+
+  const handleEdgeLabelUpdate = useCallback(
+    (edgeId: string, label: string) => {
+      setEdges((eds) =>
+        eds.map((e) => (e.id === edgeId ? { ...e, label } : e))
+      )
+      setHasUndeployedChanges(true)
+    },
+    [setEdges]
+  )
 
   const handleNodeDelete = useCallback(
     (nodeId: string) => {
@@ -422,10 +485,29 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={addAgentNode}>
-            <Plus className="h-4 w-4 mr-1" />
-            {t('addAgent')}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                {t('addNode')}
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={addAgentNode}>
+                <Bot className="h-4 w-4 mr-2 text-neutral-400" />
+                {t('addAgent')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={addDTMFCollectNode}>
+                <Hash className="h-4 w-4 mr-2 text-blue-500" />
+                {t('addDTMFCollect')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={addDTMFMenuNode}>
+                <ListTree className="h-4 w-4 mr-2 text-purple-500" />
+                {t('addDTMFMenu')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="sm"
@@ -519,11 +601,40 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Keypad wheel for dtmf_menu route key assignment */}
+      {editingEdgeLabel && (() => {
+        // Keys already assigned to sibling edges from the same source node (excluding this edge)
+        const sourceId = edges.find((e) => e.id === editingEdgeLabel.edgeId)?.source
+        const usedKeys = edges
+          .filter((e) => e.source === sourceId && e.id !== editingEdgeLabel.edgeId && e.label)
+          .map((e) => String(e.label))
+        return (
+          <DTMFKeypadWheel
+            x={editingEdgeLabel.x}
+            y={editingEdgeLabel.y}
+            currentLabel={editingEdgeLabel.label}
+            usedKeys={usedKeys}
+            onSelect={(key) => {
+              handleEdgeLabelUpdate(editingEdgeLabel.edgeId, key)
+              setEditingEdgeLabel(null)
+            }}
+            onClear={() => {
+              handleEdgeLabelUpdate(editingEdgeLabel.edgeId, '')
+              setEditingEdgeLabel(null)
+            }}
+            onClose={() => setEditingEdgeLabel(null)}
+          />
+        )
+      })()}
+
       {/* Settings */}
       <ScenarioSettingsSheet
         scenarioId={scenario.id}
         organizationId={scenario.organization_id}
         enableCsat={scenario.enable_csat}
+        voiceProvider={scenario.voice_provider}
+        voiceId={scenario.voice_id}
+        voiceLanguage={scenario.voice_language}
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         onSettingsChange={() => router.refresh()}
@@ -543,27 +654,32 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
       {/* Canvas + Config panel */}
       <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1 h-full">
-          <ReactFlow
-            nodes={nodes}
-            edges={displayEdges}
-            onNodesChange={handleNodesChange}
-            onEdgesChange={handleEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={handleNodeClick}
-            onPaneClick={handlePaneClick}
-            nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.3 }}
-            className="bg-neutral-50 dark:bg-neutral-950"
+          <DTMFEdgeClickContext.Provider
+            value={(edgeId, label, x, y) => setEditingEdgeLabel({ edgeId, label, x, y })}
           >
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={20}
-              color="#cbd5e1"
-              size={1}
-            />
-            <Controls />
-          </ReactFlow>
+            <ReactFlow
+              nodes={nodes}
+              edges={displayEdges}
+              onNodesChange={handleNodesChange}
+              onEdgesChange={handleEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={handleNodeClick}
+              onPaneClick={handlePaneClick}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              fitView
+              fitViewOptions={{ padding: 0.3 }}
+              className="bg-neutral-50 dark:bg-neutral-950"
+            >
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={20}
+                color="#cbd5e1"
+                size={1}
+              />
+              <Controls />
+            </ReactFlow>
+          </DTMFEdgeClickContext.Provider>
         </div>
 
         {/* Node config panel */}
@@ -572,11 +688,8 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
             <ScenarioNodeConfig
               node={currentSelectedNode}
               assistants={assistants}
-              hasEntryNode={
-                nodes.some(
-                  (n) => n.type === 'entry_agent' && n.id !== currentSelectedNode.id
-                )
-              }
+              edges={edges}
+              nodes={savedNodes}
               onUpdate={handleNodeUpdate}
               onDelete={handleNodeDelete}
               onClose={() => setSelectedNode(null)}

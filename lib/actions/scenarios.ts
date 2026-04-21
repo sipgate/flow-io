@@ -288,11 +288,16 @@ export async function restoreScenarioVersion(
 }
 
 /**
- * Update scenario settings (enable_csat, etc.)
+ * Update scenario settings (enable_csat, voice, etc.)
  */
 export async function updateScenarioSettings(
   scenarioId: string,
-  settings: { enable_csat?: boolean }
+  settings: {
+    enable_csat?: boolean
+    voice_provider?: string | null
+    voice_id?: string | null
+    voice_language?: string | null
+  }
 ): Promise<{ error: string | null }> {
   const supabase = await createClient()
 
@@ -300,6 +305,9 @@ export async function updateScenarioSettings(
     updated_at: new Date().toISOString(),
   }
   if (settings.enable_csat !== undefined) updates.enable_csat = settings.enable_csat
+  if ('voice_provider' in settings) updates.voice_provider = settings.voice_provider
+  if ('voice_id' in settings) updates.voice_id = settings.voice_id
+  if ('voice_language' in settings) updates.voice_language = settings.voice_language
 
   const { error } = await supabase
     .from('call_scenarios')

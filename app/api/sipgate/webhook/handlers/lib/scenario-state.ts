@@ -4,9 +4,29 @@ import { getScenarioByIdServiceRole } from '@/lib/repositories/scenarios.reposit
 import { generateLLMResponse } from '@/lib/services/llm-conversation'
 import { sessionState } from '@/lib/services/session-state'
 import type { ScenarioSessionState } from '@/lib/services/session-state'
-import type { ScenarioNode } from '@/types/scenarios'
+import type { ScenarioNode, ScenarioEdge } from '@/types/scenarios'
 import type { CallSessionWithAssistant, AssistantConfig } from './types'
 import { loadAssistantConfig } from './routing'
+
+/**
+ * Find the entry node of a scenario: the node with no incoming edges (topologically first).
+ * Falls back to the first node in the array if all nodes have incoming edges (cycle).
+ */
+export function findScenarioEntryNode(
+  nodes: ScenarioNode[],
+  edges: ScenarioEdge[]
+): ScenarioNode | undefined {
+  const targetIds = new Set(edges.map((e) => e.target))
+  return nodes.find((n) => !targetIds.has(n.id)) ?? nodes[0]
+}
+
+/**
+ * Find the first agent node in the scenario — used to get voice config
+ * when the entry node is a DTMF node (which has no own voice).
+ */
+export function findScenarioVoiceNode(nodes: ScenarioNode[]): ScenarioNode | undefined {
+  return nodes.find((n) => n.type === 'agent' || n.type === 'entry_agent')
+}
 
 /**
  * Generate a contextual greeting from the new agent after a scenario transfer.
@@ -65,22 +85,40 @@ export async function rebuildScenarioState(
   if (!session.scenario_id) return null
   const { scenario } = await getScenarioByIdServiceRole(session.scenario_id)
   if (!scenario) return null
-  const entryNode = scenario.nodes.find((n) => n.type === 'entry_agent')
-  if (!entryNode?.data.assistant_id) return null
-  const entryAssistant: AssistantConfig | null = await loadAssistantConfig(entryNode.data.assistant_id)
-  if (!entryAssistant) return null
+
+  const entryNode = findScenarioEntryNode(scenario.nodes, scenario.edges)
+  if (!entryNode) return null
+
+  // Scenario-level voice takes priority; fall back to first agent node's voice
+  let entryVoiceConfig: ScenarioSessionState['entryVoiceConfig'] = {
+    voice_provider: scenario.voice_provider ?? null,
+    voice_id: scenario.voice_id ?? null,
+    voice_language: scenario.voice_language ?? null,
+  }
+  if (!entryVoiceConfig.voice_id) {
+    const voiceNode = findScenarioVoiceNode(scenario.nodes)
+    if (voiceNode?.data.assistant_id) {
+      const voiceAssistant: AssistantConfig | null = await loadAssistantConfig(voiceNode.data.assistant_id)
+      if (voiceAssistant) {
+        entryVoiceConfig = {
+          voice_provider: voiceAssistant.voice_provider,
+          voice_id: voiceAssistant.voice_id,
+          voice_language: voiceAssistant.voice_language,
+        }
+      }
+    }
+  }
+
   const activeNodeId = (session.metadata?.scenario_active_node_id as string | undefined) ?? entryNode.id
+  const dtmfVariables = (session.metadata?.dtmf_variables as Record<string, string> | undefined) ?? {}
   const state: ScenarioSessionState = {
     scenarioId: scenario.id,
     activeNodeId,
     entryNodeId: entryNode.id,
-    entryVoiceConfig: {
-      voice_provider: entryAssistant.voice_provider,
-      voice_id: entryAssistant.voice_id,
-      voice_language: entryAssistant.voice_language,
-    },
+    entryVoiceConfig,
     nodes: scenario.nodes,
     edges: scenario.edges,
+    dtmfVariables,
   }
   sessionState.setScenarioState(sipgateSessionId, state)
   debug(`[ScenarioState] Rebuilt from DB: scenarioId=${scenario.id} activeNodeId=${activeNodeId}`)

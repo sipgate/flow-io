@@ -118,10 +118,10 @@ export async function getAssistantScenarioLinks(assistantId: string): Promise<As
   const matchingScenarioIds: { id: string; name: string }[] = []
   for (const scenario of scenarios) {
     const nodes = scenario.nodes as Array<{ type?: string; data?: { assistant_id?: string } }>
-    const isEntryAgent = nodes.some(
-      (n) => n.type === 'entry_agent' && n.data?.assistant_id === assistantId
+    const hasAssistant = nodes.some(
+      (n) => (n.type === 'agent' || n.type === 'entry_agent') && n.data?.assistant_id === assistantId
     )
-    if (isEntryAgent) {
+    if (hasAssistant) {
       matchingScenarioIds.push({ id: scenario.id, name: scenario.name as string })
     }
   }

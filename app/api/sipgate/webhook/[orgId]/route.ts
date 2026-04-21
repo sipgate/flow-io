@@ -6,6 +6,8 @@ import { handleSessionStart } from '../handlers/session-start'
 import { handleUserSpeak } from '../handlers/user-speak'
 import { handleSessionEnd } from '../handlers/session-end'
 import { handleAssistantSpeechEnded } from '../handlers/assistant-speech-ended'
+import { handleDTMFReceived } from '../handlers/dtmf-received'
+import { handleUserInputTimeout } from '../handlers/user-input-timeout'
 import type { SipgateEvent, UserBargeInEvent } from '../handlers/lib/types'
 
 function handleUserBargeIn(event: UserBargeInEvent): NextResponse {
@@ -91,6 +93,12 @@ export async function POST(
 
       case 'user_barge_in':
         return handleUserBargeIn(event)
+
+      case 'dtmf_received':
+        return handleDTMFReceived(event)
+
+      case 'user_input_timeout':
+        return handleUserInputTimeout(event)
 
       case 'session_end':
         return handleSessionEnd(event)

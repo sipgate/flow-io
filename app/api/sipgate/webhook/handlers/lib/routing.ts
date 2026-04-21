@@ -9,7 +9,7 @@ import type { AssistantConfig, PhoneNumberRouting } from './types'
  */
 export async function routeCallToAssistant(toPhoneNumber: string, organizationId: string): Promise<{
   phoneNumber: PhoneNumberRouting
-  scenario: { id: string; nodes: ScenarioNode[]; edges: ScenarioEdge[] }
+  scenario: { id: string; nodes: ScenarioNode[]; edges: ScenarioEdge[]; voice_provider: string | null; voice_id: string | null; voice_language: string | null }
 } | null> {
   const supabase = createServiceRoleClient()
 
@@ -40,7 +40,14 @@ export async function routeCallToAssistant(toPhoneNumber: string, organizationId
 
   return {
     phoneNumber: { id: pn.id, phone_number: pn.phone_number, scenario_id: pn.scenario_id },
-    scenario: { id: callScenario.id, nodes: callScenario.nodes, edges: callScenario.edges },
+    scenario: {
+      id: callScenario.id,
+      nodes: callScenario.nodes,
+      edges: callScenario.edges,
+      voice_provider: callScenario.voice_provider,
+      voice_id: callScenario.voice_id,
+      voice_language: callScenario.voice_language,
+    },
   }
 }
 

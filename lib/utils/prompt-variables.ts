@@ -14,6 +14,9 @@ export interface PromptVariableContext {
 
   // Custom variables (extensible)
   custom?: Record<string, string>
+
+  // DTMF-captured variables — from dtmf_collect nodes in the active scenario
+  dtmfVariables?: Record<string, string>
 }
 
 /**
@@ -110,6 +113,12 @@ export function substitutePromptVariables(
 
   // Replace {{variable}} syntax (case-insensitive, allows whitespace)
   for (const [key, value] of Object.entries(variableValues)) {
+    const pattern = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi')
+    result = result.replace(pattern, value)
+  }
+
+  // Replace DTMF-captured variables (e.g. {{callerInput}}, {{pinCode}})
+  for (const [key, value] of Object.entries(context.dtmfVariables ?? {})) {
     const pattern = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi')
     result = result.replace(pattern, value)
   }

@@ -1,0 +1,278 @@
+import { NextResponse } from 'next/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { addTranscriptMessage } from '@/lib/repositories/calls.repository'
+import { sessionState } from '@/lib/services/session-state'
+import type { ScenarioSessionState } from '@/lib/services/session-state'
+import { debug } from '@/lib/utils/logger'
+import { DEFAULT_ELEVENLABS_VOICE_ID, DEFAULT_TTS_PROVIDER } from '@/lib/constants/voices'
+import { persistActiveNodeId, rebuildScenarioState } from './lib/scenario-state'
+import { loadAssistantConfig } from './lib/routing'
+import type { DTMFReceivedEvent, CallSessionWithAssistant } from './lib/types'
+import type { ScenarioNode } from '@/types/scenarios'
+
+/**
+ * Persist DTMF variables to call_sessions.metadata so they survive serverless instance switches.
+ */
+async function persistDTMFVariables(sipgateSessionId: string, dtmfVariables: Record<string, string>): Promise<void> {
+  const supabase = createServiceRoleClient()
+  const { data: current } = await supabase
+    .from('call_sessions')
+    .select('metadata')
+    .eq('session_id', sipgateSessionId)
+    .single()
+  await supabase
+    .from('call_sessions')
+    .update({
+      metadata: {
+        ...(current?.metadata as Record<string, unknown> ?? {}),
+        dtmf_variables: dtmfVariables,
+      },
+    })
+    .eq('session_id', sipgateSessionId)
+}
+
+/**
+ * Build a speak response using the entry voice config (DTMF nodes have no own voice).
+ */
+function buildDTMFSpeak(
+  sessionId: string,
+  text: string,
+  voiceProvider: string | null,
+  voiceId: string | null,
+  voiceLanguage: string | null,
+  userInputTimeoutSeconds?: number,
+) {
+  const tts: Record<string, unknown> = {
+    provider: voiceProvider === 'elevenlabs' ? 'eleven_labs' : (voiceProvider || DEFAULT_TTS_PROVIDER),
+    voice: voiceId || DEFAULT_ELEVENLABS_VOICE_ID,
+    ...(voiceLanguage && voiceProvider !== 'elevenlabs' ? { language: voiceLanguage } : {}),
+  }
+  const json: Record<string, unknown> = {
+    type: 'speak',
+    session_id: sessionId,
+    text,
+    tts,
+  }
+  if (userInputTimeoutSeconds) {
+    json.user_input_timeout_seconds = userInputTimeoutSeconds
+  }
+  return json
+}
+
+/**
+ * After transitioning to a new node, build the appropriate response:
+ * - DTMF nodes: speak their announcement text
+ * - Agent nodes: speak the opening_message if set, so the caller knows they've been routed
+ */
+async function buildNextNodeResponse(
+  sessionId: string,
+  nextNode: ScenarioNode | undefined,
+  voiceProvider: string | null,
+  voiceId: string | null,
+  voiceLanguage: string | null,
+): Promise<Record<string, unknown>> {
+  if (!nextNode) return { success: true }
+
+  if (nextNode.type === 'dtmf_collect' && nextNode.data.prompt) {
+    return buildDTMFSpeak(
+      sessionId,
+      nextNode.data.prompt,
+      voiceProvider,
+      voiceId,
+      voiceLanguage,
+      nextNode.data.timeout_seconds ?? 5,
+    )
+  }
+
+  if (nextNode.type === 'dtmf_menu' && nextNode.data.prompt) {
+    return buildDTMFSpeak(
+      sessionId,
+      nextNode.data.prompt,
+      voiceProvider,
+      voiceId,
+      voiceLanguage,
+      nextNode.data.timeout_seconds ?? 10,
+    )
+  }
+
+  // Agent node — speak opening_message if available so the caller hears something
+  if ((nextNode.type === 'agent' || nextNode.type === 'entry_agent') && nextNode.data.assistant_id) {
+    const assistant = await loadAssistantConfig(nextNode.data.assistant_id)
+    if (assistant?.opening_message) {
+      const tts: Record<string, unknown> = {
+        provider: (assistant.voice_provider === 'elevenlabs' ? 'eleven_labs' : assistant.voice_provider) || DEFAULT_TTS_PROVIDER,
+        voice: assistant.voice_id || DEFAULT_ELEVENLABS_VOICE_ID,
+        ...(assistant.voice_language && assistant.voice_provider !== 'elevenlabs' ? { language: assistant.voice_language } : {}),
+      }
+      return { type: 'speak', session_id: sessionId, text: assistant.opening_message, tts }
+    }
+  }
+
+  // No opening message — caller has to speak first to trigger the LLM
+  return { success: true }
+}
+
+/**
+ * Handle dtmf_collect node: accumulate digits, complete on max_digits or terminator.
+ */
+async function handleDTMFCollect(
+  event: DTMFReceivedEvent,
+  activeNode: ScenarioNode,
+  scenarioState_: ScenarioSessionState,
+  sessionId: string,
+  callSessionId: string,
+): Promise<NextResponse> {
+  const sid = event.session.id
+  const { max_digits = 20, terminator = '#', variable_name = 'dtmfInput', timeout_seconds = 5 } = activeNode.data
+
+  const digits = sessionState.appendDTMFDigit(sid, event.digit)
+  debug(`[DTMF Collect] digit="${event.digit}" accumulated="${digits}" max=${max_digits} terminator="${terminator}"`)
+
+  const isTerminator = terminator && event.digit === terminator
+  const isComplete = isTerminator || digits.length >= max_digits
+
+  if (!isComplete) {
+    // Still collecting — return empty (wait for more digits)
+    return NextResponse.json({ success: true })
+  }
+
+  // Strip terminator from collected value
+  const finalValue = isTerminator ? digits.slice(0, -1) : digits
+  sessionState.clearPendingDTMF(sid)
+  sessionState.setDTMFVariable(sid, variable_name, finalValue)
+  persistDTMFVariables(sid, sessionState.getDTMFVariables(sid)).catch(() => {})
+
+  debug(`[DTMF Collect] Complete: ${variable_name}="${finalValue}"`)
+
+  // Log to transcript
+  addTranscriptMessage({
+    call_session_id: callSessionId,
+    speaker: 'user',
+    text: `[DTMF] ${finalValue}`,
+    metadata: { dtmf: true, variable_name, value: finalValue },
+  }).catch(() => {})
+
+  // Find next node via outbound edge
+  const outboundEdge = scenarioState_.edges.find((e) => e.source === activeNode.id)
+  if (!outboundEdge) {
+    // No next node — stay put, nothing to do
+    return NextResponse.json({ success: true })
+  }
+
+  const nextNode = scenarioState_.nodes.find((n) => n.id === outboundEdge.target)
+  scenarioState_.activeNodeId = outboundEdge.target
+  persistActiveNodeId(sid, outboundEdge.target).catch(() => {})
+
+  const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
+  const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language)
+  return NextResponse.json(responseJson)
+}
+
+/**
+ * Handle dtmf_menu node: route to the matching edge, retry on invalid key.
+ */
+async function handleDTMFMenu(
+  event: DTMFReceivedEvent,
+  activeNode: ScenarioNode,
+  scenarioState_: ScenarioSessionState,
+  sessionId: string,
+  callSessionId: string,
+): Promise<NextResponse> {
+  const sid = event.session.id
+  const { max_retries = 2, error_prompt = '', timeout_seconds = 10 } = activeNode.data
+
+  // Find matching edge by label
+  const matchingEdge = scenarioState_.edges.find(
+    (e) => e.source === activeNode.id && String(e.label) === event.digit
+  )
+
+  if (!matchingEdge) {
+    // Invalid key
+    const retries = sessionState.incrementDTMFMenuRetries(sid)
+    debug(`[DTMF Menu] Invalid key "${event.digit}" (retry ${retries}/${max_retries})`)
+
+    if (retries > max_retries) {
+      // Too many retries — hang up or fallback
+      sessionState.clearDTMFMenuRetries(sid)
+      return NextResponse.json({
+        type: 'hangup',
+        session_id: sid,
+      })
+    }
+
+    // Re-announce menu (error prompt if set, else main prompt)
+    const text = error_prompt || activeNode.data.prompt || ''
+    if (!text) return NextResponse.json({ success: true })
+
+    const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
+    return NextResponse.json(
+      buildDTMFSpeak(sid, text, voice_provider, voice_id, voice_language, timeout_seconds)
+    )
+  }
+
+  // Valid key — transition to target node
+  sessionState.clearDTMFMenuRetries(sid)
+  const nextNode = scenarioState_.nodes.find((n) => n.id === matchingEdge.target)
+  scenarioState_.activeNodeId = matchingEdge.target
+  persistActiveNodeId(sid, matchingEdge.target).catch(() => {})
+
+  debug(`[DTMF Menu] Key "${event.digit}" → node ${matchingEdge.target} (${nextNode?.data.label})`)
+
+  addTranscriptMessage({
+    call_session_id: callSessionId,
+    speaker: 'user',
+    text: `[DTMF Menu] Key ${event.digit}`,
+    metadata: { dtmf: true, digit: event.digit, target_node_id: matchingEdge.target },
+  }).catch(() => {})
+
+  const { voice_provider, voice_id, voice_language } = scenarioState_.entryVoiceConfig
+  const responseJson = await buildNextNodeResponse(sid, nextNode, voice_provider, voice_id, voice_language)
+  return NextResponse.json(responseJson)
+}
+
+/**
+ * Handle DTMFReceived event.
+ * Dispatches to dtmf_collect or dtmf_menu handler based on the active node type.
+ */
+export async function handleDTMFReceived(event: DTMFReceivedEvent): Promise<NextResponse> {
+  debug('🔢 DTMF Received:', event.digit, 'session:', event.session.id)
+  const sid = event.session.id
+
+  // Load call session from DB
+  const supabase = createServiceRoleClient()
+  const { data: sessionData } = await supabase
+    .from('call_sessions')
+    .select('id, session_id, organization_id, assistant_id, scenario_id, metadata')
+    .eq('session_id', sid)
+    .single()
+
+  const session = sessionData as { id: string; session_id: string; organization_id: string; assistant_id: string | null; scenario_id: string | null; metadata: Record<string, unknown> } | null
+
+  if (!session) {
+    console.error('[DTMF] Call session not found:', sid)
+    return NextResponse.json({ success: true })
+  }
+
+  // Get or rebuild scenario state
+  let scenarioState_ = sessionState.getScenarioState(sid)
+  if (!scenarioState_) {
+    const rebuilt = await rebuildScenarioState(session as unknown as CallSessionWithAssistant, sid)
+    if (!rebuilt) return NextResponse.json({ success: true })
+    scenarioState_ = rebuilt
+  }
+
+  const activeNode = scenarioState_.nodes.find((n) => n.id === scenarioState_!.activeNodeId)
+  if (!activeNode) return NextResponse.json({ success: true })
+
+  if (activeNode.type === 'dtmf_collect') {
+    return handleDTMFCollect(event, activeNode, scenarioState_!, sid, session.id)
+  }
+
+  if (activeNode.type === 'dtmf_menu') {
+    return handleDTMFMenu(event, activeNode, scenarioState_!, sid, session.id)
+  }
+
+  // Active node is an agent — DTMF input ignored (agent handles voice)
+  debug(`[DTMF] Ignoring digit "${event.digit}" — active node is type "${activeNode.type}"`)
+  return NextResponse.json({ success: true })
+}

@@ -16,6 +16,7 @@ function makeScenarioState(): ScenarioSessionState {
     entryVoiceConfig: { voice_provider: 'azure', voice_id: 'de-DE-KatjaNeural', voice_language: 'de-DE' },
     nodes: [],
     edges: [],
+    dtmfVariables: {},
   }
 }
 

@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
             nodeId: n.id,
             assistantId: n.data.assistant_id!,
             label: n.data.label,
-            transferInstruction: n.data.transfer_instruction,
-            inheritVoice: n.data.inherit_voice,
+            transferInstruction: n.data.transfer_instruction ?? '',
+            inheritVoice: n.data.inherit_voice ?? false,
           }))
       }
     }

@@ -11,6 +11,7 @@ import { sessionState } from '@/lib/services/session-state'
 import type { BargeInConfig } from '@/lib/services/session-state'
 import { buildSpeakResponse, buildAssistantMeta, buildTTSConfig } from './lib/speak-response'
 import { routeCallToAssistant, loadAssistantConfig } from './lib/routing'
+import { findScenarioEntryNode, findScenarioVoiceNode } from './lib/scenario-state'
 import type { SessionStartEvent } from './lib/types'
 
 /**
@@ -37,10 +38,10 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
 
   const { phoneNumber, scenario } = routing
 
-  // Find entry node and load its assistant
-  const entryNode = scenario.nodes.find((n) => n.type === 'entry_agent')
-  if (!entryNode?.data.assistant_id) {
-    console.error('[SessionStart] Scenario has no entry agent node:', scenario.id)
+  // Find the entry node topologically (no incoming edges = first node in the flow)
+  const entryNode = findScenarioEntryNode(scenario.nodes, scenario.edges)
+  if (!entryNode) {
+    console.error('[SessionStart] Scenario has no nodes:', scenario.id)
     return NextResponse.json({
       type: 'speak',
       session_id: sessionId,
@@ -49,32 +50,30 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     })
   }
 
-  const assistant = await loadAssistantConfig(entryNode.data.assistant_id)
-  if (!assistant) {
-    console.error('[SessionStart] Entry agent not found:', entryNode.data.assistant_id)
+  // Voice config always comes from the first agent node (DTMF nodes have no own voice)
+  const voiceNode = findScenarioVoiceNode(scenario.nodes)
+  if (!voiceNode?.data.assistant_id) {
+    console.error('[SessionStart] Scenario has no agent node with an assigned assistant:', scenario.id)
     return NextResponse.json({
       type: 'speak',
       session_id: sessionId,
-      text: 'The entry agent for this scenario could not be loaded.',
+      text: 'This call scenario is not configured correctly. Please try again later.',
       tts: { provider: DEFAULT_TTS_PROVIDER, voice: DEFAULT_ELEVENLABS_VOICE_ID },
     })
   }
 
-  sessionState.setScenarioState(sessionId, {
-    scenarioId: scenario.id,
-    activeNodeId: entryNode.id,
-    entryNodeId: entryNode.id,
-    entryVoiceConfig: {
-      voice_provider: assistant.voice_provider,
-      voice_id: assistant.voice_id,
-      voice_language: assistant.voice_language,
-    },
-    nodes: scenario.nodes,
-    edges: scenario.edges,
-  })
-  debug(`[SessionStart] Scenario routing: scenarioId=${scenario.id} entryNode=${entryNode.id} assistant=${assistant.name}`)
+  const voiceAssistant = await loadAssistantConfig(voiceNode.data.assistant_id)
+  if (!voiceAssistant) {
+    console.error('[SessionStart] Voice agent not found:', voiceNode.data.assistant_id)
+    return NextResponse.json({
+      type: 'speak',
+      session_id: sessionId,
+      text: 'The agent for this scenario could not be loaded.',
+      tts: { provider: DEFAULT_TTS_PROVIDER, voice: DEFAULT_ELEVENLABS_VOICE_ID },
+    })
+  }
 
-  if (!assistant.is_active) {
+  if (!voiceAssistant.is_active) {
     return NextResponse.json({
       type: 'speak',
       session_id: sessionId,
@@ -82,6 +81,84 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
       tts: { provider: DEFAULT_TTS_PROVIDER, voice: DEFAULT_ELEVENLABS_VOICE_ID },
     })
   }
+
+  // Scenario-level voice overrides agent voice (used for DTMF announcements + inherit_voice agents)
+  const entryVoiceConfig = {
+    voice_provider: scenario.voice_provider || voiceAssistant.voice_provider,
+    voice_id: scenario.voice_id || voiceAssistant.voice_id,
+    voice_language: scenario.voice_language || voiceAssistant.voice_language,
+  }
+
+  sessionState.setScenarioState(sessionId, {
+    scenarioId: scenario.id,
+    activeNodeId: entryNode.id,
+    entryNodeId: entryNode.id,
+    entryVoiceConfig,
+    nodes: scenario.nodes,
+    edges: scenario.edges,
+    dtmfVariables: {},
+  })
+  debug(`[SessionStart] Scenario routing: scenarioId=${scenario.id} entryNode=${entryNode.id} (type=${entryNode.type})`)
+
+  // ── DTMF entry: speak the prompt and wait for keypad input ───────────────
+  if (entryNode.type === 'dtmf_collect' || entryNode.type === 'dtmf_menu') {
+    const { session: callSession } = await createCallSession({
+      session_id: sessionId,
+      organization_id: voiceAssistant.organization_id,
+      assistant_id: voiceAssistant.id,
+      phone_number_id: phoneNumber.id,
+      scenario_id: scenario.id,
+      caller_number: from_phone_number,
+      metadata: event,
+    }) as { session: { id: string } | null }
+
+    if (!callSession) {
+      console.error('[SessionStart] Failed to create call session for DTMF entry')
+      return NextResponse.json({
+        type: 'speak',
+        session_id: sessionId,
+        text: 'Sorry, there was an error setting up the call.',
+        tts: buildTTSConfig(voiceAssistant),
+      })
+    }
+
+    const { prompt, timeout_seconds } = entryNode.data
+    if (!prompt) return NextResponse.json({ success: true })
+
+    const tts: Record<string, unknown> = {
+      provider: voiceAssistant.voice_provider === 'elevenlabs' ? 'eleven_labs' : (voiceAssistant.voice_provider || DEFAULT_TTS_PROVIDER),
+      voice: voiceAssistant.voice_id || DEFAULT_ELEVENLABS_VOICE_ID,
+      ...(voiceAssistant.voice_language && voiceAssistant.voice_provider !== 'elevenlabs'
+        ? { language: voiceAssistant.voice_language }
+        : {}),
+    }
+    return NextResponse.json({
+      type: 'speak',
+      session_id: sessionId,
+      text: prompt,
+      tts,
+      user_input_timeout_seconds: timeout_seconds ?? (entryNode.type === 'dtmf_collect' ? 5 : 10),
+    })
+  }
+
+  // ── Agent entry: existing behaviour ──────────────────────────────────────
+
+  // For agent entry, load the entry node's own assistant (may differ from voiceNode)
+  const entryAssistantId = entryNode.data.assistant_id
+  if (!entryAssistantId) {
+    console.error('[SessionStart] Entry agent node has no assistant assigned:', entryNode.id)
+    return NextResponse.json({
+      type: 'speak',
+      session_id: sessionId,
+      text: 'This call scenario is not configured correctly. Please try again later.',
+      tts: { provider: DEFAULT_TTS_PROVIDER, voice: DEFAULT_ELEVENLABS_VOICE_ID },
+    })
+  }
+
+  // voiceNode is the same as entryNode when entry is an agent — reuse if possible
+  const assistant = entryNode.id === voiceNode.id
+    ? voiceAssistant
+    : await loadAssistantConfig(entryAssistantId) ?? voiceAssistant
 
   const { session: callSession } = await createCallSession({
     session_id: sessionId,

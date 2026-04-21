@@ -1,14 +1,24 @@
 import type { Node, Edge } from '@xyflow/react'
 
-export type ScenarioNodeType = 'entry_agent' | 'agent'
+export type ScenarioNodeType = 'entry_agent' | 'agent' | 'dtmf_collect' | 'dtmf_menu'
 
 export type ScenarioNodeData = {
-  assistant_id: string | null
   label: string
-  avatar_url: string | null
-  transfer_instruction: string
-  inherit_voice: boolean
-  send_greeting: boolean
+  // Agent-specific fields (absent on DTMF nodes)
+  assistant_id?: string | null
+  avatar_url?: string | null
+  transfer_instruction?: string
+  inherit_voice?: boolean
+  send_greeting?: boolean
+  // dtmf_collect fields
+  prompt?: string
+  timeout_seconds?: number
+  max_digits?: number
+  terminator?: string
+  variable_name?: string
+  // dtmf_menu fields
+  max_retries?: number
+  error_prompt?: string
 }
 
 export type ScenarioNode = Node<ScenarioNodeData, ScenarioNodeType>
@@ -26,6 +36,10 @@ export interface CallScenario {
   deployed_at: string | null
   enable_csat: boolean
   phone_number: string | null
+  /** Scenario-level voice — used for DTMF announcements and as base for inherit_voice agents. */
+  voice_provider: string | null
+  voice_id: string | null
+  voice_language: string | null
   created_at: string
   updated_at: string
 }
