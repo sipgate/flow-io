@@ -35,8 +35,9 @@ export const ALL_MODELS: ModelDefinition[] = [
   { provider: 'google', model: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', voiceEligible: true, supportsThinking: true, toolEligible: true },
   // Tool-only (slower but more capable)
   { provider: 'google', model: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', supportsThinking: true, toolEligible: true },
-  // Preview models — not for voice, useful for testing
-  { provider: 'google', model: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite', voiceEligible: true, toolEligible: true, hideFromComparison: true },
+  // Gemini 3.1 (stable + preview)
+  { provider: 'google', model: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', voiceEligible: true, toolEligible: true },
+  { provider: 'google', model: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite (Preview)', voiceEligible: true, toolEligible: true, hideFromComparison: true },
   { provider: 'google', model: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', supportsThinking: true, toolEligible: true, hideFromComparison: true },
   { provider: 'google', model: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', supportsThinking: true, toolEligible: true, hideFromComparison: true },
 
