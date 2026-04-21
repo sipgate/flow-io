@@ -12,6 +12,8 @@ import { handleSessionStart } from '@/app/api/sipgate/webhook/handlers/session-s
 import { handleUserSpeak } from '@/app/api/sipgate/webhook/handlers/user-speak'
 import { handleSessionEnd } from '@/app/api/sipgate/webhook/handlers/session-end'
 import { handleAssistantSpeechEnded } from '@/app/api/sipgate/webhook/handlers/assistant-speech-ended'
+import { handleDTMFReceived } from '@/app/api/sipgate/webhook/handlers/dtmf-received'
+import { handleUserInputTimeout } from '@/app/api/sipgate/webhook/handlers/user-input-timeout'
 import { sessionState } from '@/lib/services/session-state'
 import { cancelPendingMCP } from '@/lib/services/pending-mcp-state'
 import type { SipgateEvent, UserBargeInEvent } from '@/app/api/sipgate/webhook/handlers/lib/types'
@@ -60,7 +62,7 @@ export function setupWebSocketServer(server: Server): void {
         return
       }
 
-      debug(`[WS] Event: ${event.type} session=${event.session.id}`)
+      console.log(`[WS] event=${event.type} session=${event.session.id}`)
 
       try {
         let response: Response | null = null
@@ -93,15 +95,24 @@ export function setupWebSocketServer(server: Server): void {
             const barge = event as UserBargeInEvent
             cancelPendingMCP(barge.session.id)
             sessionState.deletePendingAction(barge.session.id)
+            sessionState.setBargeInOccurred(barge.session.id)
             return
           }
+
+          case 'dtmf_received':
+            response = await handleDTMFReceived(event)
+            break
+
+          case 'user_input_timeout':
+            response = await handleUserInputTimeout(event)
+            break
 
           case 'session_end':
             response = await handleSessionEnd(event)
             break
 
           default:
-            debug('[WS] Unknown event type:', (event as { type: string }).type)
+            console.warn('[WS] Unknown event type:', (event as { type: string }).type)
             return
         }
 
