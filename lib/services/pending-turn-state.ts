@@ -11,30 +11,23 @@
  */
 
 /**
- * Maximum number of consecutive wait_for_turn fillers before the LLM is forced
- * to respond regardless of whether it would call wait_for_turn again.
+ * After this many milliseconds of silence (no new user_speak following a partial turn),
+ * the accumulated text is treated as a complete turn and wait_for_turn is suppressed.
  */
-export const MAX_WAIT_FOR_TURN_FILLERS = 3
+const PENDING_TURN_TIMEOUT_MS = 10_000
 
 interface PendingTurnState {
   /** Accumulated user text (may span multiple incomplete utterances) */
   effectiveText: string
-  /** Unix timestamp when the partial was stored (ms) */
+  /** Unix timestamp when the partial was last stored (ms) */
   savedAt: number
-  /** Number of wait_for_turn fillers played consecutively in this turn */
-  fillerCount: number
 }
 
 const pendingTurns = new Map<string, PendingTurnState>()
 
-/** Store a partial user utterance for a session and increment the filler counter. */
+/** Store a partial user utterance for a session. */
 export function setPendingTurn(sessionId: string, effectiveText: string): void {
-  const existing = pendingTurns.get(sessionId)
-  pendingTurns.set(sessionId, {
-    effectiveText,
-    savedAt: Date.now(),
-    fillerCount: (existing?.fillerCount ?? 0) + 1,
-  })
+  pendingTurns.set(sessionId, { effectiveText, savedAt: Date.now() })
 }
 
 /** Get the accumulated partial text for a session, or null if none pending. */
@@ -43,11 +36,14 @@ export function getPendingTurn(sessionId: string): string | null {
 }
 
 /**
- * Returns true when the filler limit has been reached for this session.
- * The LLM should not be offered wait_for_turn in this case.
+ * Returns true when the user has been silent for longer than PENDING_TURN_TIMEOUT_MS
+ * since the last partial turn was stored. In this case the LLM should not be offered
+ * wait_for_turn — the accumulated text is treated as the complete turn.
  */
-export function isFillerLimitReached(sessionId: string): boolean {
-  return (pendingTurns.get(sessionId)?.fillerCount ?? 0) >= MAX_WAIT_FOR_TURN_FILLERS
+export function isPendingTurnTimedOut(sessionId: string): boolean {
+  const state = pendingTurns.get(sessionId)
+  if (!state) return false
+  return Date.now() - state.savedAt >= PENDING_TURN_TIMEOUT_MS
 }
 
 /** Clear pending turn state for a session. */

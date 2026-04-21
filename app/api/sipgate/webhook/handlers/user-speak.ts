@@ -10,7 +10,7 @@ import {
   cancelPendingMCP,
 } from '@/lib/services/pending-mcp-state'
 import { startHesitation, clearHesitation } from '@/lib/services/hesitation-state'
-import { getPendingTurn, setPendingTurn, clearPendingTurn, isFillerLimitReached } from '@/lib/services/pending-turn-state'
+import { getPendingTurn, setPendingTurn, clearPendingTurn, isPendingTurnTimedOut } from '@/lib/services/pending-turn-state'
 import {
   getVariableCollection,
   checkPendingWebhooks,
@@ -354,7 +354,7 @@ async function handleUserSpeakMCPPath(
     variableCollectionPrompt: collectionPrompt || undefined,
     validationContext,
     scenarioTransferNodes,
-    disableWaitForTurn: isFillerLimitReached(event.session.id),
+    disableWaitForTurn: isPendingTurnTimedOut(event.session.id),
   }).then(result => {
     const responseLatencyMs = Date.now() - llmStartMs
     if (result.waitForTurn) {
@@ -527,7 +527,8 @@ async function handleUserSpeakFastPath(
           .filter((t) =>
             (t.speaker === 'user' || t.speaker === 'assistant') &&
             !(t.metadata as Record<string, unknown> | null)?.partial_turn &&
-            !(t.metadata as Record<string, unknown> | null)?.wait_for_turn_filler
+            !(t.metadata as Record<string, unknown> | null)?.wait_for_turn_filler &&
+            !(t.metadata as Record<string, unknown> | null)?.hold_message
           )
           .map((t) => ({
             role: t.speaker === 'user' ? ('user' as const) : ('assistant' as const),
@@ -560,7 +561,7 @@ async function handleUserSpeakFastPath(
       variableCollectionPrompt: collectionPrompt || undefined,
       validationContext,
       scenarioTransferNodes,
-      disableWaitForTurn: isFillerLimitReached(event.session.id),
+      disableWaitForTurn: isPendingTurnTimedOut(event.session.id),
     })
     const responseLatencyMs = Date.now() - llmStartMs
 
