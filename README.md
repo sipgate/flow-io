@@ -6,7 +6,7 @@
 
 **App only (requires external Supabase):**
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/sipgate/flow-io)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/LcIT76)
 
 ---
 
@@ -35,7 +35,7 @@ The fastest way to run everything locally or on a server:
 
 ```bash
 # 1. Clone
-git clone https://github.com/BlackMac/flow-io.git
+git clone https://github.com/sipgate/flow-io.git
 cd flow-io
 
 # 2. Configure
@@ -295,4 +295,4 @@ MIT — see [LICENSE](./LICENSE) for details.
 
 - [sipgate AI Flow API docs](https://sipgate.github.io/sipgate-ai-flow-api/)
 - [Supabase docs](https://supabase.com/docs)
-- [Issues](https://github.com/BlackMac/flow-io/issues)
+- [Issues](https://github.com/sipgate/flow-io/issues)
