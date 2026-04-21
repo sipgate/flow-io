@@ -14,7 +14,7 @@ import {
   type NodeMouseHandler,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Plus, Loader2, ArrowLeft, Zap, Check, RotateCcw, History, Settings, Hash, ListTree, Bot, ChevronDown } from 'lucide-react'
+import { Plus, Loader2, ArrowLeft, Zap, Check, RotateCcw, History, Settings, Hash, ListTree, Bot, ChevronDown, PhoneForwarded } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -26,7 +26,7 @@ import {
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import type { ScenarioNode, ScenarioEdge, CallScenario } from '@/types/scenarios'
-import { ScenarioNodeComponent, PhoneNumberNodeComponent, DTMFCollectNodeComponent, DTMFMenuNodeComponent } from './scenario-node'
+import { ScenarioNodeComponent, PhoneNumberNodeComponent, DTMFCollectNodeComponent, DTMFMenuNodeComponent, PhoneTransferNodeComponent } from './scenario-node'
 import { ScenarioNodeConfig } from './scenario-node-config'
 import { DTMFMenuEdge, DTMFEdgeClickContext } from './dtmf-menu-edge'
 import { DTMFKeypadWheel } from './dtmf-keypad-wheel'
@@ -67,6 +67,7 @@ const nodeTypes = {
   agent: ScenarioNodeComponent,
   dtmf_collect: DTMFCollectNodeComponent,
   dtmf_menu: DTMFMenuNodeComponent,
+  phone_transfer: PhoneTransferNodeComponent,
   phone_number: PhoneNumberNodeComponent,
 }
 
@@ -267,6 +268,23 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
         timeout_seconds: 10,
         max_retries: 2,
         error_prompt: '',
+      },
+    }
+    setNodes((nds) => [...nds, newNode])
+    setSelectedNode(newNode)
+  }, [nextNodePosition, setNodes, t])
+
+  const addPhoneTransferNode = useCallback(() => {
+    const newNode: ScenarioNode = {
+      id: crypto.randomUUID(),
+      type: 'phone_transfer',
+      position: nextNodePosition(),
+      data: {
+        label: t('node.phoneTransfer'),
+        target_phone_number: '',
+        caller_id_name: '',
+        caller_id_number: '',
+        transfer_instruction: '',
       },
     }
     setNodes((nds) => [...nds, newNode])
@@ -505,6 +523,10 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
               <DropdownMenuItem onClick={addDTMFMenuNode}>
                 <ListTree className="h-4 w-4 mr-2 text-purple-500" />
                 {t('addDTMFMenu')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={addPhoneTransferNode}>
+                <PhoneForwarded className="h-4 w-4 mr-2 text-emerald-500" />
+                {t('addPhoneTransfer')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

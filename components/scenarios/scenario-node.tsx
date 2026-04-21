@@ -3,7 +3,7 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { useTranslations } from 'next-intl'
-import { Bot, Phone, Hash, ListTree, Mic, RefreshCw } from 'lucide-react'
+import { Bot, Phone, Hash, ListTree, Mic, RefreshCw, PhoneForwarded } from 'lucide-react'
 import type { ScenarioNode } from '@/types/scenarios'
 
 export const PhoneNumberNodeComponent = memo(function PhoneNumberNodeComponent({
@@ -130,6 +130,49 @@ export const DTMFMenuNodeComponent = memo(function DTMFMenuNodeComponent({
         position={Position.Bottom}
         className="!w-3 !h-3 !bg-neutral-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-900"
       />
+    </div>
+  )
+})
+
+export const PhoneTransferNodeComponent = memo(function PhoneTransferNodeComponent({
+  data,
+  selected,
+}: NodeProps<ScenarioNode>) {
+  const t = useTranslations('scenarios')
+  return (
+    <div
+      className={`
+        w-64 rounded-xl border-2 bg-white dark:bg-neutral-900 shadow-sm transition-all
+        border-emerald-500 dark:border-emerald-400
+        ${selected ? 'ring-2 ring-offset-1 ring-emerald-400' : ''}
+      `}
+    >
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-3 !h-3 !bg-neutral-400 dark:!bg-neutral-500 !border-2 !border-white dark:!border-neutral-900"
+      />
+      <div className="px-4 py-3 space-y-2">
+        <div className="flex items-start gap-2">
+          <PhoneForwarded className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+          <span className="font-semibold text-sm text-neutral-900 dark:text-neutral-100 leading-snug line-clamp-2 min-w-0">
+            {data.label || t('node.phoneTransfer')}
+          </span>
+        </div>
+
+        {data.target_phone_number && (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+            <Phone className="h-3 w-3" />
+            {data.target_phone_number}
+          </span>
+        )}
+
+        {data.transfer_instruction && (
+          <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-3 leading-relaxed">
+            {data.transfer_instruction}
+          </p>
+        )}
+      </div>
     </div>
   )
 })

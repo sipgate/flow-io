@@ -240,7 +240,19 @@ export async function handleUserSpeak(event: UserSpeakEvent) {
     scenarioTransferNodes = outboundEdges
       .map((edge) => {
         const targetNode = scenarioState!.nodes.find((n) => n.id === edge.target)
-        if (!targetNode?.data.assistant_id) return null
+        if (!targetNode) return null
+        if (targetNode.type === 'phone_transfer') {
+          return {
+            nodeId: targetNode.id,
+            label: targetNode.data.label || 'External Transfer',
+            transferInstruction: targetNode.data.transfer_instruction || '',
+            isPhoneTransfer: true,
+            targetPhoneNumber: targetNode.data.target_phone_number,
+            callerIdName: targetNode.data.caller_id_name,
+            callerIdNumber: targetNode.data.caller_id_number,
+          }
+        }
+        if (!targetNode.data.assistant_id) return null
         return {
           nodeId: targetNode.id,
           assistantId: targetNode.data.assistant_id,
@@ -695,6 +707,39 @@ async function handleScenarioTransfer(params: ScenarioTransferParams) {
   debug(`[Webhook] Scenario transfer (${pathLabel}): switching active node to ${targetNodeId}`)
 
   const targetNode = scenarioState.nodes.find((n) => n.id === targetNodeId)
+
+  // Phone transfer: speak handoff message, then forward the call to an external number
+  if (targetNode?.type === 'phone_transfer') {
+    const speakText = handoffMessage || response
+    const rawTarget = targetNode.data.target_phone_number ?? ''
+    // Flow API expects E.164 without leading +
+    const targetPhoneNumber = rawTarget.startsWith('+') ? rawTarget.slice(1) : rawTarget
+    sessionState.setPendingAction(event.session.id, {
+      type: 'transfer',
+      targetPhoneNumber,
+      callerIdName: targetNode.data.caller_id_name || assistant.name,
+      callerIdNumber: targetNode.data.caller_id_number || event.session.to_phone_number,
+    })
+    const speak = buildSpeakResponse(event.session.id, speakText, assistant, bargeIn)
+    await addTranscriptMessage({
+      call_session_id: session.id,
+      speaker: 'assistant',
+      text: speak.cleanText,
+      metadata: buildAssistantMeta(assistant, {
+        scenario_transfer: targetNodeId,
+        phone_transfer: rawTarget,
+        ...(isQuickResponse ? { quick_response: true } : { usage }),
+      }),
+      assistant_name: assistant.name, assistant_avatar_url: assistant.avatar_url,
+    })
+    addTranscriptMessage({
+      call_session_id: session.id,
+      speaker: 'tool',
+      text: `phone_transfer: ${targetNode.data.label || rawTarget}`,
+      metadata: { tool_name: 'phone_transfer', target_node_id: targetNodeId, target_phone_number: rawTarget },
+    }).catch(() => {})
+    return NextResponse.json(speak.json)
+  }
 
   // Seamless transfer: same voice, no handoff message, call new agent immediately
   if (targetNode?.data.inherit_voice && targetNode.data.assistant_id) {

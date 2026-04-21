@@ -9,10 +9,16 @@ import type { LLMTool } from '@/lib/llm/types'
 
 export interface ScenarioTransferNode {
   nodeId: string
-  assistantId: string
   label: string
   transferInstruction: string
-  inheritVoice: boolean
+  // Agent transfer
+  assistantId?: string
+  inheritVoice?: boolean
+  // Phone transfer
+  isPhoneTransfer?: boolean
+  targetPhoneNumber?: string
+  callerIdName?: string
+  callerIdNumber?: string
 }
 
 export const SCENARIO_TRANSFER_TOOL_NAME = 'transfer_to_agent'

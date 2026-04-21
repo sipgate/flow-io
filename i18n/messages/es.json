@@ -1039,11 +1039,19 @@
       "noRoutesYet": "Sin rutas aún. Conecte nodos a este menú.",
       "editRouteLabel": "Asignar tecla",
       "editRouteLabelDescription": "¿Qué tecla (0–9, *, #) debe activar esta ruta?",
-      "applyRouteLabel": "Aplicar"
+      "applyRouteLabel": "Aplicar",
+      "phoneTransfer": "Transferencia externa",
+      "targetPhoneNumber": "Número de destino",
+      "targetPhoneNumberHint": "Formato E.164, p. ej. +4940123456",
+      "callerIdName": "Nombre de presentación",
+      "callerIdNamePlaceholder": "p. ej. Soporte",
+      "callerIdNumber": "Número de presentación",
+      "phoneTransferInstructionPlaceholder": "¿Cuándo debe transferirse la llamada aquí? p. ej. \"Transferir cuando el llamante quiera hablar con contabilidad\""
     },
     "addNode": "Añadir nodo",
     "addDTMFCollect": "Entrada de dígitos",
     "addDTMFMenu": "Menú de teclado",
+    "addPhoneTransfer": "Transferencia externa",
     "page": {
       "title": "Call Scenarios",
       "description": "Enrute llamadas a través de múltiples agentes con el constructor visual de escenarios"

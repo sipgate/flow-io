@@ -1233,11 +1233,19 @@
       "noRoutesYet": "Noch keine Routen. Verbinden Sie Knoten mit diesem Menü.",
       "editRouteLabel": "Taste zuweisen",
       "editRouteLabelDescription": "Welche Taste (0–9, *, #) soll diese Route auslösen?",
-      "applyRouteLabel": "Übernehmen"
+      "applyRouteLabel": "Übernehmen",
+      "phoneTransfer": "Externe Weiterleitung",
+      "targetPhoneNumber": "Zielrufnummer",
+      "targetPhoneNumberHint": "E.164-Format, z.B. +4940123456",
+      "callerIdName": "Anzeigename beim Empfänger",
+      "callerIdNamePlaceholder": "z.B. Support",
+      "callerIdNumber": "Angezeigte Rufnummer",
+      "phoneTransferInstructionPlaceholder": "Wann soll hierher weitergeleitet werden? z.B. \"Weiterleiten wenn der Anrufer mit der Buchhaltung sprechen möchte\""
     },
     "addNode": "Knoten hinzufügen",
     "addDTMFCollect": "Zifferneingabe",
     "addDTMFMenu": "Tastenmenü",
+    "addPhoneTransfer": "Externe Weiterleitung",
     "page": {
       "title": "Call-Szenarien",
       "description": "Leiten Sie Anrufe mit dem visuellen Szenario-Builder durch mehrere Agenten"

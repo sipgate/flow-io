@@ -1233,11 +1233,19 @@
       "noRoutesYet": "No routes yet. Connect nodes to this menu node.",
       "editRouteLabel": "Assign Key",
       "editRouteLabelDescription": "Which key (0–9, *, #) should trigger this route?",
-      "applyRouteLabel": "Apply"
+      "applyRouteLabel": "Apply",
+      "phoneTransfer": "External Transfer",
+      "targetPhoneNumber": "Target Phone Number",
+      "targetPhoneNumberHint": "E.164 format, e.g. +4940123456",
+      "callerIdName": "Caller ID Name",
+      "callerIdNamePlaceholder": "e.g. Support",
+      "callerIdNumber": "Caller ID Number",
+      "phoneTransferInstructionPlaceholder": "When should the call be forwarded here? e.g. \"Transfer when the caller wants to speak with accounting\""
     },
     "addNode": "Add Node",
     "addDTMFCollect": "Digit Input",
     "addDTMFMenu": "Keypad Menu",
+    "addPhoneTransfer": "External Transfer",
     "page": {
       "title": "Call Scenarios",
       "description": "Route calls through multiple agents with visual scenario builder"

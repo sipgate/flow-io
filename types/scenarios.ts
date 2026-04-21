@@ -1,6 +1,6 @@
 import type { Node, Edge } from '@xyflow/react'
 
-export type ScenarioNodeType = 'entry_agent' | 'agent' | 'dtmf_collect' | 'dtmf_menu'
+export type ScenarioNodeType = 'entry_agent' | 'agent' | 'dtmf_collect' | 'dtmf_menu' | 'phone_transfer'
 
 export type ScenarioNodeData = {
   label: string
@@ -19,6 +19,10 @@ export type ScenarioNodeData = {
   // dtmf_menu fields
   max_retries?: number
   error_prompt?: string
+  // phone_transfer fields
+  target_phone_number?: string
+  caller_id_name?: string
+  caller_id_number?: string
 }
 
 export type ScenarioNode = Node<ScenarioNodeData, ScenarioNodeType>
