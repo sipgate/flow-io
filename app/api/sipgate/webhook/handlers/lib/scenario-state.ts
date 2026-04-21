@@ -5,8 +5,8 @@ import { generateLLMResponse } from '@/lib/services/llm-conversation'
 import { sessionState } from '@/lib/services/session-state'
 import type { ScenarioSessionState } from '@/lib/services/session-state'
 import type { ScenarioNode, ScenarioEdge } from '@/types/scenarios'
-import type { CallSessionWithAssistant, AssistantConfig } from './types'
-import { loadAssistantConfig } from './routing'
+import type { CallSessionWithAssistant } from './types'
+import { DEFAULT_ELEVENLABS_VOICE_ID } from '@/lib/constants/voices'
 
 /**
  * Find the entry node of a scenario: the node with no incoming edges (topologically first).
@@ -89,24 +89,11 @@ export async function rebuildScenarioState(
   const entryNode = findScenarioEntryNode(scenario.nodes, scenario.edges)
   if (!entryNode) return null
 
-  // Scenario-level voice takes priority; fall back to first agent node's voice
-  let entryVoiceConfig: ScenarioSessionState['entryVoiceConfig'] = {
-    voice_provider: scenario.voice_provider ?? null,
-    voice_id: scenario.voice_id ?? null,
+  // Scenario-level voice; fall back to system default — never to a random agent's voice.
+  const entryVoiceConfig: ScenarioSessionState['entryVoiceConfig'] = {
+    voice_provider: scenario.voice_provider ?? 'elevenlabs',
+    voice_id: scenario.voice_id ?? DEFAULT_ELEVENLABS_VOICE_ID,
     voice_language: scenario.voice_language ?? null,
-  }
-  if (!entryVoiceConfig.voice_id) {
-    const voiceNode = findScenarioVoiceNode(scenario.nodes)
-    if (voiceNode?.data.assistant_id) {
-      const voiceAssistant: AssistantConfig | null = await loadAssistantConfig(voiceNode.data.assistant_id)
-      if (voiceAssistant) {
-        entryVoiceConfig = {
-          voice_provider: voiceAssistant.voice_provider,
-          voice_id: voiceAssistant.voice_id,
-          voice_language: voiceAssistant.voice_language,
-        }
-      }
-    }
   }
 
   const activeNodeId = (session.metadata?.scenario_active_node_id as string | undefined) ?? entryNode.id

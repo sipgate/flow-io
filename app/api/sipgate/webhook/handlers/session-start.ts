@@ -82,11 +82,12 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     })
   }
 
-  // Scenario-level voice overrides agent voice (used for DTMF announcements + inherit_voice agents)
+  // Scenario-level voice used for DTMF announcements and inherit_voice agents.
+  // Falls back to system default — never to a random agent's voice.
   const entryVoiceConfig = {
-    voice_provider: scenario.voice_provider || voiceAssistant.voice_provider,
-    voice_id: scenario.voice_id || voiceAssistant.voice_id,
-    voice_language: scenario.voice_language || voiceAssistant.voice_language,
+    voice_provider: scenario.voice_provider || 'elevenlabs',
+    voice_id: scenario.voice_id || DEFAULT_ELEVENLABS_VOICE_ID,
+    voice_language: scenario.voice_language || null,
   }
 
   sessionState.setScenarioState(sessionId, {
