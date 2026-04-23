@@ -115,18 +115,20 @@ Everything runs in one command: Postgres, Auth, Storage, Realtime, the app, and 
 
 ## Prerequisites
 
-| Service | Purpose | Link |
+> **Note:** STT and TTS during live calls are handled entirely by sipgate's infrastructure — you don't need your own speech API keys for calls to work. The keys below are only needed for dashboard features like voice previews, LLM-powered prompt optimization, CSAT scoring, and knowledge base embeddings.
+
+| Service | Purpose | Required for |
 |---------|---------|------|
-| **sipgate** | Login + phone numbers | [Register](https://www.sipgate.de) · [Create OAuth app](https://console.sipgate.com/third-party-clients) |
-| **OpenAI** | LLM + embeddings | [platform.openai.com](https://platform.openai.com) |
-| **ElevenLabs** | Text-to-speech | [elevenlabs.io](https://elevenlabs.io) |
+| **sipgate** | Login + phone numbers | Everything — create an [OAuth app](https://console.sipgate.com/third-party-clients) |
+| **OpenAI** | LLM during calls + embeddings | Calls (if using GPT models), KB search, CSAT scoring |
+| **ElevenLabs** | Voice preview in dashboard | Optional — only needed for previewing voices before assigning them |
 
 **sipgate OAuth app setup:**
 1. Go to [console.sipgate.com/third-party-clients](https://console.sipgate.com/third-party-clients)
 2. Create a new app, set redirect URI to `https://your-domain.com/api/auth/sipgate/callback`
 3. Copy Client ID and Client Secret into `.env.docker` (or `.env.local` for dev)
 
-Google Gemini, Mistral, and Azure TTS are optional — configure in assistant settings.
+Google Gemini and Mistral are alternatives to OpenAI for the LLM during calls. Azure TTS is an alternative to ElevenLabs for voice previews. All are optional — configure per assistant.
 
 ---
 
@@ -183,8 +185,8 @@ Follow [Quick Start](#quick-start--self-hosting-docker) above.
 | `SIPGATE_WEBHOOK_SECRET` | Shared secret for webhook HMAC-SHA256 verification |
 | `SIPGATE_WEBHOOK_TOKEN` | Token for WebSocket authentication |
 | `NEXT_PUBLIC_APP_URL` | Canonical app URL for OAuth redirects |
-| `OPENAI_API_KEY` | OpenAI API key (LLM + embeddings) |
-| `ELEVENLABS_API_KEY` | ElevenLabs API key (TTS) |
+| `OPENAI_API_KEY` | OpenAI API key — LLM during calls, KB embeddings, CSAT scoring |
+| `ELEVENLABS_API_KEY` | ElevenLabs API key — voice preview in dashboard only (optional) |
 
 See [`.env.example`](.env.example) for the full list including optional variables.
 
