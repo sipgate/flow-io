@@ -989,7 +989,7 @@ export function AssistantForm({
                 <div className="flex-1 min-w-0">
                   <Label htmlFor="enable_semantic_eot" className="font-medium cursor-pointer">
                     {t('enableSemanticEot')}{' '}
-                    <span className="text-xs font-normal text-muted-foreground">(experimental)</span>
+                    <span className="text-xs font-normal text-muted-foreground">{t('experimental')}</span>
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">{t('semanticEotDescription')}</p>
                 </div>

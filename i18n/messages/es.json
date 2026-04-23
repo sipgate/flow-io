@@ -281,6 +281,7 @@
       "criteriaSection": "Criterios de Llamada",
       "criteriaSectionHint": "Defina criterios de calidad para la evaluación automática de conversaciones",
       "saveFirst": "Guardar primero",
+      "experimental": "(experimental)",
       "unsavedChanges": {
         "title": "Cambios No Guardados",
         "description": "Tienes cambios sin guardar. Si sales ahora, se perderán.",
@@ -417,7 +418,9 @@
       "promptTokens": "Tokens de prompt",
       "completionTokens": "Tokens de respuesta",
       "totalTokens": "Tokens totales",
-      "bargeIn": "Interrumpido (Barge-in)"
+      "bargeIn": "Interrumpido (Barge-in)",
+      "toolArguments": "Argumentos",
+      "toolResult": "Resultado"
     },
     "analytics": {
       "totalCalls": "Total de llamadas",
@@ -791,6 +794,8 @@
     "tps": "Tokens/sec",
     "modelLabel": "Modelo",
     "toolUse": "Herramienta",
+    "toolArguments": "Argumentos",
+    "toolResult": "Resultado",
     "voice": {
       "ttsOn": "Salida de voz activada (clic para silenciar)",
       "ttsOff": "Salida de voz desactivada (clic para activar)",
@@ -1001,6 +1006,16 @@
       "voiceLanguage": "Idioma",
       "voiceSearch": "Buscar voz…",
       "noVoicesFound": "No se encontraron voces.",
+      "langDeDe": "🇩🇪 Deutsch",
+      "langEnUs": "🇺🇸 English (US)",
+      "langEnGb": "🇬🇧 English (UK)",
+      "langEsEs": "🇪🇸 Español",
+      "langFrFr": "🇫🇷 Français",
+      "langItIt": "🇮🇹 Italiano",
+      "langNlNl": "🇳🇱 Nederlands",
+      "langPlPl": "🇵🇱 Polski",
+      "langPtBr": "🇧🇷 Português (BR)",
+      "langTrTr": "🇹🇷 Türkçe",
       "csatTitle": "Satisfacción del cliente (CSAT)",
       "csatLabel": "Activar CSAT",
       "csatDescription": "Evaluar automáticamente la satisfacción del cliente después de cada llamada en este escenario.",
@@ -1043,6 +1058,8 @@
       "variableName": "Nombre de variable",
       "maxDigits": "Máx. dígitos",
       "terminator": "Tecla terminadora",
+      "terminatorHash": "# (Almohadilla)",
+      "terminatorStar": "* (Asterisco)",
       "terminatorNone": "Ninguna",
       "timeoutSeconds": "Tiempo de espera (segundos)",
       "errorPrompt": "Anuncio de tecla inválida",
@@ -1407,7 +1424,10 @@
     "deleteDescription": "Esta herramienta será eliminada de todos los asistentes. Esta acción no se puede deshacer.",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "update": "Actualizar"
+    "update": "Actualizar",
+    "typeString": "string",
+    "typeNumber": "number",
+    "typeBoolean": "boolean"
   },
   "callTools": {
     "saving": "Guardando...",

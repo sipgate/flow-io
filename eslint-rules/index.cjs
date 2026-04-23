@@ -10,10 +10,10 @@
  *   flow-io-design/no-hardcoded-jsx-text → JSXText muss i18n-Aufruf sein
  */
 
-const tableInCard = require('./table-in-card')
-const badgeColorPairing = require('./badge-color-pairing')
-const noHardcodedJsxText = require('./no-hardcoded-jsx-text')
-const noButtonInCardHeader = require('./no-button-in-card-header')
+const tableInCard = require('./table-in-card.cjs')
+const badgeColorPairing = require('./badge-color-pairing.cjs')
+const noHardcodedJsxText = require('./no-hardcoded-jsx-text.cjs')
+const noButtonInCardHeader = require('./no-button-in-card-header.cjs')
 
 const plugin = {
   meta: {

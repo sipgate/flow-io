@@ -320,6 +320,7 @@
       "criteriaSection": "Call Criteria",
       "criteriaSectionHint": "Define quality criteria for automatic conversation evaluation",
       "saveFirst": "Save first",
+      "experimental": "(experimental)",
       "unsavedChanges": {
         "title": "Unsaved Changes",
         "description": "You have unsaved changes. If you leave now, they will be lost.",
@@ -475,7 +476,9 @@
       "promptTokens": "Prompt Tokens",
       "completionTokens": "Completion Tokens",
       "totalTokens": "Total Tokens",
-      "bargeIn": "Interrupted (Barge-in)"
+      "bargeIn": "Interrupted (Barge-in)",
+      "toolArguments": "Arguments",
+      "toolResult": "Result"
     },
     "analytics": {
       "totalCalls": "Total Calls",
@@ -985,6 +988,8 @@
     "tps": "Tokens/sec",
     "modelLabel": "Model",
     "toolUse": "Tool",
+    "toolArguments": "Arguments",
+    "toolResult": "Result",
     "voice": {
       "ttsOn": "Voice output on (click to mute)",
       "ttsOff": "Voice output off (click to enable)",
@@ -1195,6 +1200,16 @@
       "voiceLanguage": "Language",
       "voiceSearch": "Search voice…",
       "noVoicesFound": "No voices found.",
+      "langDeDe": "🇩🇪 Deutsch",
+      "langEnUs": "🇺🇸 English (US)",
+      "langEnGb": "🇬🇧 English (UK)",
+      "langEsEs": "🇪🇸 Español",
+      "langFrFr": "🇫🇷 Français",
+      "langItIt": "🇮🇹 Italiano",
+      "langNlNl": "🇳🇱 Nederlands",
+      "langPlPl": "🇵🇱 Polski",
+      "langPtBr": "🇧🇷 Português (BR)",
+      "langTrTr": "🇹🇷 Türkçe",
       "csatTitle": "Customer Satisfaction (CSAT)",
       "csatLabel": "Enable CSAT",
       "csatDescription": "Automatically evaluate customer satisfaction after each call in this scenario.",
@@ -1237,6 +1252,8 @@
       "variableName": "Variable Name",
       "maxDigits": "Max. Digits",
       "terminator": "Terminator Key",
+      "terminatorHash": "# (Hash)",
+      "terminatorStar": "* (Star)",
       "terminatorNone": "None",
       "timeoutSeconds": "Timeout (seconds)",
       "errorPrompt": "Invalid Key Announcement",
@@ -1601,7 +1618,10 @@
     "deleteDescription": "This tool will be removed from all assistants. This action cannot be undone.",
     "cancel": "Cancel",
     "save": "Save",
-    "update": "Update"
+    "update": "Update",
+    "typeString": "string",
+    "typeNumber": "number",
+    "typeBoolean": "boolean"
   },
   "callTools": {
     "saving": "Saving...",

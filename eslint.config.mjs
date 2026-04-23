@@ -4,7 +4,7 @@ import nextTs from "eslint-config-next/typescript";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const designPlugin = require("./eslint-rules/index.js");
+const designPlugin = require("./eslint-rules/index.cjs");
 
 const eslintConfig = defineConfig([
   ...nextVitals,

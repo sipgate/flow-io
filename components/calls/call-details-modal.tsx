@@ -811,13 +811,13 @@ export function CallDetailsModal({
                                   <TooltipContent side="top" className="text-xs max-w-80 space-y-2 p-3">
                                     {transcript.metadata?.arguments && Object.keys(transcript.metadata.arguments).length > 0 && (
                                       <div>
-                                        <div className="font-semibold text-neutral-400 mb-1">Arguments</div>
+                                        <div className="font-semibold text-neutral-400 mb-1">{t('toolArguments')}</div>
                                         <pre className="whitespace-pre-wrap break-all font-mono">{JSON.stringify(transcript.metadata.arguments, null, 2)}</pre>
                                       </div>
                                     )}
                                     {transcript.metadata?.result_preview && (
                                       <div>
-                                        <div className="font-semibold text-neutral-400 mb-1">Result</div>
+                                        <div className="font-semibold text-neutral-400 mb-1">{t('toolResult')}</div>
                                         <div className="whitespace-pre-wrap break-all">{transcript.metadata.result_preview}</div>
                                       </div>
                                     )}

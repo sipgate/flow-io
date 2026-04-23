@@ -320,6 +320,7 @@
       "criteriaSection": "Anrufkriterien",
       "criteriaSectionHint": "Definieren Sie Qualitätskriterien für die automatische Gesprächsbewertung",
       "saveFirst": "Zuerst speichern",
+      "experimental": "(experimentell)",
       "unsavedChanges": {
         "title": "Ungespeicherte Änderungen",
         "description": "Du hast ungespeicherte Änderungen. Wenn du jetzt gehst, gehen diese verloren.",
@@ -475,7 +476,9 @@
       "promptTokens": "Prompt-Tokens",
       "completionTokens": "Antwort-Tokens",
       "totalTokens": "Tokens gesamt",
-      "bargeIn": "Unterbrechung (Barge-in)"
+      "bargeIn": "Unterbrechung (Barge-in)",
+      "toolArguments": "Argumente",
+      "toolResult": "Ergebnis"
     },
     "analytics": {
       "totalCalls": "Gesamte Anrufe",
@@ -985,6 +988,8 @@
     "tps": "Tokens/sec",
     "modelLabel": "Modell",
     "toolUse": "Tool",
+    "toolArguments": "Argumente",
+    "toolResult": "Ergebnis",
     "voice": {
       "ttsOn": "Sprachausgabe an (klicken zum Stummschalten)",
       "ttsOff": "Sprachausgabe aus (klicken zum Aktivieren)",
@@ -1195,6 +1200,16 @@
       "voiceLanguage": "Sprache",
       "voiceSearch": "Stimme suchen…",
       "noVoicesFound": "Keine Stimmen gefunden.",
+      "langDeDe": "🇩🇪 Deutsch",
+      "langEnUs": "🇺🇸 English (US)",
+      "langEnGb": "🇬🇧 English (UK)",
+      "langEsEs": "🇪🇸 Español",
+      "langFrFr": "🇫🇷 Français",
+      "langItIt": "🇮🇹 Italiano",
+      "langNlNl": "🇳🇱 Nederlands",
+      "langPlPl": "🇵🇱 Polski",
+      "langPtBr": "🇧🇷 Português (BR)",
+      "langTrTr": "🇹🇷 Türkçe",
       "csatTitle": "Kundenzufriedenheit (CSAT)",
       "csatLabel": "CSAT aktivieren",
       "csatDescription": "Kundenzufriedenheit nach jedem Anruf in diesem Szenario automatisch bewerten.",
@@ -1237,6 +1252,8 @@
       "variableName": "Variablenname",
       "maxDigits": "Max. Ziffern",
       "terminator": "Abschlusstaste",
+      "terminatorHash": "# (Raute)",
+      "terminatorStar": "* (Stern)",
       "terminatorNone": "Keine",
       "timeoutSeconds": "Timeout (Sekunden)",
       "errorPrompt": "Ansage bei ungültiger Taste",
@@ -1601,7 +1618,10 @@
     "deleteDescription": "Dieses Tool wird von allen Assistenten entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "update": "Aktualisieren"
+    "update": "Aktualisieren",
+    "typeString": "string",
+    "typeNumber": "number",
+    "typeBoolean": "boolean"
   },
   "callTools": {
     "saving": "Speichern...",

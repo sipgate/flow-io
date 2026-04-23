@@ -62,7 +62,7 @@ export function setupWebSocketServer(server: Server): void {
         return
       }
 
-      console.log(`[WS] event=${event.type} session=${event.session.id}`)
+      console.warn(`[WS] event=${event.type} session=${event.session.id}`)
 
       try {
         let response: Response | null = null

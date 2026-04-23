@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 interface SpeechRecognitionEvent {
   results: SpeechRecognitionResultList
@@ -33,13 +33,10 @@ declare global {
 export function useSpeechRecognition(lang = 'de-DE') {
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState('')
-  const [isSupported, setIsSupported] = useState(false)
+  const [isSupported] = useState(
+    () => typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
+  )
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
-
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    setIsSupported(!!SR)
-  }, [])
 
   const start = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition

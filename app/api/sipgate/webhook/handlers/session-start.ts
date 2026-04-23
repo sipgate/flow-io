@@ -21,7 +21,7 @@ import type { SessionStartEvent } from './lib/types'
  */
 export async function handleSessionStart(event: SessionStartEvent, organizationId: string) {
   debug('📞 Session Start:', event)
-  console.log('[SessionStart] session object:', JSON.stringify(event.session))
+  console.warn('[SessionStart] session object:', JSON.stringify(event.session))
 
   const { to_phone_number, from_phone_number, id: sessionId, direction } = event.session
 
@@ -99,7 +99,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     edges: scenario.edges,
     dtmfVariables: {},
   })
-  console.log(`[SessionStart] entryNode type=${entryNode.type} id=${entryNode.id} scenarioId=${scenario.id}`)
+  console.warn(`[SessionStart] entryNode type=${entryNode.type} id=${entryNode.id} scenarioId=${scenario.id}`)
 
   // ── DTMF entry: speak the prompt and wait for keypad input ───────────────
   if (entryNode.type === 'dtmf_collect' || entryNode.type === 'dtmf_menu') {
@@ -138,7 +138,7 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
         : {}),
     }
     const timeout = timeout_seconds ?? (entryNode.type === 'dtmf_collect' ? 5 : 10)
-    console.log(`[SessionStart] DTMF speak: prompt="${prompt.slice(0, 60)}..." timeout=${timeout}s`)
+    console.warn(`[SessionStart] DTMF speak: prompt="${prompt.slice(0, 60)}..." timeout=${timeout}s`)
 
     addTranscriptMessage({
       call_session_id: callSession.id,

@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
 
       // Generate greeting if transfer happened
       let greetingMessage: { id: string; content: string; timestamp: string } | null = null
-      let greetingMetadata: Record<string, unknown> = {}
+      const greetingMetadata: Record<string, unknown> = {}
       if (transferInfo && followUpResult.scenarioTransfer && scenarioNodes) {
         const targetNode = scenarioNodes.nodes.find((n) => n.id === followUpResult.scenarioTransfer!.targetNodeId)
         if (targetNode?.data.send_greeting && targetNode.data.assistant_id) {
@@ -594,7 +594,7 @@ export async function POST(request: NextRequest) {
 
     // ── Generate greeting from new agent if send_greeting is enabled ──────────
     let greetingMessage: { id: string; content: string; timestamp: string } | null = null
-    let greetingMetadata: Record<string, unknown> = {}
+    const greetingMetadata: Record<string, unknown> = {}
 
     if (transferInfo && llmResult.scenarioTransfer && scenarioNodes) {
       const targetNode = scenarioNodes.nodes.find((n) => n.id === llmResult.scenarioTransfer!.targetNodeId)

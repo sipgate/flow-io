@@ -63,7 +63,7 @@ export async function POST(
     const rawBody = await request.text()
 
     // Log EVERY incoming request before auth — to detect any events arriving
-    console.log('[Webhook] incoming request orgId:', orgId, 'bodyLength:', rawBody.length, 'body:', rawBody.slice(0, 200))
+    console.warn('[Webhook] incoming request orgId:', orgId, 'bodyLength:', rawBody.length, 'body:', rawBody.slice(0, 200))
 
     if (!(await verifyWebhookSignature(request, rawBody))) {
       console.warn('⚠️ Webhook signature verification failed')
@@ -71,7 +71,7 @@ export async function POST(
     }
 
     const event: SipgateEvent = JSON.parse(rawBody)
-    console.log('[Webhook] event type:', event.type, 'session:', (event as { session?: { id?: string } }).session?.id)
+    console.warn('[Webhook] event type:', event.type, 'session:', (event as { session?: { id?: string } }).session?.id)
 
     switch (event.type) {
       case 'session_start':

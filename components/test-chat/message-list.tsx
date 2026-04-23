@@ -91,13 +91,13 @@ export function MessageList({ messages, isLoading = false, isSpeaking = false }:
                           <TooltipContent side="top" className="text-xs max-w-80 space-y-2 p-3">
                             {toolCallData.arguments && Object.keys(toolCallData.arguments).length > 0 && (
                               <div>
-                                <div className="font-semibold text-neutral-400 mb-1">Arguments</div>
+                                <div className="font-semibold text-neutral-400 mb-1">{t('toolArguments')}</div>
                                 <pre className="whitespace-pre-wrap break-all font-mono">{JSON.stringify(toolCallData.arguments, null, 2)}</pre>
                               </div>
                             )}
                             {toolCallData.result && (
                               <div>
-                                <div className="font-semibold text-neutral-400 mb-1">Result</div>
+                                <div className="font-semibold text-neutral-400 mb-1">{t('toolResult')}</div>
                                 <div className="whitespace-pre-wrap break-all">{toolCallData.result.length > 300 ? `${toolCallData.result.slice(0, 300)}…` : toolCallData.result}</div>
                               </div>
                             )}

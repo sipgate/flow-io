@@ -419,16 +419,16 @@ export function ScenarioSettingsSheet({
                       <SelectValue placeholder="—" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="de-DE" className="text-xs">🇩🇪 Deutsch</SelectItem>
-                      <SelectItem value="en-US" className="text-xs">🇺🇸 English (US)</SelectItem>
-                      <SelectItem value="en-GB" className="text-xs">🇬🇧 English (UK)</SelectItem>
-                      <SelectItem value="es-ES" className="text-xs">🇪🇸 Español</SelectItem>
-                      <SelectItem value="fr-FR" className="text-xs">🇫🇷 Français</SelectItem>
-                      <SelectItem value="it-IT" className="text-xs">🇮🇹 Italiano</SelectItem>
-                      <SelectItem value="nl-NL" className="text-xs">🇳🇱 Nederlands</SelectItem>
-                      <SelectItem value="pl-PL" className="text-xs">🇵🇱 Polski</SelectItem>
-                      <SelectItem value="pt-BR" className="text-xs">🇧🇷 Português (BR)</SelectItem>
-                      <SelectItem value="tr-TR" className="text-xs">🇹🇷 Türkçe</SelectItem>
+                      <SelectItem value="de-DE" className="text-xs">{t('langDeDe')}</SelectItem>
+                      <SelectItem value="en-US" className="text-xs">{t('langEnUs')}</SelectItem>
+                      <SelectItem value="en-GB" className="text-xs">{t('langEnGb')}</SelectItem>
+                      <SelectItem value="es-ES" className="text-xs">{t('langEsEs')}</SelectItem>
+                      <SelectItem value="fr-FR" className="text-xs">{t('langFrFr')}</SelectItem>
+                      <SelectItem value="it-IT" className="text-xs">{t('langItIt')}</SelectItem>
+                      <SelectItem value="nl-NL" className="text-xs">{t('langNlNl')}</SelectItem>
+                      <SelectItem value="pl-PL" className="text-xs">{t('langPlPl')}</SelectItem>
+                      <SelectItem value="pt-BR" className="text-xs">{t('langPtBr')}</SelectItem>
+                      <SelectItem value="tr-TR" className="text-xs">{t('langTrTr')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

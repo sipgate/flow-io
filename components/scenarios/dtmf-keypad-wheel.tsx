@@ -75,7 +75,7 @@ export function DTMFKeypadWheel({ x, y, currentLabel, usedKeys, onSelect, onClea
               className={cn(
                 'absolute w-9 h-9 rounded-full font-mono font-bold text-sm shadow-md transition-all duration-100',
                 isActive
-                  ? 'bg-purple-600 dark:bg-purple-500 text-white border-2 border-purple-400 scale-115'
+                  ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-2 border-purple-500/30 scale-115'
                   : isUsed
                     ? 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-300 dark:text-neutral-600 cursor-not-allowed shadow-none'
                     : 'bg-white dark:bg-neutral-800 border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900 hover:scale-110'

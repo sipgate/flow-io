@@ -114,8 +114,8 @@ export function DTMFCollectConfig({ node, onUpdate, onDelete, onClose }: DTMFCol
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="#" className="text-xs"># (Hash)</SelectItem>
-            <SelectItem value="*" className="text-xs">* (Stern)</SelectItem>
+            <SelectItem value="#" className="text-xs">{t('node.terminatorHash')}</SelectItem>
+            <SelectItem value="*" className="text-xs">{t('node.terminatorStar')}</SelectItem>
             <SelectItem value="none" className="text-xs">{t('node.terminatorNone')}</SelectItem>
           </SelectContent>
         </Select>

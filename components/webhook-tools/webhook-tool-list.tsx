@@ -376,9 +376,9 @@ export function WebhookToolList({ organizationId, tools: initialTools }: Webhook
                   <Select value={param.type} onValueChange={v => updateParameter(i, 'type', v)}>
                     <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="string">string</SelectItem>
-                      <SelectItem value="number">number</SelectItem>
-                      <SelectItem value="boolean">boolean</SelectItem>
+                      <SelectItem value="string">{t('typeString')}</SelectItem>
+                      <SelectItem value="number">{t('typeNumber')}</SelectItem>
+                      <SelectItem value="boolean">{t('typeBoolean')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Input
