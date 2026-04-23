@@ -1,8 +1,17 @@
 # Flow-IO
 
-**Open-source AI voice assistant platform.** Connect your sipgate phone numbers to AI assistants — built with Next.js, Supabase, and the sipgate AI Flow SDK.
+**Build production-ready AI phone assistants in minutes — not months.**
+
+Flow-IO connects your sipgate phone numbers to AI agents with custom prompts, knowledge bases, multi-step call flows, and full analytics. Open-source, self-hostable, European infrastructure.
 
 ![Flow-IO Scenario Builder](docs/images/screenshot.png)
+
+**Self-hosted (everything included):**
+```bash
+git clone https://github.com/sipgate/flow-io.git
+cp .env.docker.example .env.docker  # fill in API keys
+docker compose --env-file .env.docker up -d
+```
 
 **App only (requires external Supabase):**
 
@@ -10,28 +19,76 @@
 
 ---
 
+## Why Flow-IO
+
+Most voice AI platforms are black boxes: fixed prompts, opaque pricing, US-only infrastructure, no self-hosting. Flow-IO gives you full control:
+
+- **Your prompts** — no guardrails, no vendor-imposed behavior
+- **Your LLM** — OpenAI, Google Gemini, or Mistral; swap at any time
+- **Your data** — Postgres + pgvector, self-hosted or Supabase Cloud
+- **European infrastructure** — sipgate backbone, GDPR-compliant by default
+- **MIT license** — fork it, white-label it, build on it
+
+---
+
 ## Features
 
-✅ **sipgate OAuth login** — sign in with your sipgate account; phone numbers are imported automatically  
-✅ **AI Voice Assistants** — custom personalities, system prompts, LLM provider choice (OpenAI, Gemini, Mistral)  
-✅ **Visual Call Flows** — drag-and-drop routing logic with multiple agents and scenarios  
-✅ **Knowledge Base** — RAG-powered context injection via pgvector  
-✅ **Real-time Call Monitoring** — live transcripts and dashboards via WebSocket + Supabase Realtime  
-✅ **Post-call Evaluation** — CSAT scoring and configurable success criteria per assistant  
-✅ **Multi-tenancy** — organizations with role-based access control and Row Level Security  
-✅ **Webhooks & MCP** — post-call actions, tool integrations, MCP server support  
-✅ **Automated Testing** — call simulation and regression testing framework  
-✅ **i18n** — English and German UI  
+### AI Assistants
+- Custom system prompts with full LLM control
+- **LLM providers**: OpenAI (GPT-5, GPT-4.1, GPT-4o), Google Gemini (2.5 Flash, 2.5 Pro), Mistral (Small, Medium, Large)
+- **Text-to-speech**: ElevenLabs and Azure voices, phoneme dictionaries for pronunciation tuning
+- Barge-in control: let callers interrupt the assistant mid-sentence
+- Hold message pattern: assistant announces actions before executing them
 
-🔜 **LLM Cascading** — automatic fallback chain across providers on failure  
-🔜 **A/B Testing** — split traffic across prompt variants and compare performance  
-🔜 **Human Takeover** — escalate live calls to a human agent from the dashboard
+### Knowledge Base & RAG
+- Upload documents (PDF, text) — chunked, embedded, stored in pgvector
+- Semantic search injected into context automatically
+- Knowledge base as an LLM-callable tool (assistant searches on demand)
+- Multiple assistants can share one knowledge base
+
+### LLM-Callable Tools
+- **MCP servers** — connect any Model Context Protocol server (SSE or HTTP)
+- **HTTP Webhook Tools** — define custom HTTP endpoints the assistant calls as tools during a conversation; configure per-org, assign to assistants
+
+### Multi-Agent Scenarios
+Visual drag-and-drop call flow builder with node types:
+- Entry agent, agent handoff (seamless or with announcement)
+- DTMF collect (gather digits, map to variable)
+- DTMF menu (digit-based routing with retries)
+- Phone transfer
+
+### Variables & Data Extraction
+- Define typed variables (string, number, boolean, date, phone, email)
+- Collected via DTMF, real-time LLM extraction, or post-call fallback
+- Validation via regex or external webhook
+- Mandatory collection and caller confirmation per variable
+
+### Post-Call Webhooks
+- **Post-call webhook** fires after every completed call — regardless of whether variables were configured
+- Payload: session data, extracted variables (empty array if none), optional full transcript
+- HTTP Webhook Tools for real-time data fetching during calls
+
+### Context Webhooks
+- Inject external data at call start via a configurable endpoint
+- Returned JSON available in prompts as `{{context.key}}`
+
+### Analytics & Quality
+- Call volume, duration, success rate by day/hour/assistant
+- CSAT scoring (1–5) evaluated post-call by LLM
+- Configurable call criteria (pass/fail checkpoints per assistant)
+- Period-over-period comparison, drill-down per call
+- PDF report export
+
+### Infrastructure
+- **Multi-tenancy** with organizations, roles (owner/admin/member), Row Level Security
+- **sipgate OAuth** — sign in with sipgate, phone numbers imported automatically
+- **WebSocket + HTTP** dual-mode webhook handling
+- **Chat Simulator** — test assistants in-browser without a real phone call
+- **i18n** — English, German, Spanish UI
 
 ---
 
 ## Quick Start — Self-Hosting (Docker)
-
-The fastest way to run everything locally or on a server:
 
 ```bash
 # 1. Clone
@@ -58,8 +115,6 @@ Everything runs in one command: Postgres, Auth, Storage, Realtime, the app, and 
 
 ## Prerequisites
 
-You need accounts / API keys for:
-
 | Service | Purpose | Link |
 |---------|---------|------|
 | **sipgate** | Login + phone numbers | [Register](https://www.sipgate.de) · [Create OAuth app](https://console.sipgate.com/third-party-clients) |
@@ -71,53 +126,42 @@ You need accounts / API keys for:
 2. Create a new app, set redirect URI to `https://your-domain.com/api/auth/sipgate/callback`
 3. Copy Client ID and Client Secret into `.env.docker` (or `.env.local` for dev)
 
-Supabase and Google Gemini / Mistral are optional (Supabase Cloud or self-hosted via Docker).
+Google Gemini, Mistral, and Azure TTS are optional — configure in assistant settings.
 
 ---
 
 ## Deployment
 
-Flow-IO needs a **Next.js host** and a **Supabase instance** (Postgres + Auth + Storage + Realtime). The Docker setup bundles everything. For PaaS platforms, you use [Supabase Cloud](https://supabase.com) (free tier available) for the backend.
+Flow-IO needs a **Next.js host** and a **Supabase instance**. The Docker setup bundles everything. For PaaS platforms, use [Supabase Cloud](https://supabase.com) (free tier available).
 
 | Platform | Supabase needed? | Notes |
 |----------|-----------------|-------|
-| **Docker** (self-hosted) | ❌ bundled | Full control, runs anywhere |
-| **Coolify** | ❌ bundled | Git-connected, deploys full `docker-compose.yml` |
-| **Railway** (UI import) | ❌ bundled | Drag `docker-compose.yml` onto Railway canvas |
-| **Railway** (button) | ✅ Supabase Cloud | App only, add env vars |
-| **Render** | ✅ Supabase Cloud | Deploy as Docker container |
-| **Fly.io / any Docker host** | ✅ Supabase Cloud | `docker run` the app image |
+| **Docker** (self-hosted) | bundled | Full control, runs anywhere |
+| **Coolify** | bundled | Git-connected, deploys full `docker-compose.yml` |
+| **Railway** (UI import) | bundled | Drag `docker-compose.yml` onto Railway canvas |
+| **Railway** (button) | Supabase Cloud | App only, add env vars |
+| **Render / Fly.io** | Supabase Cloud | Deploy as Docker container |
 
-### Docker (self-hosted, everything included)
+### Docker (everything included)
 
-Follow the [Quick Start](#quick-start--self-hosting-docker) above. Supabase runs alongside the app — no external accounts needed.
+Follow [Quick Start](#quick-start--self-hosting-docker) above.
 
-### Coolify (full-stack, Supabase bundled)
+### Coolify
 
-[Coolify](https://coolify.io) is an open-source self-hosted PaaS that deploys directly from your Git repo using `docker-compose.yml`.
+1. Create a new **Resource → Docker Compose**
+2. Connect your GitHub repo
+3. Set Docker Compose file to `docker-compose.yml`
+4. Add env vars from `.env.docker.example`
+5. Deploy — Coolify handles HTTPS, restarts, and redeploys on push
 
-1. In Coolify, create a new **Resource → Docker Compose**
-2. Connect your GitHub repo (or paste the repo URL)
-3. Set the Docker Compose file to `docker-compose.yml`
-4. Add all environment variables from `.env.docker.example` in the Coolify UI
-5. Deploy — Coolify starts all services and handles restarts automatically
+### Railway UI import
 
-Coolify also provides automatic HTTPS, a web UI for logs, and one-click redeploys on git push.
-
-### Railway UI import (full-stack, Supabase bundled)
-
-Railway supports importing a `docker-compose.yml` via drag & drop onto the project canvas:
-
-1. Create a new Railway project at [railway.app](https://railway.app)
-2. Drag your local `docker-compose.yml` onto the project canvas — Railway creates each service automatically
-3. Add all environment variables from `.env.docker.example` in the Railway dashboard
+1. Create a new Railway project
+2. Drag `docker-compose.yml` onto the canvas
+3. Add env vars from `.env.docker.example`
 4. Deploy
 
-Note: Railway's docker-compose import is still evolving and not all compose features are supported yet.
-
-### PaaS (Railway button, Render, …) + Supabase Cloud
-
-These options only host the app — use [Supabase Cloud](https://supabase.com) (free tier works) for the backend:
+### PaaS + Supabase Cloud
 
 1. **Create a Supabase project** at [supabase.com](https://supabase.com)
 2. **Run migrations:**
@@ -125,8 +169,7 @@ These options only host the app — use [Supabase Cloud](https://supabase.com) (
    npx supabase link --project-ref your-project-ref
    npx supabase db push
    ```
-3. **Deploy the app** — click one of the buttons at the top, or deploy manually to any platform that can run a Docker container or Node.js
-4. Set all environment variables from `.env.example`
+3. **Deploy the app** and set env vars from `.env.example`
 
 ### Required Environment Variables
 
@@ -137,11 +180,11 @@ These options only host the app — use [Supabase Cloud](https://supabase.com) (
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
 | `SIPGATE_OAUTH_CLIENT_ID` | sipgate OAuth client ID |
 | `SIPGATE_OAUTH_CLIENT_SECRET` | sipgate OAuth client secret |
-| `SIPGATE_WEBHOOK_SECRET` | Shared secret for webhook HMAC-SHA256 signature verification |
-| `SIPGATE_WEBHOOK_TOKEN` | Token for WebSocket authentication (`x-api-token` header) |
-| `NEXT_PUBLIC_APP_URL` | Canonical app URL for OAuth redirects and email links (required in production) |
-| `OPENAI_API_KEY` | OpenAI API key |
-| `ELEVENLABS_API_KEY` | ElevenLabs API key |
+| `SIPGATE_WEBHOOK_SECRET` | Shared secret for webhook HMAC-SHA256 verification |
+| `SIPGATE_WEBHOOK_TOKEN` | Token for WebSocket authentication |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL for OAuth redirects |
+| `OPENAI_API_KEY` | OpenAI API key (LLM + embeddings) |
+| `ELEVENLABS_API_KEY` | ElevenLabs API key (TTS) |
 
 See [`.env.example`](.env.example) for the full list including optional variables.
 
@@ -150,58 +193,47 @@ See [`.env.example`](.env.example) for the full list including optional variable
 ## Local Development
 
 ```bash
-# Install dependencies
 npm install
+cp .env.example .env.local  # fill in API keys
 
-# Copy and fill in environment variables
-cp .env.example .env.local
+npx supabase start           # start local Supabase
+npx supabase db push         # apply migrations
 
-# Start Supabase locally
-npx supabase start
-
-# Apply migrations
-npx supabase db push
-
-# Start dev server
-npm run dev
+npm run dev                  # start dev server → http://localhost:3000
 ```
-
-Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────┐
-│              Next.js App                 │
-│  (Frontend + API routes + Server Actions)│
-└───────────┬──────────────┬───────────────┘
-            │              │
-    ┌───────▼──────┐  ┌────▼────────────┐
-    │   Supabase   │  │    sipgate      │
-    │              │  │                 │
-    │ - Auth       │  │ - OAuth login   │
-    │ - PostgreSQL │  │ - AI Flow SDK   │
-    │ - pgvector   │  │ - Webhooks      │
-    │ - Storage    │  │ - Phone numbers │
-    │ - Realtime   │  └─────────────────┘
-    └───────┬──────┘
-            │
-    ┌───────▼──────────────┐
-    │   LLM Providers      │
-    │  OpenAI · Gemini     │
-    │  Mistral · ElevenLabs│
-    └──────────────────────┘
+┌─────────────────────────────────────────┐
+│             Next.js App                 │
+│  (Frontend + API routes + Server Actions│
+└──────────┬──────────────┬──────────────-┘
+           │              │
+   ┌───────▼──────┐  ┌────▼────────────┐
+   │   Supabase   │  │    sipgate      │
+   │              │  │                 │
+   │ - Auth       │  │ - OAuth login   │
+   │ - PostgreSQL │  │ - AI Flow SDK   │
+   │ - pgvector   │  │ - WebSocket     │
+   │ - Storage    │  │ - Phone numbers │
+   │ - Realtime   │  └─────────────────┘
+   └───────┬──────┘
+           │
+   ┌───────▼──────────────────┐
+   │      LLM Providers       │
+   │  OpenAI · Gemini         │
+   │  Mistral · ElevenLabs    │
+   └──────────────────────────┘
 ```
 
-**Auth flow:**
-1. User clicks "Mit sipgate anmelden"
-2. sipgate OAuth2 (scopes: `openid profile email account:read numbers:read all`)
-3. Phone numbers are synced from the sipgate account automatically
-4. Organization is created, user lands on the dashboard
-
-Users can also sign up with email/password and connect their sipgate account later in Settings → Telefonie.
+**Call flow:**
+1. Incoming call hits sipgate → WebSocket event to Flow-IO
+2. `session_start` → context webhook fetches external data, variables injected into prompt
+3. `user_speak` → LLM generates response, optionally calls tools (KB, MCP, HTTP webhooks)
+4. `session_end` → variables extracted, post-call webhook fired, CSAT + criteria evaluated
 
 ---
 
@@ -209,69 +241,15 @@ Users can also sign up with email/password and connect their sipgate account lat
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | [Next.js 16](https://nextjs.org/) (App Router, standalone output) |
+| Framework | [Next.js 15](https://nextjs.org/) (App Router, standalone output) |
 | Language | TypeScript (strict) |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) |
 | Database | [Supabase](https://supabase.com/) PostgreSQL + pgvector |
 | Auth | Supabase Auth + sipgate OAuth2 |
 | Telephony | [sipgate AI Flow SDK](https://sipgate.github.io/sipgate-ai-flow-api/) |
-| LLM | OpenAI GPT-5.4 · Google Gemini · Mistral |
-| TTS | [ElevenLabs](https://elevenlabs.io/) |
+| LLM | OpenAI · Google Gemini · Mistral |
+| TTS | ElevenLabs · Azure |
 | Testing | [Vitest](https://vitest.dev/) |
-
----
-
-## Database Schema
-
-Key tables (all with Row Level Security):
-
-| Table | Purpose |
-|-------|---------|
-| `organizations` | Workspaces / tenants |
-| `organization_members` | User↔org relationships with roles |
-| `assistants` | AI assistant configurations |
-| `call_scenarios` | Visual routing scenario definitions |
-| `call_sessions` | Call records |
-| `call_transcripts` | Conversation transcripts |
-| `knowledge_bases` | Document collections |
-| `kb_chunks` | Document chunks with vector embeddings |
-| `phone_numbers` | Phone numbers synced from sipgate |
-| `telephony_accounts` | Connected telephony provider accounts (per org) |
-| `webhooks` | Post-call webhook configurations |
-
----
-
-## Project Structure
-
-```
-flow-io/
-├── app/
-│   ├── (auth)/              # Login, signup, forgot-password
-│   ├── [orgSlug]/           # Org-scoped pages (dashboard, assistants, …)
-│   └── api/
-│       ├── auth/sipgate/    # sipgate OAuth callback + complete
-│       └── sipgate/webhook  # sipgate AI Flow webhook handler
-├── components/
-│   ├── ui/                  # shadcn/ui base components
-│   ├── auth/                # Login buttons
-│   ├── assistants/          # Assistant management UI
-│   ├── settings/            # Org settings (incl. telephony section)
-│   └── …
-├── lib/
-│   ├── supabase/            # Supabase client (browser + server)
-│   ├── telephony/           # Modular telephony provider layer
-│   │   └── providers/
-│   │       └── sipgate/     # sipgate OAuth, REST client, phone sync
-│   ├── llm/                 # LLM provider abstraction
-│   ├── embeddings/          # pgvector operations
-│   └── flow-engine/         # Call flow execution
-├── supabase/
-│   ├── migrations/          # SQL migrations (applied automatically in Docker)
-│   └── config.toml
-├── docker-compose.yml       # Full self-hosted stack
-├── .env.example             # Environment variable reference
-└── .env.docker.example      # Docker-specific env reference
-```
 
 ---
 
