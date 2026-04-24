@@ -6,14 +6,13 @@ import type {
   ContextWebhook,
   ContextWebhookRequest,
   ContextWebhookResponse,
-  CallContext,
 } from '@/types/context-webhook'
 
 interface FetchContextParams {
   assistantId: string
   assistantName: string
   organizationId: string
-  callSessionId: string
+  callSessionId?: string
   sipgateSessionId: string
   callerNumber?: string
   calledNumber?: string
@@ -31,27 +30,30 @@ interface FetchContextResult {
  * Fetch context data from the configured webhook for an assistant
  * Called at the start of each call to inject customer-specific data into the prompt
  */
-export async function fetchCallContext(
-  params: FetchContextParams
-): Promise<FetchContextResult> {
+async function getEnabledContextWebhook(assistantId: string): Promise<ContextWebhook | null> {
   const supabase = createServiceRoleClient()
-  const startTime = Date.now()
 
   // Get context webhook configuration for this assistant
   const { data: webhook, error: webhookError } = await supabase
     .from('context_webhooks')
     .select('*')
-    .eq('assistant_id', params.assistantId)
+    .eq('assistant_id', assistantId)
     .eq('enabled', true)
     .single()
 
   if (webhookError || !webhook) {
-    // No webhook configured or not enabled - this is fine, just skip
-    debug('[ContextWebhook] No enabled webhook for assistant:', params.assistantId)
-    return { success: true, contextData: {} }
+    debug('[ContextWebhook] No enabled webhook for assistant:', assistantId)
+    return null
   }
 
-  const contextWebhook = webhook as unknown as ContextWebhook
+  return webhook as unknown as ContextWebhook
+}
+
+async function executeContextFetch(
+  contextWebhook: ContextWebhook,
+  params: FetchContextParams
+): Promise<FetchContextResult & { rawContextData: Record<string, unknown> }> {
+  const startTime = Date.now()
 
   try {
     // Build request payload
@@ -105,20 +107,10 @@ export async function fetchCallContext(
       const errorText = await response.text().catch(() => 'Unknown error')
       console.error('[ContextWebhook] HTTP error:', response.status, errorText)
 
-      // Store the failed fetch
-      await storeCallContext({
-        callSessionId: params.callSessionId,
-        organizationId: params.organizationId,
-        contextWebhookId: contextWebhook.id,
-        contextData: {},
-        fetchDurationMs: durationMs,
-        fetchStatus: 'error',
-        errorMessage: `HTTP ${response.status}: ${errorText}`,
-      })
-
       return {
         success: false,
         contextData: {},
+        rawContextData: {},
         error: `Webhook returned ${response.status}`,
         durationMs,
       }
@@ -135,19 +127,10 @@ export async function fetchCallContext(
       prefixedData[`${prefix}.${key}`] = value
     }
 
-    // Store the successful fetch
-    await storeCallContext({
-      callSessionId: params.callSessionId,
-      organizationId: params.organizationId,
-      contextWebhookId: contextWebhook.id,
-      contextData: responseData,
-      fetchDurationMs: durationMs,
-      fetchStatus: 'success',
-    })
-
     return {
       success: true,
       contextData: prefixedData,
+      rawContextData: responseData,
       durationMs,
     }
   } catch (error) {
@@ -161,23 +144,86 @@ export async function fetchCallContext(
 
     console.error('[ContextWebhook] Fetch error:', errorMessage)
 
-    // Store the failed fetch
+    return {
+      success: false,
+      contextData: {},
+      rawContextData: {},
+      error: errorMessage,
+      durationMs,
+    }
+  }
+}
+
+/**
+ * Fetch context data from the configured webhook for an assistant
+ * Called at the start of each call to inject customer-specific data into the prompt
+ */
+export async function fetchCallContext(
+  params: FetchContextParams
+): Promise<FetchContextResult> {
+  const contextWebhook = await getEnabledContextWebhook(params.assistantId)
+  if (!contextWebhook) {
+    return { success: true, contextData: {} }
+  }
+
+  const result = await executeContextFetch(contextWebhook, params)
+
+  if (!params.callSessionId) {
+    return {
+      success: result.success,
+      contextData: result.contextData,
+      error: result.error,
+      durationMs: result.durationMs,
+    }
+  }
+
+  if (result.success) {
+    await storeCallContext({
+      callSessionId: params.callSessionId,
+      organizationId: params.organizationId,
+      contextWebhookId: contextWebhook.id,
+      contextData: result.rawContextData,
+      fetchDurationMs: result.durationMs ?? 0,
+      fetchStatus: 'success',
+    })
+  } else {
     await storeCallContext({
       callSessionId: params.callSessionId,
       organizationId: params.organizationId,
       contextWebhookId: contextWebhook.id,
       contextData: {},
-      fetchDurationMs: durationMs,
-      fetchStatus: isTimeout ? 'timeout' : 'error',
-      errorMessage,
+      fetchDurationMs: result.durationMs ?? 0,
+      fetchStatus: result.error?.startsWith('Timeout after') ? 'timeout' : 'error',
+      errorMessage: result.error,
     })
+  }
 
-    return {
-      success: false,
-      contextData: {},
-      error: errorMessage,
-      durationMs,
-    }
+  return {
+    success: result.success,
+    contextData: result.contextData,
+    error: result.error,
+    durationMs: result.durationMs,
+  }
+}
+
+/**
+ * Fetch context data without persisting it to call_context.
+ * Used by the chat simulator, which has no real call_session row.
+ */
+export async function fetchContextPreview(
+  params: Omit<FetchContextParams, 'callSessionId'>
+): Promise<FetchContextResult> {
+  const contextWebhook = await getEnabledContextWebhook(params.assistantId)
+  if (!contextWebhook) {
+    return { success: true, contextData: {} }
+  }
+
+  const result = await executeContextFetch(contextWebhook, params)
+  return {
+    success: result.success,
+    contextData: result.contextData,
+    error: result.error,
+    durationMs: result.durationMs,
   }
 }
 

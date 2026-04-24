@@ -18,8 +18,10 @@ export interface HesitationParams {
   organizationId: string
   /** Conversation history NOT including the hesitation message — follow-up LLM must call the tool directly */
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
-  sessionId: string
+  sessionId?: string
+  testSessionId?: string
   variableContext?: { callerNumber?: string; callDirection?: 'inbound' | 'outbound' }
+  contextData?: Record<string, unknown> | null
   variableCollectionPrompt?: string
   validationContext?: string
   scenarioTransferNodes?: ScenarioTransferNode[]

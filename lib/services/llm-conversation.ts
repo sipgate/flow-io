@@ -57,6 +57,7 @@ export async function generateLLMResponse(params: {
   sessionId?: string
   testSessionId?: string
   variableContext?: PromptVariableContext
+  contextData?: Record<string, unknown> | null
   promptOverride?: string
   variableCollectionPrompt?: string  // Persistent instruction for mandatory field collection
   validationContext?: string          // Dynamic status updates injected each turn
@@ -108,8 +109,8 @@ export async function generateLLMResponse(params: {
     }
 
     // Fetch context data from webhook (if available for this call)
-    let contextData: Record<string, unknown> | null = null
-    if (params.sessionId) {
+    let contextData: Record<string, unknown> | null = params.contextData ?? null
+    if (!contextData && params.sessionId) {
       contextData = await getCallContextData(params.sessionId)
       if (contextData && Object.keys(contextData).length > 0) {
         debug('[LLM Service] Context data loaded:', Object.keys(contextData))
@@ -658,4 +659,3 @@ export async function generateLLMResponse(params: {
     }
   }
 }
-

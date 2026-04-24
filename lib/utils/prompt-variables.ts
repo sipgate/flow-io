@@ -63,6 +63,10 @@ export const PROMPT_VARIABLES = {
 
 export type PromptVariableName = keyof typeof PROMPT_VARIABLES
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 /**
  * Substitute {{variable}} placeholders in a prompt
  *
@@ -113,13 +117,13 @@ export function substitutePromptVariables(
 
   // Replace {{variable}} syntax (case-insensitive, allows whitespace)
   for (const [key, value] of Object.entries(variableValues)) {
-    const pattern = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi')
+    const pattern = new RegExp(`\\{\\{\\s*${escapeRegExp(key)}\\s*\\}\\}`, 'gi')
     result = result.replace(pattern, value)
   }
 
   // Replace DTMF-captured variables (e.g. {{callerInput}}, {{pinCode}})
   for (const [key, value] of Object.entries(context.dtmfVariables ?? {})) {
-    const pattern = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi')
+    const pattern = new RegExp(`\\{\\{\\s*${escapeRegExp(key)}\\s*\\}\\}`, 'gi')
     result = result.replace(pattern, value)
   }
 

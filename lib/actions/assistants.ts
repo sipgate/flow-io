@@ -282,6 +282,8 @@ export async function updateAssistant(
     opening_message?: string
     is_active?: boolean
     enable_hesitation?: boolean
+    stt_provider?: string | null
+    stt_languages?: string[] | null
   }
 ) {
   const supabase = await createClient()
@@ -373,7 +375,7 @@ export async function deployAssistant(id: string): Promise<{ error: string | nul
 
   const { data: assistant, error: fetchError } = await supabase
     .from('assistants')
-    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, deployed_version')
+    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, stt_provider, stt_languages, deployed_version')
     .eq('id', id)
     .single()
 
@@ -396,6 +398,8 @@ export async function deployAssistant(id: string): Promise<{ error: string | nul
     voice_language: raw.voice_language as string | null,
     opening_message: raw.opening_message as string | null,
     enable_hesitation: raw.enable_hesitation as boolean | null,
+    stt_provider: raw.stt_provider as string | null,
+    stt_languages: raw.stt_languages as string[] | null,
     deployed_at: now,
     created_by: user.id,
   })
@@ -414,7 +418,7 @@ export async function revertAssistant(id: string): Promise<{ error: string | nul
 
   const { data: latestVersion, error: fetchError } = await supabase
     .from('assistant_versions')
-    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation')
+    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, stt_provider, stt_languages')
     .eq('assistant_id', id)
     .order('version', { ascending: false })
     .limit(1)
@@ -433,6 +437,8 @@ export async function revertAssistant(id: string): Promise<{ error: string | nul
     voice_language: v.voice_language as string | undefined,
     opening_message: v.opening_message as string | undefined,
     enable_hesitation: v.enable_hesitation as boolean | undefined,
+    stt_provider: v.stt_provider as string | null | undefined,
+    stt_languages: v.stt_languages as string[] | null | undefined,
   })
   if ('error' in result && result.error) return { error: result.error }
   // Reverting restores deployed state — clear the undeployed flag
@@ -460,7 +466,7 @@ export async function restoreAssistantVersion(
 
   const { data: version, error: fetchError } = await supabase
     .from('assistant_versions')
-    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation')
+    .select('system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, stt_provider, stt_languages')
     .eq('id', versionId)
     .single()
 
@@ -477,6 +483,8 @@ export async function restoreAssistantVersion(
     voice_language: v.voice_language as string | undefined,
     opening_message: v.opening_message as string | undefined,
     enable_hesitation: v.enable_hesitation as boolean | undefined,
+    stt_provider: v.stt_provider as string | null | undefined,
+    stt_languages: v.stt_languages as string[] | null | undefined,
   })
   if ('error' in result && result.error) return { error: result.error }
   // Restoring a version counts as deploying that state — clear the undeployed flag

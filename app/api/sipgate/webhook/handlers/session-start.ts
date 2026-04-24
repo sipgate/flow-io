@@ -7,6 +7,7 @@ import { getCallToolConfigServiceRole } from '@/lib/repositories/call-tools.repo
 import { getPhonemeReplacementsForAssistant } from '@/lib/repositories/phoneme-sets.repository'
 import { debug } from '@/lib/utils/logger'
 import { DEFAULT_ELEVENLABS_VOICE_ID, DEFAULT_TTS_PROVIDER } from '@/lib/constants/voices'
+import { renderOpeningMessage } from '@/lib/services/opening-message'
 import { sessionState } from '@/lib/services/session-state'
 import type { BargeInConfig } from '@/lib/services/session-state'
 import { buildSpeakResponse, buildAssistantMeta, buildTTSConfig } from './lib/speak-response'
@@ -211,24 +212,14 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     debug('[SessionStart] Context fetched:', contextResult.contextData)
   }
 
-  // Prepare opening message with variable substitution
-  let openingMessage = assistant.opening_message || 'Hello! How can I help you today?'
-
-  if (contextResult.contextData) {
-    for (const [key, value] of Object.entries(contextResult.contextData)) {
-      const placeholder = `{{${key}}}`
-      if (openingMessage.includes(placeholder)) {
-        openingMessage = openingMessage.replace(
-          new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-          String(value)
-        )
-      }
-    }
-  }
-
-  openingMessage = openingMessage
-    .replace(/\{\{callerNumber\}\}/g, from_phone_number || '')
-    .replace(/\{\{callDirection\}\}/g, direction || '')
+  const openingMessage = renderOpeningMessage({
+    template: assistant.opening_message,
+    fallback: 'Hello! How can I help you today?',
+    assistantName: assistant.name,
+    callerNumber: from_phone_number,
+    callDirection: direction,
+    contextData: contextResult.contextData,
+  }) || 'Hello! How can I help you today?'
 
   await addTranscriptMessage({
     call_session_id: callSession.id,
@@ -281,12 +272,17 @@ export async function handleSessionStart(event: SessionStartEvent, organizationI
     .filter((r) => r.boost_recognition)
     .map((r) => r.word)
 
-  if (boostWords.length > 0) {
-    debug(`[SessionStart] Sending ${boostWords.length} boost word(s) as custom_vocabulary`)
-    const configureTranscription = {
+  const hasSttConfig = assistant.stt_provider || (assistant.stt_languages && assistant.stt_languages.length > 0)
+  if (boostWords.length > 0 || hasSttConfig) {
+    const configureTranscription: Record<string, unknown> = {
       type: 'configure_transcription',
       session_id: sessionId,
-      custom_vocabulary: boostWords,
+    }
+    if (assistant.stt_provider) configureTranscription.provider = assistant.stt_provider
+    if (assistant.stt_languages && assistant.stt_languages.length > 0) configureTranscription.languages = assistant.stt_languages
+    if (boostWords.length > 0) {
+      debug(`[SessionStart] Sending ${boostWords.length} boost word(s) as custom_vocabulary`)
+      configureTranscription.custom_vocabulary = boostWords
     }
     return NextResponse.json([configureTranscription, openingSpeak.json])
   }

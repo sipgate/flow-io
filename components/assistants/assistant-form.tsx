@@ -110,6 +110,7 @@ const SECTION_IDS = {
   GENERAL_OPENING: 'general-opening',
   GENERAL_PROMPT: 'general-prompt',
   PROPS_VOICE: 'props-voice',
+  PROPS_STT: 'props-stt',
   PROPS_PHONEME: 'props-phoneme',
   PROPS_LLM: 'props-llm',
   PROPS_BARGEIN: 'props-bargein',
@@ -130,6 +131,7 @@ const DEFAULT_OPEN: Record<string, boolean> = {
   [SECTION_IDS.GENERAL_OPENING]: false,
   [SECTION_IDS.GENERAL_PROMPT]: false,
   [SECTION_IDS.PROPS_VOICE]: true,
+  [SECTION_IDS.PROPS_STT]: false,
   [SECTION_IDS.PROPS_PHONEME]: false,
   [SECTION_IDS.PROPS_LLM]: false,
   [SECTION_IDS.PROPS_BARGEIN]: false,
@@ -283,6 +285,8 @@ interface AssistantFormProps {
     avatar_url: string | null
     enable_hesitation: boolean | null
     enable_semantic_eot: boolean | null
+    stt_provider: string | null
+    stt_languages: string[] | null
     deployed_at: string | null
     updated_at: string
     has_undeployed_changes: boolean
@@ -346,6 +350,8 @@ export function AssistantForm({
   const [isActive, setIsActive] = useState(assistant?.is_active ?? true)
   const [enableHesitation, setEnableHesitation] = useState(assistant?.enable_hesitation ?? false)
   const [enableSemanticEot, setEnableSemanticEot] = useState(assistant?.enable_semantic_eot ?? false)
+  const [sttProvider, setSttProvider] = useState(assistant?.stt_provider || 'auto')
+  const [sttLanguages, setSttLanguages] = useState<string[]>(assistant?.stt_languages || [])
   const [createScenarioChecked, setCreateScenarioChecked] = useState(!assistant)
 
   const handleProviderChange = (provider: string) => {
@@ -369,6 +375,8 @@ export function AssistantForm({
     isActive: assistant?.is_active ?? true,
     enableHesitation: assistant?.enable_hesitation ?? false,
     enableSemanticEot: assistant?.enable_semantic_eot ?? false,
+    sttProvider: assistant?.stt_provider || 'auto',
+    sttLanguages: assistant?.stt_languages || [],
   })
 
   const isDirty =
@@ -385,7 +393,9 @@ export function AssistantForm({
     openingMessage !== initialValuesRef.current.openingMessage ||
     isActive !== initialValuesRef.current.isActive ||
     enableHesitation !== initialValuesRef.current.enableHesitation ||
-    enableSemanticEot !== initialValuesRef.current.enableSemanticEot
+    enableSemanticEot !== initialValuesRef.current.enableSemanticEot ||
+    sttProvider !== initialValuesRef.current.sttProvider ||
+    JSON.stringify(sttLanguages) !== JSON.stringify(initialValuesRef.current.sttLanguages)
 
   // ── beforeunload guard ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -513,6 +523,7 @@ export function AssistantForm({
         llm_provider: llmProvider, llm_model: llmModel, llm_temperature: llmTemperature,
         system_prompt: systemPrompt || undefined, opening_message: openingMessage || undefined,
         is_active: isActive, enable_hesitation: enableHesitation, enable_semantic_eot: enableSemanticEot,
+        stt_provider: sttProvider === 'auto' ? null : sttProvider, stt_languages: sttLanguages.length > 0 ? sttLanguages : null,
       }
       await updateAssistant(assistant!.id, data)
     }
@@ -742,6 +753,8 @@ export function AssistantForm({
       is_active: isActive,
       enable_hesitation: enableHesitation,
       enable_semantic_eot: enableSemanticEot,
+      stt_provider: sttProvider === 'auto' ? null : sttProvider,
+      stt_languages: sttLanguages.length > 0 ? sttLanguages : null,
     }
 
     const result = assistant
@@ -771,6 +784,8 @@ export function AssistantForm({
           isActive,
           enableHesitation,
           enableSemanticEot,
+          sttProvider,
+          sttLanguages,
         }
         setHasUndeployedChanges(true)
         router.refresh()
@@ -1202,6 +1217,111 @@ export function AssistantForm({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </SectionCollapsible>
+
+            {/* STT-Einstellungen */}
+            <SectionCollapsible
+              id={SECTION_IDS.PROPS_STT}
+              title={t('sttSettings')}
+              hint={t('sttSettingsHint')}
+              open={openSections[SECTION_IDS.PROPS_STT]}
+              onToggle={toggleSection}
+              className="border-t mt-4 pt-4"
+              preview={(() => {
+                if (sttProvider === 'auto') return <PreviewChips items={[t('sttProviderAuto')]} />
+                const langs = sttLanguages.length > 0 ? sttLanguages : [t('sttLanguageAuto')]
+                return <PreviewChips items={[sttProvider, ...langs]} />
+              })()}
+            >
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="stt_provider">{t('sttProvider')}</Label>
+                  <Select
+                    value={sttProvider}
+                    onValueChange={(val) => {
+                      setSttProvider(val)
+                      setSttLanguages([])
+                    }}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger id="stt_provider">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">{t('sttProviderAuto')}</SelectItem>
+                      <SelectItem value="AZURE">{t('sttProviderAzure')}</SelectItem>
+                      <SelectItem value="DEEPGRAM">{t('sttProviderDeepgram')}</SelectItem>
+                      <SelectItem value="ELEVEN_LABS">{t('sttProviderElevenLabs')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {sttProvider !== 'auto' && (
+                  <div className="space-y-1.5">
+                    <Label>{t('sttLanguages')}</Label>
+                    <p className="text-xs text-muted-foreground">{t(sttProvider === 'AZURE' ? 'sttLanguagesHintAzure' : 'sttLanguagesHintSingle')}</p>
+                    {sttProvider === 'AZURE' ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { code: 'de-DE', label: tForm('languageDe') },
+                          { code: 'en-US', label: tForm('languageEnUS') },
+                          { code: 'en-GB', label: tForm('languageEnGB') },
+                          { code: 'fr-FR', label: tForm('languageFr') },
+                          { code: 'es-ES', label: tForm('languageEs') },
+                          { code: 'it-IT', label: tForm('languageIt') },
+                          { code: 'nl-NL', label: tForm('languageNl') },
+                          { code: 'pl-PL', label: tForm('languagePl') },
+                          { code: 'pt-BR', label: tForm('languagePt') },
+                          { code: 'tr-TR', label: tForm('languageTr') },
+                        ].map(({ code, label }) => {
+                          const checked = sttLanguages.includes(code)
+                          const atLimit = sttLanguages.length >= 4
+                          return (
+                            <label key={code} className={cn('flex items-center gap-2 text-sm cursor-pointer', !checked && atLimit && 'opacity-40 cursor-not-allowed')}>
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                disabled={isLoading || (!checked && atLimit)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSttLanguages((prev) => [...prev, code])
+                                  } else {
+                                    setSttLanguages((prev) => prev.filter((l) => l !== code))
+                                  }
+                                }}
+                              />
+                              {label}
+                            </label>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <Select
+                        value={sttLanguages[0] || 'auto'}
+                        onValueChange={(val) => setSttLanguages(val === 'auto' ? [] : [val])}
+                        disabled={isLoading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">{t('sttLanguageAuto')}</SelectItem>
+                          <SelectItem value="de-DE">{tForm('languageDe')}</SelectItem>
+                          <SelectItem value="en-US">{tForm('languageEnUS')}</SelectItem>
+                          <SelectItem value="en-GB">{tForm('languageEnGB')}</SelectItem>
+                          <SelectItem value="fr-FR">{tForm('languageFr')}</SelectItem>
+                          <SelectItem value="es-ES">{tForm('languageEs')}</SelectItem>
+                          <SelectItem value="it-IT">{tForm('languageIt')}</SelectItem>
+                          <SelectItem value="nl-NL">{tForm('languageNl')}</SelectItem>
+                          <SelectItem value="pl-PL">{tForm('languagePl')}</SelectItem>
+                          <SelectItem value="pt-BR">{tForm('languagePt')}</SelectItem>
+                          <SelectItem value="tr-TR">{tForm('languageTr')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
               </div>
             </SectionCollapsible>
 

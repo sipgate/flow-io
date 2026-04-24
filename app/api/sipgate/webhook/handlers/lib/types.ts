@@ -86,6 +86,8 @@ export interface AssistantConfig {
   system_prompt: string | null
   opening_message: string | null
   is_active: boolean | null
+  stt_provider: string | null
+  stt_languages: string[] | null
 }
 
 export interface CallSessionWithAssistant {

@@ -62,7 +62,8 @@ export async function loadAssistantConfig(assistantId: string): Promise<Assistan
       id, name, organization_id, avatar_url,
       voice_provider, voice_id, voice_language,
       llm_provider, llm_model, llm_temperature,
-      system_prompt, opening_message, is_active
+      system_prompt, opening_message, is_active,
+      stt_provider, stt_languages
     `)
     .eq('id', assistantId)
     .single()

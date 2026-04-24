@@ -59,6 +59,8 @@ export default async function EditAssistantPage({
     avatar_url: string | null
     enable_hesitation: boolean | null
     enable_semantic_eot: boolean | null
+    stt_provider: string | null
+    stt_languages: string[] | null
     deployed_at: string | null
     updated_at: string
     has_undeployed_changes: boolean
