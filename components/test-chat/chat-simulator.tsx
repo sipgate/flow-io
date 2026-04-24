@@ -29,6 +29,9 @@ interface MessageMetadata {
   performance?: { ttftMs: number; totalTimeMs: number; tokensPerSecond: number }
   model?: string
   hesitation?: boolean
+  partial_turn?: boolean
+  combined_from_partial?: boolean
+  wait_for_turn_filler?: boolean
 }
 
 interface Message {
@@ -398,17 +401,47 @@ export function ChatSimulator({
       const data = await response.json()
 
       // Replace optimistic user message with the real one from the server
-      setMessages((prev) =>
-        prev.map((m) =>
+      setMessages((prev) => {
+        const base = data.user_message?.metadata?.combined_from_partial
+          ? prev.filter((m) => !m.metadata?.partial_turn && !m.metadata?.wait_for_turn_filler)
+          : prev
+
+        return base.map((m) =>
           m.id === optimisticId
-            ? { ...m, id: data.user_message.id, timestamp: data.user_message.timestamp }
+            ? {
+                ...m,
+                id: data.user_message.id,
+                content: data.user_message.content,
+                timestamp: data.user_message.timestamp,
+                metadata: data.user_message.metadata as MessageMetadata | undefined,
+              }
             : m
         )
-      )
+      })
 
       const firstVoice = data.voice
         ? { provider: data.voice.provider, voiceId: data.voice.voiceId }
         : null
+
+      if (data.wait_for_turn) {
+        if (data.assistant_message) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: data.assistant_message.id,
+              role: 'assistant' as const,
+              content: data.assistant_message.content,
+              timestamp: data.assistant_message.timestamp,
+              metadata: data.assistant_message.metadata as MessageMetadata | undefined,
+              agentLabel: data.assistant_message.agent?.name,
+              agentAvatarUrl: data.assistant_message.agent?.avatarUrl,
+            },
+          ])
+          await speakText(data.assistant_message.content, firstVoice ?? undefined)
+        }
+        setIsLoading(false)
+        return
+      }
 
       if (data.needs_followup) {
         // Phase 1: show the hesitation message immediately and speak it
@@ -471,7 +504,14 @@ export function ChatSimulator({
       setActiveNodeType(null)
       setDtmfCollectValue('')
       const loadedMessages: Message[] = []
-      for (const h of data.history as Array<{ id: string; role: string; content: string; timestamp: string; metadata?: Record<string, unknown> }>) {
+      const rawHistory = data.history as Array<{ id: string; role: string; content: string; timestamp: string; metadata?: Record<string, unknown> }>
+      const collapsePartialTurns = rawHistory.some((h) => h.metadata?.combined_from_partial)
+
+      for (const h of rawHistory) {
+        if (collapsePartialTurns && (h.metadata?.partial_turn || h.metadata?.wait_for_turn_filler)) {
+          continue
+        }
+
         // Insert virtual tool messages from metadata before assistant messages
         if (h.role === 'assistant' && h.metadata?.toolCalls) {
           const toolCalls = h.metadata.toolCalls as Array<{ name: string; arguments: Record<string, unknown>; result: string }>

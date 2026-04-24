@@ -45,6 +45,7 @@ import {
   getTestSessionHistory,
 } from '@/lib/actions/test-chat'
 import { generateLLMResponse } from '@/lib/services/llm-conversation'
+import { clearPendingTurn, setPendingTurn } from '@/lib/services/pending-turn-state'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ const SESSION_DATA = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  clearPendingTurn('sess-1')
 
   // Standard-Mocks für den Erfolgsfall
   vi.mocked(createClient).mockResolvedValue(makeSupabaseMock(SESSION_DATA) as never)
@@ -206,6 +208,8 @@ describe('POST /api/test-chat/send — Erfolg', () => {
     const callArgs = vi.mocked(generateLLMResponse).mock.calls[0][0]
     expect(callArgs.assistantId).toBe('asst-1')
     expect(callArgs.organizationId).toBe('org-1')
+    expect(callArgs.testSessionId).toBe('sess-1')
+    expect(callArgs.sessionId).toBeUndefined()
   })
 
   it('enthält kein greeting_message wenn kein Transfer stattfand', async () => {
@@ -217,6 +221,40 @@ describe('POST /api/test-chat/send — Erfolg', () => {
     const body = await res.json()
     expect(body.greeting_message).toBeUndefined()
     expect(body.transfer).toBeNull()
+  })
+
+  it('behandelt wait_for_turn ohne Fallback-Fehlerantwort', async () => {
+    vi.mocked(generateLLMResponse).mockResolvedValue({
+      response: 'Mhm',
+      waitForTurn: true,
+      waitForTurnFiller: 'Mhm',
+      error: null,
+    } as never)
+
+    vi.mocked(addTestTranscriptMessage)
+      .mockResolvedValueOnce({ transcript: { id: 'u', content: 'Ich wollte', timestamp: '2026-01-01T00:00:00.000Z' }, error: null } as never)
+      .mockResolvedValueOnce({ transcript: { id: 'a', content: 'Mhm', timestamp: '2026-01-01T00:00:01.000Z' }, error: null } as never)
+
+    const res = await POST(makeRequest(VALID_BODY))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.wait_for_turn).toBe(true)
+    expect(body.assistant_message?.content).toBe('Mhm')
+    expect(body.error).toBeUndefined()
+  })
+
+  it('kombiniert einen ausstehenden partial turn mit der nächsten Nachricht', async () => {
+    setPendingTurn('sess-1', 'Ich wollte')
+
+    vi.mocked(addTestTranscriptMessage)
+      .mockResolvedValueOnce({ transcript: { id: 'u', content: 'Ich wollte Hallo', timestamp: '2026-01-01T00:00:00.000Z' }, error: null } as never)
+      .mockResolvedValueOnce({ transcript: { id: 'a', content: 'ok', timestamp: '2026-01-01T00:00:01.000Z' }, error: null } as never)
+
+    const res = await POST(makeRequest(VALID_BODY))
+    const body = await res.json()
+
+    expect(body.user_message.content).toBe('Ich wollte Hallo')
   })
 })
 
