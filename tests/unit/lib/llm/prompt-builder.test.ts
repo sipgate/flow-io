@@ -112,4 +112,37 @@ describe('PromptBuilder', () => {
       .withVariableCollection('Collect.')
     expect(result).toBeInstanceOf(PromptBuilder)
   })
+
+  describe('withHesitation exceptions', () => {
+    it('appends hesitation instruction when enabled', () => {
+      const result = new PromptBuilder('Base.').withHesitation(true).build()
+      expect(result).toContain('hesitate')
+      expect(result).toContain('MUST invoke the `hesitate` function first')
+    })
+
+    it('does NOT append hesitation instruction when disabled', () => {
+      const result = new PromptBuilder('Base.').withHesitation(false).build()
+      expect(result).toBe('Base.')
+    })
+
+    it('lists `wait_for_turn` as a hesitation exception', () => {
+      const result = new PromptBuilder('Base.').withHesitation(true).build()
+      expect(result).toContain('wait_for_turn')
+    })
+
+    it('lists `transfer_to_agent` as a hesitation exception (handoff_message already announces the transfer)', () => {
+      const result = new PromptBuilder('Base.').withHesitation(true).build()
+      expect(result).toContain('transfer_to_agent')
+    })
+
+    it('lists `hangup_call` as a hesitation exception (farewell_message already announces the hangup)', () => {
+      const result = new PromptBuilder('Base.').withHesitation(true).build()
+      expect(result).toContain('hangup_call')
+    })
+
+    it('lists `forward_call` as a hesitation exception', () => {
+      const result = new PromptBuilder('Base.').withHesitation(true).build()
+      expect(result).toContain('forward_call')
+    })
+  })
 })
