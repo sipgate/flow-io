@@ -7,16 +7,24 @@ import type { AssistantConfig, PhoneNumberRouting } from './types'
  * Route incoming call to the correct scenario based on to_phone_number.
  * Every phone number routes through a scenario (single-agent or multi-agent).
  */
-export async function routeCallToAssistant(toPhoneNumber: string, organizationId: string): Promise<{
+export async function routeCallToAssistant(
+  toPhoneNumber: string,
+  organizationId: string
+): Promise<{
   phoneNumber: PhoneNumberRouting
-  scenario: { id: string; nodes: ScenarioNode[]; edges: ScenarioEdge[]; voice_provider: string | null; voice_id: string | null; voice_language: string | null }
+  scenario: {
+    id: string
+    nodes: ScenarioNode[]
+    edges: ScenarioEdge[]
+    voice_provider: string | null
+    voice_id: string | null
+    voice_language: string | null
+  }
 } | null> {
   const supabase = createServiceRoleClient()
 
   // Normalize phone number: ensure it starts with +
-  const normalizedNumber = toPhoneNumber.startsWith('+')
-    ? toPhoneNumber
-    : `+${toPhoneNumber}`
+  const normalizedNumber = toPhoneNumber.startsWith('+') ? toPhoneNumber : `+${toPhoneNumber}`
 
   const { data: phoneNumber, error } = await supabase
     .from('phone_numbers')
@@ -32,7 +40,10 @@ export async function routeCallToAssistant(toPhoneNumber: string, organizationId
 
   const pn = phoneNumber as unknown as PhoneNumberRouting
 
-  const { scenario: callScenario, error: scenarioError } = await getScenarioByIdServiceRole(pn.scenario_id)
+  const { scenario: callScenario, error: scenarioError } = await getScenarioByIdServiceRole(
+    pn.scenario_id,
+    { deployment: 'published' }
+  )
   if (scenarioError || !callScenario) {
     console.error('Scenario not found for phone number:', pn.scenario_id, scenarioError)
     return null
@@ -58,15 +69,59 @@ export async function loadAssistantConfig(assistantId: string): Promise<Assistan
   const supabase = createServiceRoleClient()
   const { data, error } = await supabase
     .from('assistants')
-    .select(`
+    .select(
+      `
       id, name, organization_id, avatar_url,
       voice_provider, voice_id, voice_language,
-      llm_provider, llm_model, llm_temperature,
-      system_prompt, opening_message, is_active,
+      llm_provider, llm_model, llm_temperature, thinking_level,
+      system_prompt, opening_message, is_active, enable_hesitation, enable_semantic_eot,
       stt_provider, stt_languages
-    `)
+    `
+    )
     .eq('id', assistantId)
     .single()
   if (error || !data) return null
-  return data as unknown as AssistantConfig
+
+  const { data: versions } = await supabase
+    .from('assistant_versions')
+    .select(
+      `
+      system_prompt,
+      llm_provider,
+      llm_model,
+      llm_temperature,
+      thinking_level,
+      voice_provider,
+      voice_id,
+      voice_language,
+      opening_message,
+      enable_hesitation,
+      enable_semantic_eot,
+      stt_provider,
+      stt_languages
+    `
+    )
+    .eq('assistant_id', assistantId)
+    .order('version', { ascending: false })
+    .limit(1)
+
+  const version = (versions?.[0] as Record<string, unknown> | undefined) ?? null
+  if (!version) return data as unknown as AssistantConfig
+
+  return {
+    ...(data as unknown as AssistantConfig),
+    system_prompt: version.system_prompt as string | null,
+    llm_provider: version.llm_provider as string | null,
+    llm_model: version.llm_model as string | null,
+    llm_temperature: version.llm_temperature as number | null,
+    thinking_level: version.thinking_level as string | null,
+    voice_provider: version.voice_provider as string | null,
+    voice_id: version.voice_id as string | null,
+    voice_language: version.voice_language as string | null,
+    opening_message: version.opening_message as string | null,
+    enable_hesitation: version.enable_hesitation as boolean | null,
+    enable_semantic_eot: version.enable_semantic_eot as boolean | null,
+    stt_provider: version.stt_provider as string | null,
+    stt_languages: version.stt_languages as string[] | null,
+  }
 }

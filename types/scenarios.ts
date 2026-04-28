@@ -1,6 +1,11 @@
 import type { Node, Edge } from '@xyflow/react'
 
-export type ScenarioNodeType = 'entry_agent' | 'agent' | 'dtmf_collect' | 'dtmf_menu' | 'phone_transfer'
+export type ScenarioNodeType =
+  | 'entry_agent'
+  | 'agent'
+  | 'dtmf_collect'
+  | 'dtmf_menu'
+  | 'phone_transfer'
 
 export type ScenarioNodeData = {
   label: string
@@ -35,9 +40,11 @@ export interface CallScenario {
   description: string | null
   nodes: ScenarioNode[]
   edges: ScenarioEdge[]
+  variables: Record<string, unknown> | null
   version: number
   is_published: boolean
   deployed_at: string | null
+  has_undeployed_changes: boolean
   enable_csat: boolean
   phone_number: string | null
   /** Scenario-level voice — used for DTMF announcements and as base for inherit_voice agents. */
@@ -61,6 +68,8 @@ export interface ScenarioSummary {
   description: string | null
   is_published: boolean
   version: number
+  deployed_at: string | null
+  has_undeployed_changes: boolean
   node_count: number
   phone_number: string | null
   created_at: string

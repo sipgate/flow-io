@@ -37,7 +37,7 @@ export async function generateScenarioGreeting(
   organizationId: string,
   conversationHistory: { role: 'user' | 'assistant'; content: string }[],
   handoffMessage: string,
-  sessionId: string,
+  sessionId: string
 ): Promise<string | null> {
   if (!targetNode.data.send_greeting || !targetNode.data.assistant_id) return null
   try {
@@ -47,7 +47,10 @@ export async function generateScenarioGreeting(
       conversationHistory: [
         ...conversationHistory,
         { role: 'assistant', content: handoffMessage },
-        { role: 'user', content: '[Transfer complete. Greet the caller briefly and offer your help.]' },
+        {
+          role: 'user',
+          content: '[Transfer complete. Greet the caller briefly and offer your help.]',
+        },
       ],
       sessionId,
       disableHesitation: true,
@@ -59,7 +62,10 @@ export async function generateScenarioGreeting(
 }
 
 /** Persist active node ID to DB so it survives across serverless instances */
-export async function persistActiveNodeId(sipgateSessionId: string, activeNodeId: string): Promise<void> {
+export async function persistActiveNodeId(
+  sipgateSessionId: string,
+  activeNodeId: string
+): Promise<void> {
   const supabase = createServiceRoleClient()
   const { data: current } = await supabase
     .from('call_sessions')
@@ -70,7 +76,7 @@ export async function persistActiveNodeId(sipgateSessionId: string, activeNodeId
     .from('call_sessions')
     .update({
       metadata: {
-        ...(current?.metadata as Record<string, unknown> ?? {}),
+        ...((current?.metadata as Record<string, unknown>) ?? {}),
         scenario_active_node_id: activeNodeId,
       },
     })
@@ -83,7 +89,9 @@ export async function rebuildScenarioState(
   sipgateSessionId: string
 ): Promise<ScenarioSessionState | null> {
   if (!session.scenario_id) return null
-  const { scenario } = await getScenarioByIdServiceRole(session.scenario_id)
+  const { scenario } = await getScenarioByIdServiceRole(session.scenario_id, {
+    deployment: 'published',
+  })
   if (!scenario) return null
 
   const entryNode = findScenarioEntryNode(scenario.nodes, scenario.edges)
@@ -96,8 +104,10 @@ export async function rebuildScenarioState(
     voice_language: scenario.voice_language ?? null,
   }
 
-  const activeNodeId = (session.metadata?.scenario_active_node_id as string | undefined) ?? entryNode.id
-  const dtmfVariables = (session.metadata?.dtmf_variables as Record<string, string> | undefined) ?? {}
+  const activeNodeId =
+    (session.metadata?.scenario_active_node_id as string | undefined) ?? entryNode.id
+  const dtmfVariables =
+    (session.metadata?.dtmf_variables as Record<string, string> | undefined) ?? {}
   const state: ScenarioSessionState = {
     scenarioId: scenario.id,
     activeNodeId,

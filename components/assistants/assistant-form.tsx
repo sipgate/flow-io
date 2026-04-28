@@ -19,11 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,11 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   X,
@@ -64,7 +56,12 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getModelsByProvider, getDefaultModel, type LLMProviderType } from '@/lib/models'
-import { createAssistant, updateAssistant, deployAssistant, revertAssistant } from '@/lib/actions/assistants'
+import {
+  createAssistant,
+  updateAssistant,
+  deployAssistant,
+  revertAssistant,
+} from '@/lib/actions/assistants'
 import { AssistantHistorySheet } from '@/components/assistants/assistant-history-sheet'
 import { toast } from 'sonner'
 import {
@@ -85,10 +82,7 @@ import {
   assignPhonemeSetToAssistant,
   removePhonemeSetFromAssistant,
 } from '@/lib/actions/phoneme-sets'
-import {
-  getOrganizationWebhookTools,
-  getAssistantWebhookTools,
-} from '@/lib/actions/webhook-tools'
+import { getOrganizationWebhookTools, getAssistantWebhookTools } from '@/lib/actions/webhook-tools'
 import type { PhonemeSet } from '@/types/phoneme-sets'
 import { VariableDefinitionsSection } from '@/components/variables/variable-definitions-section'
 import { WebhookConfigSection } from '@/components/variables/webhook-config-section'
@@ -195,27 +189,22 @@ function SectionCollapsible({
       onOpenChange={() => onToggle(id)}
       className={cn('space-y-0', className)}
     >
-      <div className="flex items-start justify-between w-full py-2 group text-left">
+      <div className="group flex w-full items-start justify-between py-2 text-left">
         <CollapsibleTrigger asChild>
-          <button
-            type="button"
-            className="flex-1 min-w-0 text-left cursor-pointer"
-          >
-            <h3 className="text-base font-semibold group-hover:text-foreground text-foreground/90 leading-tight">
+          <button type="button" className="min-w-0 flex-1 cursor-pointer text-left">
+            <h3 className="group-hover:text-foreground text-foreground/90 text-base leading-tight font-semibold">
               {title}
             </h3>
-            {!open && preview && (
-              <div className="mt-1">{preview}</div>
-            )}
+            {!open && preview && <div className="mt-1">{preview}</div>}
           </button>
         </CollapsibleTrigger>
-        <div className="flex items-center gap-2 ml-2 shrink-0 mt-0.5">
+        <div className="mt-0.5 ml-2 flex shrink-0 items-center gap-2">
           {headerExtra}
           <CollapsibleTrigger asChild>
             <button type="button" className="cursor-pointer">
               <ChevronDown
                 className={cn(
-                  'h-4 w-4 text-muted-foreground transition-transform duration-200',
+                  'text-muted-foreground h-4 w-4 transition-transform duration-200',
                   !open && '-rotate-90'
                 )}
               />
@@ -225,7 +214,7 @@ function SectionCollapsible({
       </div>
       <CollapsibleContent forceMount className={cn('pb-2', !open && 'hidden')}>
         {hint && open && (
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">{hint}</p>
+          <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400">{hint}</p>
         )}
         {children}
       </CollapsibleContent>
@@ -236,18 +225,12 @@ function SectionCollapsible({
 // ─── Preview helpers ──────────────────────────────────────────────────────────
 
 function PreviewText({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-xs text-muted-foreground truncate max-w-lg">{children}</p>
-  )
+  return <p className="text-muted-foreground max-w-lg truncate text-xs">{children}</p>
 }
 
 function PreviewChips({ items }: { items: string[] }) {
   if (items.length === 0) return <PreviewText>—</PreviewText>
-  return (
-    <p className="text-xs text-muted-foreground">
-      {items.join(' · ')}
-    </p>
-  )
+  return <p className="text-muted-foreground text-xs">{items.join(' · ')}</p>
 }
 
 function AppliesImmediatelyBadge({ label }: { label: string }) {
@@ -336,18 +319,24 @@ export function AssistantForm({
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [name, setName] = useState(assistant?.name || defaultValues?.name || '')
-  const [description, setDescription] = useState(assistant?.description || defaultValues?.description || '')
+  const [description, setDescription] = useState(
+    assistant?.description || defaultValues?.description || ''
+  )
   const [voiceProvider, setVoiceProvider] = useState(
     assistant?.voice_provider || defaultValues?.voice_provider || 'azure'
   )
-  const [voiceId, setVoiceId] = useState(assistant?.voice_id || defaultValues?.voice_id || 'en-US-JennyNeural')
+  const [voiceId, setVoiceId] = useState(
+    assistant?.voice_id || defaultValues?.voice_id || 'en-US-JennyNeural'
+  )
   const [voiceLanguage, setVoiceLanguage] = useState(
     assistant?.voice_language || defaultValues?.voice_language || 'en-US'
   )
   const [llmProvider, setLlmProvider] = useState(
     assistant?.llm_provider || defaultValues?.llm_provider || 'openai'
   )
-  const [llmModel, setLlmModel] = useState(assistant?.llm_model || defaultValues?.llm_model || 'gpt-5')
+  const [llmModel, setLlmModel] = useState(
+    assistant?.llm_model || defaultValues?.llm_model || 'gpt-5'
+  )
   const [llmTemperature, setLlmTemperature] = useState(
     assistant?.llm_temperature ?? defaultValues?.llm_temperature ?? 0.7
   )
@@ -360,7 +349,9 @@ export function AssistantForm({
   )
   const [isActive, setIsActive] = useState(assistant?.is_active ?? true)
   const [enableHesitation, setEnableHesitation] = useState(assistant?.enable_hesitation ?? false)
-  const [enableSemanticEot, setEnableSemanticEot] = useState(assistant?.enable_semantic_eot ?? false)
+  const [enableSemanticEot, setEnableSemanticEot] = useState(
+    assistant?.enable_semantic_eot ?? false
+  )
   const [sttProvider, setSttProvider] = useState(assistant?.stt_provider || 'auto')
   const [sttLanguages, setSttLanguages] = useState<string[]>(assistant?.stt_languages || [])
   const [createScenarioChecked, setCreateScenarioChecked] = useState(!assistant)
@@ -475,6 +466,9 @@ export function AssistantForm({
     setOpeningMessage(init.openingMessage)
     setIsActive(init.isActive)
     setEnableHesitation(init.enableHesitation)
+    setEnableSemanticEot(init.enableSemanticEot)
+    setSttProvider(init.sttProvider)
+    setSttLanguages(init.sttLanguages)
   }
 
   // ── Navigation guard ─────────────────────────────────────────────────────────
@@ -496,7 +490,9 @@ export function AssistantForm({
           pendingNavRef.current = href
           setShowLeaveConfirm(true)
         }
-      } catch { /* invalid href */ }
+      } catch {
+        /* invalid href */
+      }
     }
 
     const handlePopState = () => {
@@ -509,7 +505,9 @@ export function AssistantForm({
       }
     }
 
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
 
     document.addEventListener('click', handleAnchorClick, { capture: true })
     window.addEventListener('popstate', handlePopState)
@@ -536,12 +534,22 @@ export function AssistantForm({
     if (isDirty) {
       // Save first
       const data = {
-        name, description: description || undefined,
-        voice_provider: voiceProvider, voice_id: voiceId, voice_language: voiceLanguage,
-        llm_provider: llmProvider, llm_model: llmModel, llm_temperature: llmTemperature,
-        system_prompt: systemPrompt || undefined, opening_message: openingMessage || undefined,
-        is_active: isActive, enable_hesitation: enableHesitation, enable_semantic_eot: enableSemanticEot,
-        stt_provider: sttProvider === 'auto' ? null : sttProvider, stt_languages: sttLanguages.length > 0 ? sttLanguages : null,
+        name,
+        description: description || undefined,
+        voice_provider: voiceProvider,
+        voice_id: voiceId,
+        voice_language: voiceLanguage,
+        llm_provider: llmProvider,
+        llm_model: llmModel,
+        llm_temperature: llmTemperature,
+        thinking_level: thinkingLevel === 'auto' ? null : thinkingLevel,
+        system_prompt: systemPrompt || undefined,
+        opening_message: openingMessage || undefined,
+        is_active: isActive,
+        enable_hesitation: enableHesitation,
+        enable_semantic_eot: enableSemanticEot,
+        stt_provider: sttProvider === 'auto' ? null : sttProvider,
+        stt_languages: sttLanguages.length > 0 ? sttLanguages : null,
       }
       await updateAssistant(assistant!.id, data)
     }
@@ -614,20 +622,32 @@ export function AssistantForm({
   const [voiceSearch, setVoiceSearch] = useState('')
 
   // ── Knowledge Base state ────────────────────────────────────────────────────
-  const [orgKnowledgeBases, setOrgKnowledgeBases] = useState<{ id: string; name: string; description?: string | null }[]>([])
-  const [assignedKBs, setAssignedKBs] = useState<{ id: string; name: string; description?: string | null }[]>([])
+  const [orgKnowledgeBases, setOrgKnowledgeBases] = useState<
+    { id: string; name: string; description?: string | null }[]
+  >([])
+  const [assignedKBs, setAssignedKBs] = useState<
+    { id: string; name: string; description?: string | null }[]
+  >([])
   const [selectedKBToAdd, setSelectedKBToAdd] = useState<string>('')
   const [kbLoading, setKbLoading] = useState(false)
 
   // ── MCP Server state ────────────────────────────────────────────────────────
-  const [orgMCPServers, setOrgMCPServers] = useState<{ id: string; name: string; description?: string | null }[]>([])
-  const [assignedMCPServers, setAssignedMCPServers] = useState<{ id: string; name: string; description?: string | null }[]>([])
+  const [orgMCPServers, setOrgMCPServers] = useState<
+    { id: string; name: string; description?: string | null }[]
+  >([])
+  const [assignedMCPServers, setAssignedMCPServers] = useState<
+    { id: string; name: string; description?: string | null }[]
+  >([])
   const [selectedMCPToAdd, setSelectedMCPToAdd] = useState<string>('')
   const [mcpLoading, setMcpLoading] = useState(false)
 
   // ── Webhook Tools state ─────────────────────────────────────────────────────
-  const [orgWebhookTools, setOrgWebhookTools] = useState<import('@/types/webhook-tools').WebhookTool[]>([])
-  const [assignedWebhookTools, setAssignedWebhookTools] = useState<import('@/types/webhook-tools').WebhookTool[]>([])
+  const [orgWebhookTools, setOrgWebhookTools] = useState<
+    import('@/types/webhook-tools').WebhookTool[]
+  >([])
+  const [assignedWebhookTools, setAssignedWebhookTools] = useState<
+    import('@/types/webhook-tools').WebhookTool[]
+  >([])
 
   // ── Phoneme Sets state ──────────────────────────────────────────────────────
   const [orgPhonemeSets, setOrgPhonemeSets] = useState<PhonemeSet[]>([])
@@ -641,8 +661,20 @@ export function AssistantForm({
       getOrganizationKnowledgeBases(organizationId),
       getAssistantKnowledgeBases(assistant!.id),
     ])
-    setOrgKnowledgeBases(orgKBResult.knowledgeBases as unknown as { id: string; name: string; description?: string | null }[])
-    setAssignedKBs(assignedKBResult.knowledgeBases as unknown as { id: string; name: string; description?: string | null }[])
+    setOrgKnowledgeBases(
+      orgKBResult.knowledgeBases as unknown as {
+        id: string
+        name: string
+        description?: string | null
+      }[]
+    )
+    setAssignedKBs(
+      assignedKBResult.knowledgeBases as unknown as {
+        id: string
+        name: string
+        description?: string | null
+      }[]
+    )
     setKbLoading(false)
   }
 
@@ -687,9 +719,7 @@ export function AssistantForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistant?.id])
 
-  const availableKBs = orgKnowledgeBases.filter(
-    (kb) => !assignedKBs.some((a) => a.id === kb.id)
-  )
+  const availableKBs = orgKnowledgeBases.filter((kb) => !assignedKBs.some((a) => a.id === kb.id))
 
   const availableWebhookTools = orgWebhookTools.filter(
     (t) => !assignedWebhookTools.some((a) => a.id === t.id)
@@ -774,6 +804,20 @@ export function AssistantForm({
       stt_provider: sttProvider === 'auto' ? null : sttProvider,
       stt_languages: sttLanguages.length > 0 ? sttLanguages : null,
     }
+    const hasDeploymentRelevantChanges =
+      voiceProvider !== initialValuesRef.current.voiceProvider ||
+      voiceId !== initialValuesRef.current.voiceId ||
+      voiceLanguage !== initialValuesRef.current.voiceLanguage ||
+      llmProvider !== initialValuesRef.current.llmProvider ||
+      llmModel !== initialValuesRef.current.llmModel ||
+      llmTemperature !== initialValuesRef.current.llmTemperature ||
+      thinkingLevel !== initialValuesRef.current.thinkingLevel ||
+      systemPrompt !== initialValuesRef.current.systemPrompt ||
+      openingMessage !== initialValuesRef.current.openingMessage ||
+      enableHesitation !== initialValuesRef.current.enableHesitation ||
+      enableSemanticEot !== initialValuesRef.current.enableSemanticEot ||
+      sttProvider !== initialValuesRef.current.sttProvider ||
+      JSON.stringify(sttLanguages) !== JSON.stringify(initialValuesRef.current.sttLanguages)
 
     const result = assistant
       ? await updateAssistant(assistant.id, data)
@@ -805,7 +849,9 @@ export function AssistantForm({
           sttProvider,
           sttLanguages,
         }
-        setHasUndeployedChanges(true)
+        if (hasDeploymentRelevantChanges) {
+          setHasUndeployedChanges(true)
+        }
         router.refresh()
         setTimeout(() => setSaveSuccess(false), 2000)
       } else {
@@ -843,7 +889,7 @@ export function AssistantForm({
             <TabsTrigger
               value={value}
               disabled
-              className="flex items-center gap-1.5 flex-1 opacity-50 cursor-not-allowed"
+              className="flex flex-1 cursor-not-allowed items-center gap-1.5 opacity-50"
             >
               {icon}
               <span className="hidden sm:inline">{label}</span>
@@ -867,7 +913,12 @@ export function AssistantForm({
             <AlertDialogDescription>{t('unsavedChanges.description')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setShowNavDialog(false); setPendingNavHref(null) }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowNavDialog(false)
+                setPendingNavHref(null)
+              }}
+            >
               {tCommon('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
@@ -883,13 +934,13 @@ export function AssistantForm({
       </AlertDialog>
 
       {error && (
-        <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950/20 rounded-md border border-red-200 dark:border-red-900">
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-500 dark:border-red-900 dark:bg-red-950/20">
           {error}
         </div>
       )}
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="mb-6 grid w-full grid-cols-4">
           {/* Allgemein */}
           <TabsTrigger value="general" className="flex items-center gap-1.5">
             <Settings className="h-4 w-4 shrink-0" />
@@ -931,7 +982,9 @@ export function AssistantForm({
             preview={
               <PreviewText>
                 {name || '—'}
-                {description ? ` · ${description.length > 50 ? description.substring(0, 50) + '…' : description}` : ''}
+                {description
+                  ? ` · ${description.length > 50 ? description.substring(0, 50) + '…' : description}`
+                  : ''}
               </PreviewText>
             }
           >
@@ -941,14 +994,14 @@ export function AssistantForm({
                   <img
                     src={assistant.avatar_url}
                     alt={assistant.name}
-                    className="w-14 h-14 rounded-full object-cover shrink-0"
+                    className="h-14 w-14 shrink-0 rounded-full object-cover"
                   />
                 ) : assistant ? (
-                  <div className="w-14 h-14 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center shrink-0">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-200 dark:bg-neutral-700">
                     <Bot className="h-7 w-7 text-neutral-400" />
                   </div>
                 ) : null}
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <Label htmlFor="name">{t('name')} *</Label>
                   <Input
                     id="name"
@@ -981,21 +1034,25 @@ export function AssistantForm({
             title={t('featuresSection')}
             open={openSections[SECTION_IDS.GENERAL_FEATURES]}
             onToggle={toggleSection}
-            className="border-t mt-4 pt-4"
+            className="mt-4 border-t pt-4"
             preview={
-              <PreviewChips items={[
-                ...(isActive ? [t('activeCanReceiveCalls').replace(' (kann Anrufe empfangen)', '')] : []),
-                ...(enableHesitation ? ['Tool-Ankündigung'] : []),
-              ]} />
+              <PreviewChips
+                items={[
+                  ...(isActive
+                    ? [t('activeCanReceiveCalls').replace(' (kann Anrufe empfangen)', '')]
+                    : []),
+                  ...(enableHesitation ? ['Tool-Ankündigung'] : []),
+                ]}
+              />
             }
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <Label htmlFor="is_active" className="font-medium cursor-pointer">
+                <div className="min-w-0 flex-1">
+                  <Label htmlFor="is_active" className="cursor-pointer font-medium">
                     {t('activeCanReceiveCalls')}
                   </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t('activeDescription')}</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">{t('activeDescription')}</p>
                 </div>
                 <Switch
                   id="is_active"
@@ -1005,11 +1062,13 @@ export function AssistantForm({
                 />
               </div>
               <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <Label htmlFor="enable_hesitation" className="font-medium cursor-pointer">
+                <div className="min-w-0 flex-1">
+                  <Label htmlFor="enable_hesitation" className="cursor-pointer font-medium">
                     {t('enableHesitation')}
                   </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t('hesitationDescription')}</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {t('hesitationDescription')}
+                  </p>
                 </div>
                 <Switch
                   id="enable_hesitation"
@@ -1019,12 +1078,16 @@ export function AssistantForm({
                 />
               </div>
               <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <Label htmlFor="enable_semantic_eot" className="font-medium cursor-pointer">
+                <div className="min-w-0 flex-1">
+                  <Label htmlFor="enable_semantic_eot" className="cursor-pointer font-medium">
                     {t('enableSemanticEot')}{' '}
-                    <span className="text-xs font-normal text-muted-foreground">{t('experimental')}</span>
+                    <span className="text-muted-foreground text-xs font-normal">
+                      {t('experimental')}
+                    </span>
                   </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t('semanticEotDescription')}</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    {t('semanticEotDescription')}
+                  </p>
                 </div>
                 <Switch
                   id="enable_semantic_eot"
@@ -1043,11 +1106,19 @@ export function AssistantForm({
             hint={t('openingMessageHint')}
             open={openSections[SECTION_IDS.GENERAL_OPENING]}
             onToggle={toggleSection}
-            className="border-t mt-4 pt-4"
+            className="mt-4 border-t pt-4"
             preview={
-              openingMessage
-                ? <PreviewText>&bdquo;{openingMessage.length > 70 ? openingMessage.substring(0, 70) + '…' : openingMessage}&ldquo;</PreviewText>
-                : <PreviewText>—</PreviewText>
+              openingMessage ? (
+                <PreviewText>
+                  &bdquo;
+                  {openingMessage.length > 70
+                    ? openingMessage.substring(0, 70) + '…'
+                    : openingMessage}
+                  &ldquo;
+                </PreviewText>
+              ) : (
+                <PreviewText>—</PreviewText>
+              )
             }
           >
             <Textarea
@@ -1067,11 +1138,15 @@ export function AssistantForm({
             hint={t('systemPromptHint')}
             open={openSections[SECTION_IDS.GENERAL_PROMPT]}
             onToggle={toggleSection}
-            className="border-t mt-4 pt-4"
+            className="mt-4 border-t pt-4"
             preview={
-              systemPrompt
-                ? <PreviewText>{systemPrompt.length > 90 ? systemPrompt.substring(0, 90) + '…' : systemPrompt}</PreviewText>
-                : <PreviewText>—</PreviewText>
+              systemPrompt ? (
+                <PreviewText>
+                  {systemPrompt.length > 90 ? systemPrompt.substring(0, 90) + '…' : systemPrompt}
+                </PreviewText>
+              ) : (
+                <PreviewText>—</PreviewText>
+              )
             }
             headerExtra={
               openSections[SECTION_IDS.GENERAL_PROMPT] ? (
@@ -1106,7 +1181,12 @@ export function AssistantForm({
         {/* TAB: EIGENSCHAFTEN                                                  */}
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {assistant && (
-          <TabsContent value="properties" className="space-y-0" forceMount hidden={activeTab !== 'properties'}>
+          <TabsContent
+            value="properties"
+            className="space-y-0"
+            forceMount
+            hidden={activeTab !== 'properties'}
+          >
             {/* Stimme */}
             <SectionCollapsible
               id={SECTION_IDS.PROPS_VOICE}
@@ -1116,14 +1196,20 @@ export function AssistantForm({
               preview={(() => {
                 const voice = findVoice(voiceProvider, voiceId)
                 const providerLabel = voiceProvider === 'azure' ? 'Azure' : 'ElevenLabs'
-                const voiceLabel = voice ? `${voice.flag ? voice.flag + ' ' : ''}${voice.name}` : voiceId
+                const voiceLabel = voice
+                  ? `${voice.flag ? voice.flag + ' ' : ''}${voice.name}`
+                  : voiceId
                 return <PreviewChips items={[providerLabel, voiceLabel, voiceLanguage]} />
               })()}
             >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="voice_provider">{t('voiceProvider')}</Label>
-                  <Select value={voiceProvider} onValueChange={setVoiceProvider} disabled={isLoading}>
+                  <Select
+                    value={voiceProvider}
+                    onValueChange={setVoiceProvider}
+                    disabled={isLoading}
+                  >
                     <SelectTrigger id="voice_provider">
                       <SelectValue />
                     </SelectTrigger>
@@ -1136,10 +1222,13 @@ export function AssistantForm({
 
                 <div className="space-y-1.5">
                   <Label>{t('voiceId')}</Label>
-                  <Popover open={voiceOpen} onOpenChange={(open) => {
-                    setVoiceOpen(open)
-                    if (!open) setVoiceSearch('')
-                  }}>
+                  <Popover
+                    open={voiceOpen}
+                    onOpenChange={(open) => {
+                      setVoiceOpen(open)
+                      if (!open) setVoiceSearch('')
+                    }}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         type="button"
@@ -1147,12 +1236,17 @@ export function AssistantForm({
                         role="combobox"
                         aria-expanded={voiceOpen}
                         disabled={isLoading}
-                        className="w-full justify-between font-normal h-9"
+                        className="h-9 w-full justify-between font-normal"
                       >
                         {(() => {
                           const voice = findVoice(voiceProvider, voiceId)
                           if (voice) {
-                            return <span>{voice.flag ? `${voice.flag} ` : ''}{voice.name} ({voice.gender})</span>
+                            return (
+                              <span>
+                                {voice.flag ? `${voice.flag} ` : ''}
+                                {voice.name} ({voice.gender})
+                              </span>
+                            )
                           }
                           return <span className="text-muted-foreground">{t('voiceId')}...</span>
                         })()}
@@ -1161,9 +1255,9 @@ export function AssistantForm({
                     </PopoverTrigger>
                     <PopoverContent className="w-80 p-0" align="start">
                       <div className="flex items-center border-b px-3 py-2">
-                        <Search className="h-4 w-4 shrink-0 opacity-50 mr-2" />
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                         <input
-                          className="flex h-7 w-full rounded-sm bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                          className="placeholder:text-muted-foreground flex h-7 w-full rounded-sm bg-transparent text-sm outline-none"
                           placeholder={t('voiceId') + '...'}
                           value={voiceSearch}
                           onChange={(e) => setVoiceSearch(e.target.value)}
@@ -1174,21 +1268,26 @@ export function AssistantForm({
                           const voices = getVoicesForProvider(voiceProvider)
                           const query = voiceSearch.toLowerCase()
                           const filtered = query
-                            ? voices.filter((v) =>
-                                v.name.toLowerCase().includes(query) ||
-                                (v.desc && v.desc.toLowerCase().includes(query)) ||
-                                (v.lang && v.lang.toLowerCase().includes(query))
+                            ? voices.filter(
+                                (v) =>
+                                  v.name.toLowerCase().includes(query) ||
+                                  (v.desc && v.desc.toLowerCase().includes(query)) ||
+                                  (v.lang && v.lang.toLowerCase().includes(query))
                               )
                             : voices
                           if (filtered.length === 0) {
-                            return <p className="py-4 text-center text-sm text-muted-foreground">{tForm('noVoicesFound')}</p>
+                            return (
+                              <p className="text-muted-foreground py-4 text-center text-sm">
+                                {tForm('noVoicesFound')}
+                              </p>
+                            )
                           }
                           return filtered.map((voice) => (
                             <button
                               key={voice.id}
                               type="button"
                               className={cn(
-                                'w-full text-left rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground',
+                                'hover:bg-accent hover:text-accent-foreground w-full cursor-pointer rounded-sm px-2 py-1.5 text-left text-sm',
                                 voiceId === voice.id && 'bg-accent text-accent-foreground'
                               )}
                               onClick={() => {
@@ -1205,7 +1304,7 @@ export function AssistantForm({
                                 {voiceId === voice.id && <Check className="ml-auto h-4 w-4" />}
                               </div>
                               {voice.desc && (
-                                <p className="text-xs text-muted-foreground ml-0.5">{voice.desc}</p>
+                                <p className="text-muted-foreground ml-0.5 text-xs">{voice.desc}</p>
                               )}
                             </button>
                           ))
@@ -1217,7 +1316,11 @@ export function AssistantForm({
 
                 <div className="space-y-1.5">
                   <Label htmlFor="voice_language">{t('voiceLanguage')}</Label>
-                  <Select value={voiceLanguage} onValueChange={setVoiceLanguage} disabled={isLoading}>
+                  <Select
+                    value={voiceLanguage}
+                    onValueChange={setVoiceLanguage}
+                    disabled={isLoading}
+                  >
                     <SelectTrigger id="voice_language">
                       <SelectValue />
                     </SelectTrigger>
@@ -1245,7 +1348,7 @@ export function AssistantForm({
               hint={t('sttSettingsHint')}
               open={openSections[SECTION_IDS.PROPS_STT]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={(() => {
                 if (sttProvider === 'auto') return <PreviewChips items={[t('sttProviderAuto')]} />
                 const langs = sttLanguages.length > 0 ? sttLanguages : [t('sttLanguageAuto')]
@@ -1278,7 +1381,11 @@ export function AssistantForm({
                 {sttProvider !== 'auto' && (
                   <div className="space-y-1.5">
                     <Label>{t('sttLanguages')}</Label>
-                    <p className="text-xs text-muted-foreground">{t(sttProvider === 'AZURE' ? 'sttLanguagesHintAzure' : 'sttLanguagesHintSingle')}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {t(
+                        sttProvider === 'AZURE' ? 'sttLanguagesHintAzure' : 'sttLanguagesHintSingle'
+                      )}
+                    </p>
                     {sttProvider === 'AZURE' ? (
                       <div className="grid grid-cols-2 gap-2">
                         {[
@@ -1296,7 +1403,13 @@ export function AssistantForm({
                           const checked = sttLanguages.includes(code)
                           const atLimit = sttLanguages.length >= 4
                           return (
-                            <label key={code} className={cn('flex items-center gap-2 text-sm cursor-pointer', !checked && atLimit && 'opacity-40 cursor-not-allowed')}>
+                            <label
+                              key={code}
+                              className={cn(
+                                'flex cursor-pointer items-center gap-2 text-sm',
+                                !checked && atLimit && 'cursor-not-allowed opacity-40'
+                              )}
+                            >
                               <input
                                 type="checkbox"
                                 checked={checked}
@@ -1351,7 +1464,7 @@ export function AssistantForm({
                 hint={t('phonemeSetsHint')}
                 open={openSections[SECTION_IDS.PROPS_PHONEME]}
                 onToggle={toggleSection}
-                className="border-t mt-4 pt-4"
+                className="mt-4 border-t pt-4"
                 preview={
                   <PreviewText>
                     {assignedPhonemeSetIds.size > 0
@@ -1362,22 +1475,25 @@ export function AssistantForm({
                 headerExtra={renderImmediateHeaderExtra()}
               >
                 {phonemeLoading ? (
-                  <p className="text-sm text-muted-foreground">{t('phonemeSetsLoading')}</p>
+                  <p className="text-muted-foreground text-sm">{t('phonemeSetsLoading')}</p>
                 ) : orgPhonemeSets.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t('phonemeSetsNone')}</p>
+                  <p className="text-muted-foreground text-sm">{t('phonemeSetsNone')}</p>
                 ) : (
                   <div className="space-y-2">
                     {orgPhonemeSets.map((ps) => {
                       const isAssigned = assignedPhonemeSetIds.has(ps.id)
                       const entryCount = (ps.entries ?? []).filter((e) => e.is_active).length
                       return (
-                        <div key={ps.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm">{ps.name}</p>
+                        <div
+                          key={ps.id}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-700"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">{ps.name}</p>
                             {ps.description && (
-                              <p className="text-xs text-muted-foreground">{ps.description}</p>
+                              <p className="text-muted-foreground text-xs">{ps.description}</p>
                             )}
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-muted-foreground text-xs">
                               {t('phonemeSetsActiveEntries', { count: entryCount })}
                             </p>
                           </div>
@@ -1400,20 +1516,26 @@ export function AssistantForm({
               title={t('llmSettings')}
               open={openSections[SECTION_IDS.PROPS_LLM]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={
-                <PreviewChips items={[
-                  llmProvider.charAt(0).toUpperCase() + llmProvider.slice(1),
-                  llmModel,
-                  `T: ${llmTemperature.toFixed(1)}`,
-                ]} />
+                <PreviewChips
+                  items={[
+                    llmProvider.charAt(0).toUpperCase() + llmProvider.slice(1),
+                    llmModel,
+                    `T: ${llmTemperature.toFixed(1)}`,
+                  ]}
+                />
               }
             >
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="llm_provider">{t('llmProvider')}</Label>
-                    <Select value={llmProvider} onValueChange={handleProviderChange} disabled={isLoading}>
+                    <Select
+                      value={llmProvider}
+                      onValueChange={handleProviderChange}
+                      disabled={isLoading}
+                    >
                       <SelectTrigger id="llm_provider">
                         <SelectValue />
                       </SelectTrigger>
@@ -1432,21 +1554,23 @@ export function AssistantForm({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {getModelsByProvider(llmProvider as LLMProviderType).map(({ model, label }) => (
-                          <SelectItem key={model} value={model}>{label}</SelectItem>
-                        ))}
+                        {getModelsByProvider(llmProvider as LLMProviderType).map(
+                          ({ model, label }) => (
+                            <SelectItem key={model} value={model}>
+                              {label}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="llm_temperature">
-                        {t('temperature')}
-                      </Label>
-                      <span className="text-sm text-muted-foreground tabular-nums">
+                      <Label htmlFor="llm_temperature">{t('temperature')}</Label>
+                      <span className="text-muted-foreground text-sm tabular-nums">
                         {llmTemperature.toFixed(1)}
                       </span>
                     </div>
@@ -1465,9 +1589,7 @@ export function AssistantForm({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="thinking_level">
-                      {t('thinkingLevel')}
-                    </Label>
+                    <Label htmlFor="thinking_level">{t('thinkingLevel')}</Label>
                     <Select
                       value={thinkingLevel}
                       onValueChange={setThinkingLevel}
@@ -1501,11 +1623,15 @@ export function AssistantForm({
               hint={t('bargeInSectionHint')}
               open={openSections[SECTION_IDS.PROPS_BARGEIN]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={<PreviewText>{bargeInSummary}</PreviewText>}
               headerExtra={renderImmediateHeaderExtra()}
             >
-              <BargeInSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setBargeInSummary} />
+              <BargeInSection
+                assistantId={assistant.id}
+                organizationId={organizationId}
+                onSummaryChange={setBargeInSummary}
+              />
             </SectionCollapsible>
           </TabsContent>
         )}
@@ -1514,7 +1640,12 @@ export function AssistantForm({
         {/* TAB: KONTEXT & WISSEN                                               */}
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {assistant && (
-          <TabsContent value="knowledge" className="space-y-0" forceMount hidden={activeTab !== 'knowledge'}>
+          <TabsContent
+            value="knowledge"
+            className="space-y-0"
+            forceMount
+            hidden={activeTab !== 'knowledge'}
+          >
             {/* Wissensdatenbanken */}
             <SectionCollapsible
               id={SECTION_IDS.KW_KB}
@@ -1524,32 +1655,40 @@ export function AssistantForm({
               onToggle={toggleSection}
               preview={
                 <PreviewText>
-                  {assignedKBs.length > 0
-                    ? assignedKBs.map((kb) => kb.name).join(', ')
-                    : '—'}
+                  {assignedKBs.length > 0 ? assignedKBs.map((kb) => kb.name).join(', ') : '—'}
                 </PreviewText>
               }
-              headerExtra={
-                renderImmediateHeaderExtra(assignedKBs.length > 0 ? (
-                  <Badge variant="secondary">{assignedKBs.length} {t('assigned')}</Badge>
-                ) : undefined)
-              }
+              headerExtra={renderImmediateHeaderExtra(
+                assignedKBs.length > 0 ? (
+                  <Badge variant="secondary">
+                    {assignedKBs.length} {t('assigned')}
+                  </Badge>
+                ) : undefined
+              )}
             >
               {assignedKBs.length > 0 && (
-                <div className="space-y-2 mb-3">
+                <div className="mb-3 space-y-2">
                   {assignedKBs.map((kb) => (
                     <div
                       key={kb.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50"
+                      className="flex items-center justify-between rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-800/50"
                     >
                       <div className="flex items-center gap-2">
-                        <Book className="h-4 w-4 text-neutral-400 shrink-0" />
+                        <Book className="h-4 w-4 shrink-0 text-neutral-400" />
                         <div>
-                          <p className="font-medium text-sm">{kb.name}</p>
-                          {kb.description && <p className="text-xs text-neutral-500">{kb.description}</p>}
+                          <p className="text-sm font-medium">{kb.name}</p>
+                          {kb.description && (
+                            <p className="text-xs text-neutral-500">{kb.description}</p>
+                          )}
                         </div>
                       </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => handleUnassignKB(kb.id)} disabled={kbLoading}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUnassignKB(kb.id)}
+                        disabled={kbLoading}
+                      >
                         <X className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
@@ -1558,26 +1697,38 @@ export function AssistantForm({
               )}
               {availableKBs.length > 0 && (
                 <div className="flex gap-2">
-                  <Select value={selectedKBToAdd} onValueChange={setSelectedKBToAdd} disabled={kbLoading}>
+                  <Select
+                    value={selectedKBToAdd}
+                    onValueChange={setSelectedKBToAdd}
+                    disabled={kbLoading}
+                  >
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder={t('selectKnowledgeBase')} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableKBs.map((kb) => (
-                        <SelectItem key={kb.id} value={kb.id}>{kb.name}</SelectItem>
+                        <SelectItem key={kb.id} value={kb.id}>
+                          {kb.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button type="button" variant="outline" onClick={handleAssignKB} disabled={!selectedKBToAdd || kbLoading}>
-                    <Plus className="h-4 w-4 mr-2" />{tCommon('add')}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAssignKB}
+                    disabled={!selectedKBToAdd || kbLoading}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    {tCommon('add')}
                   </Button>
                 </div>
               )}
               {assignedKBs.length === 0 && availableKBs.length === 0 && (
-                <div className="text-center py-8 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700">
-                  <Book className="h-8 w-8 mx-auto text-neutral-400 mb-2" />
+                <div className="rounded-lg border border-dashed border-neutral-300 py-8 text-center dark:border-neutral-700">
+                  <Book className="mx-auto mb-2 h-8 w-8 text-neutral-400" />
                   <p className="text-sm text-neutral-500">{t('noKnowledgeBases')}</p>
-                  <p className="text-xs text-neutral-400 mt-1">{t('createKnowledgeBaseFirst')}</p>
+                  <p className="mt-1 text-xs text-neutral-400">{t('createKnowledgeBaseFirst')}</p>
                 </div>
               )}
             </SectionCollapsible>
@@ -1589,7 +1740,7 @@ export function AssistantForm({
               hint={t('mcpServerHint')}
               open={openSections[SECTION_IDS.KW_MCP]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={
                 <PreviewText>
                   {assignedMCPServers.length > 0
@@ -1597,27 +1748,37 @@ export function AssistantForm({
                     : '—'}
                 </PreviewText>
               }
-              headerExtra={
-                renderImmediateHeaderExtra(assignedMCPServers.length > 0 ? (
-                  <Badge variant="secondary">{assignedMCPServers.length} {t('connected')}</Badge>
-                ) : undefined)
-              }
+              headerExtra={renderImmediateHeaderExtra(
+                assignedMCPServers.length > 0 ? (
+                  <Badge variant="secondary">
+                    {assignedMCPServers.length} {t('connected')}
+                  </Badge>
+                ) : undefined
+              )}
             >
               {assignedMCPServers.length > 0 && (
-                <div className="space-y-2 mb-3">
+                <div className="mb-3 space-y-2">
                   {assignedMCPServers.map((server) => (
                     <div
                       key={server.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50"
+                      className="flex items-center justify-between rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-800/50"
                     >
                       <div className="flex items-center gap-2">
-                        <Server className="h-4 w-4 text-neutral-400 shrink-0" />
+                        <Server className="h-4 w-4 shrink-0 text-neutral-400" />
                         <div>
-                          <p className="font-medium text-sm">{server.name}</p>
-                          {server.description && <p className="text-xs text-neutral-500">{server.description}</p>}
+                          <p className="text-sm font-medium">{server.name}</p>
+                          {server.description && (
+                            <p className="text-xs text-neutral-500">{server.description}</p>
+                          )}
                         </div>
                       </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => handleUnassignMCP(server.id)} disabled={mcpLoading}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleUnassignMCP(server.id)}
+                        disabled={mcpLoading}
+                      >
                         <X className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
@@ -1626,26 +1787,38 @@ export function AssistantForm({
               )}
               {availableMCPServers.length > 0 && (
                 <div className="flex gap-2">
-                  <Select value={selectedMCPToAdd} onValueChange={setSelectedMCPToAdd} disabled={mcpLoading}>
+                  <Select
+                    value={selectedMCPToAdd}
+                    onValueChange={setSelectedMCPToAdd}
+                    disabled={mcpLoading}
+                  >
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder={t('selectMcpServer')} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableMCPServers.map((server) => (
-                        <SelectItem key={server.id} value={server.id}>{server.name}</SelectItem>
+                        <SelectItem key={server.id} value={server.id}>
+                          {server.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button type="button" variant="outline" onClick={handleAssignMCP} disabled={!selectedMCPToAdd || mcpLoading}>
-                    <Plus className="h-4 w-4 mr-2" />{tCommon('add')}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAssignMCP}
+                    disabled={!selectedMCPToAdd || mcpLoading}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    {tCommon('add')}
                   </Button>
                 </div>
               )}
               {assignedMCPServers.length === 0 && availableMCPServers.length === 0 && (
-                <div className="text-center py-8 rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700">
-                  <Server className="h-8 w-8 mx-auto text-neutral-400 mb-2" />
+                <div className="rounded-lg border border-dashed border-neutral-300 py-8 text-center dark:border-neutral-700">
+                  <Server className="mx-auto mb-2 h-8 w-8 text-neutral-400" />
                   <p className="text-sm text-neutral-500">{t('noMcpServers')}</p>
-                  <p className="text-xs text-neutral-400 mt-1">{t('createMcpServerFirst')}</p>
+                  <p className="mt-1 text-xs text-neutral-400">{t('createMcpServerFirst')}</p>
                 </div>
               )}
             </SectionCollapsible>
@@ -1657,19 +1830,21 @@ export function AssistantForm({
               hint={t('webhookToolsHint')}
               open={openSections[SECTION_IDS.KW_WEBHOOK_TOOLS]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={
                 <PreviewText>
                   {assignedWebhookTools.length > 0
-                    ? assignedWebhookTools.map(wt => wt.name).join(', ')
+                    ? assignedWebhookTools.map((wt) => wt.name).join(', ')
                     : '—'}
                 </PreviewText>
               }
-              headerExtra={
-                renderImmediateHeaderExtra(assignedWebhookTools.length > 0 ? (
-                  <Badge variant="secondary">{assignedWebhookTools.length} {t('connected')}</Badge>
-                ) : undefined)
-              }
+              headerExtra={renderImmediateHeaderExtra(
+                assignedWebhookTools.length > 0 ? (
+                  <Badge variant="secondary">
+                    {assignedWebhookTools.length} {t('connected')}
+                  </Badge>
+                ) : undefined
+              )}
             >
               <WebhookToolsSection
                 assistantId={assistant.id}
@@ -1686,11 +1861,15 @@ export function AssistantForm({
               hint={t('callToolsHint')}
               open={openSections[SECTION_IDS.KW_TOOLS]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={<PreviewText>{toolsSummary}</PreviewText>}
               headerExtra={renderImmediateHeaderExtra()}
             >
-              <CallToolsSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setToolsSummary} />
+              <CallToolsSection
+                assistantId={assistant.id}
+                organizationId={organizationId}
+                onSummaryChange={setToolsSummary}
+              />
             </SectionCollapsible>
 
             {/* Kontext-Webhooks */}
@@ -1700,11 +1879,15 @@ export function AssistantForm({
               hint={t('contextWebhooksHint')}
               open={openSections[SECTION_IDS.KW_CONTEXT]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={<PreviewText>{contextSummary}</PreviewText>}
               headerExtra={renderImmediateHeaderExtra()}
             >
-              <ContextWebhookSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setContextSummary} />
+              <ContextWebhookSection
+                assistantId={assistant.id}
+                organizationId={organizationId}
+                onSummaryChange={setContextSummary}
+              />
             </SectionCollapsible>
           </TabsContent>
         )}
@@ -1713,7 +1896,12 @@ export function AssistantForm({
         {/* TAB: ANALYSE                                                        */}
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {assistant && (
-          <TabsContent value="analysis" className="space-y-0" forceMount hidden={activeTab !== 'analysis'}>
+          <TabsContent
+            value="analysis"
+            className="space-y-0"
+            forceMount
+            hidden={activeTab !== 'analysis'}
+          >
             {/* Variablen */}
             <SectionCollapsible
               id={SECTION_IDS.ANA_VARS}
@@ -1723,7 +1911,11 @@ export function AssistantForm({
               preview={<PreviewText>{varsSummary}</PreviewText>}
               headerExtra={renderImmediateHeaderExtra()}
             >
-              <VariableDefinitionsSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setVarsSummary} />
+              <VariableDefinitionsSection
+                assistantId={assistant.id}
+                organizationId={organizationId}
+                onSummaryChange={setVarsSummary}
+              />
             </SectionCollapsible>
 
             {/* Datenübertragung */}
@@ -1733,11 +1925,15 @@ export function AssistantForm({
               hint={t('dataTransferHint')}
               open={openSections[SECTION_IDS.ANA_WEBHOOKS]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={<PreviewText>{webhookSummary}</PreviewText>}
               headerExtra={renderImmediateHeaderExtra()}
             >
-              <WebhookConfigSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setWebhookSummary} />
+              <WebhookConfigSection
+                assistantId={assistant.id}
+                organizationId={organizationId}
+                onSummaryChange={setWebhookSummary}
+              />
             </SectionCollapsible>
 
             {/* Anrufkriterien */}
@@ -1747,11 +1943,15 @@ export function AssistantForm({
               hint={t('criteriaSectionHint')}
               open={openSections[SECTION_IDS.ANA_CRITERIA]}
               onToggle={toggleSection}
-              className="border-t mt-4 pt-4"
+              className="mt-4 border-t pt-4"
               preview={<PreviewText>{criteriaSummary}</PreviewText>}
               headerExtra={renderImmediateHeaderExtra()}
             >
-              <AssistantCriteriaList organizationId={organizationId} assistantId={assistant.id} onSummaryChange={setCriteriaSummary} />
+              <AssistantCriteriaList
+                organizationId={organizationId}
+                assistantId={assistant.id}
+                onSummaryChange={setCriteriaSummary}
+              />
             </SectionCollapsible>
           </TabsContent>
         )}
@@ -1759,14 +1959,14 @@ export function AssistantForm({
 
       {/* Create-Modus: normaler Submit-Button */}
       {!assistant && (
-        <div className="pt-6 mt-6 border-t space-y-4">
+        <div className="mt-6 space-y-4 border-t pt-6">
           <div className="flex items-center gap-2">
             <Checkbox
               id="create-scenario"
               checked={createScenarioChecked}
               onCheckedChange={(v) => setCreateScenarioChecked(!!v)}
             />
-            <Label htmlFor="create-scenario" className="font-normal cursor-pointer">
+            <Label htmlFor="create-scenario" className="cursor-pointer font-normal">
               {t('autoCreateScenario')}
             </Label>
           </div>
@@ -1781,7 +1981,10 @@ export function AssistantForm({
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{tCommon('creating')}</>
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {tCommon('creating')}
+                </>
               ) : (
                 t('createAssistant')
               )}
@@ -1792,9 +1995,9 @@ export function AssistantForm({
 
       {/* Sticky Save Bar – bei ungespeicherten Änderungen */}
       {assistant && isDirty && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg">
-          <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">{t('unsavedChanges.hint')}</p>
+        <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 fixed right-0 bottom-0 left-0 z-50 border-t shadow-lg backdrop-blur">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-3">
+            <p className="text-muted-foreground text-sm">{t('unsavedChanges.hint')}</p>
             <div className="flex items-center gap-2">
               <Button
                 type="button"
@@ -1812,9 +2015,15 @@ export function AssistantForm({
                 className={saveSuccess ? 'bg-lime-600 hover:bg-lime-600' : ''}
               >
                 {isLoading ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{tCommon('saving')}</>
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {tCommon('saving')}
+                  </>
                 ) : saveSuccess ? (
-                  <><Check className="h-4 w-4 mr-2" />{tCommon('saved')}</>
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    {tCommon('saved')}
+                  </>
                 ) : (
                   tCommon('saveChanges')
                 )}
@@ -1826,17 +2035,12 @@ export function AssistantForm({
 
       {/* Sticky Deploy Bar – gespeichert aber noch nicht deployed */}
       {assistant && !isDirty && hasUndeployedChanges && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg">
-          <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">{tDeploy('undeployedHint')}</p>
+        <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 fixed right-0 bottom-0 left-0 z-50 border-t shadow-lg backdrop-blur">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-3">
+            <p className="text-muted-foreground text-sm">{tDeploy('undeployedHint')}</p>
             <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setHistoryOpen(true)}
-              >
-                <History className="h-4 w-4 mr-1" />
+              <Button type="button" variant="ghost" size="sm" onClick={() => setHistoryOpen(true)}>
+                <History className="mr-1 h-4 w-4" />
                 {tDeploy('history')}
               </Button>
               {assistant.deployed_at && (
@@ -1848,9 +2052,9 @@ export function AssistantForm({
                   disabled={reverting}
                 >
                   {reverting ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                   ) : (
-                    <RotateCcw className="h-4 w-4 mr-1" />
+                    <RotateCcw className="mr-1 h-4 w-4" />
                   )}
                   {tDeploy('revert')}
                 </Button>
@@ -1860,12 +2064,12 @@ export function AssistantForm({
                 size="sm"
                 onClick={handleDeploy}
                 disabled={deploying}
-                className="animate-pulse bg-orange-500/90 hover:bg-orange-500/80 hover:animate-none text-white border-0"
+                className="animate-pulse border-0 bg-orange-500/90 text-white hover:animate-none hover:bg-orange-500/80"
               >
                 {deploying ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                 ) : (
-                  <Zap className="h-4 w-4 mr-1" />
+                  <Zap className="mr-1 h-4 w-4" />
                 )}
                 {tDeploy('deployButton')}
               </Button>
@@ -1901,7 +2105,7 @@ export function AssistantForm({
               {tDeploy('leaveWithoutDeploy')}
             </Button>
             <AlertDialogAction onClick={handleLeaveAndDeploy} disabled={deploying}>
-              {deploying && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              {deploying && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               {tDeploy('leaveAndDeploy')}
             </AlertDialogAction>
           </AlertDialogFooter>

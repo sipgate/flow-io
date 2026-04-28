@@ -83,8 +83,11 @@ export interface AssistantConfig {
   llm_provider: string | null
   llm_model: string | null
   llm_temperature: number | null
+  thinking_level: string | null
   system_prompt: string | null
   opening_message: string | null
+  enable_hesitation: boolean | null
+  enable_semantic_eot: boolean | null
   is_active: boolean | null
   stt_provider: string | null
   stt_languages: string[] | null

@@ -111,8 +111,7 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [hasUndeployedChanges, setHasUndeployedChanges] = useState<boolean>(
-    !scenario.deployed_at ||
-    new Date(scenario.updated_at) > new Date(scenario.deployed_at)
+    scenario.has_undeployed_changes || !scenario.deployed_at
   )
   const [scenarioName, setScenarioName] = useState(scenario.name)
   const [editingName, setEditingName] = useState(false)
@@ -120,6 +119,8 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingNavRef = useRef<string | null>(null)
   const bypassGuardRef = useRef(false)
+  const didRunAutoSaveRef = useRef(false)
+  const pendingSemanticSaveRef = useRef(false)
 
   // Nodes/edges without the virtual phone node, used for all DB saves
   const savedNodes = useMemo(
@@ -150,12 +151,24 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     return phoneEdge ? [phoneEdge, ...typedEdges] : typedEdges
   }, [phoneEdge, edges, nodes])
 
+  const markScenarioChanged = useCallback(() => {
+    pendingSemanticSaveRef.current = true
+    setHasUndeployedChanges(true)
+  }, [])
+
   // Auto-save on change (debounced 1.5s)
   const triggerAutoSave = useCallback(
-    (updatedNodes: ScenarioNode[], updatedEdges: ScenarioEdge[]) => {
+    (updatedNodes: ScenarioNode[], updatedEdges: ScenarioEdge[], markUndeployed = false) => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current)
       saveTimeout.current = setTimeout(async () => {
-        const { error } = await updateScenario(scenario.id, updatedNodes, updatedEdges)
+        const { error } = await updateScenario(
+          scenario.id,
+          updatedNodes,
+          updatedEdges,
+          undefined,
+          undefined,
+          { markUndeployed }
+        )
         if (error) {
           console.error('Auto-save failed:', error)
         }
@@ -171,35 +184,39 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
       const hasStructural = changes.some(
         (c) => c.type !== 'position' && c.type !== 'dimensions' && c.type !== 'select'
       )
-      if (hasStructural) setHasUndeployedChanges(true)
+      if (hasStructural) markScenarioChanged()
     },
-    [onNodesChange]
+    [markScenarioChanged, onNodesChange]
   )
 
   const handleEdgesChange = useCallback(
     (changes: Parameters<typeof onEdgesChange>[0]) => {
       onEdgesChange(changes)
       const hasStructural = changes.some((c) => c.type !== 'select')
-      if (hasStructural) setHasUndeployedChanges(true)
+      if (hasStructural) markScenarioChanged()
     },
-    [onEdgesChange]
+    [markScenarioChanged, onEdgesChange]
   )
 
   const onConnect: OnConnect = useCallback(
     (connection) => {
       setEdges((eds) => {
-        const newEdges = addEdge(connection, eds)
-        triggerAutoSave(savedNodes, newEdges as ScenarioEdge[])
-        return newEdges
+        return addEdge(connection, eds)
       })
-      setHasUndeployedChanges(true)
+      markScenarioChanged()
     },
-    [setEdges, savedNodes, triggerAutoSave]
+    [markScenarioChanged, setEdges]
   )
 
-  // Auto-save when nodes/edges change (position-only moves don't mark as undeployed)
+  // Auto-save when nodes/edges change. Position-only moves save layout without changing live-call state.
   useEffect(() => {
-    triggerAutoSave(savedNodes, edges)
+    if (!didRunAutoSaveRef.current) {
+      didRunAutoSaveRef.current = true
+      return
+    }
+    const markUndeployed = pendingSemanticSaveRef.current
+    pendingSemanticSaveRef.current = false
+    triggerAutoSave(savedNodes, edges, markUndeployed)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedNodes, edges])
 
@@ -237,7 +254,8 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     }
     setNodes((nds) => [...nds, newNode])
     setSelectedNode(newNode)
-  }, [nextNodePosition, setNodes, t])
+    markScenarioChanged()
+  }, [markScenarioChanged, nextNodePosition, setNodes, t])
 
   const addDTMFCollectNode = useCallback(() => {
     const newNode: ScenarioNode = {
@@ -255,7 +273,8 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     }
     setNodes((nds) => [...nds, newNode])
     setSelectedNode(newNode)
-  }, [nextNodePosition, setNodes, t])
+    markScenarioChanged()
+  }, [markScenarioChanged, nextNodePosition, setNodes, t])
 
   const addDTMFMenuNode = useCallback(() => {
     const newNode: ScenarioNode = {
@@ -272,7 +291,8 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     }
     setNodes((nds) => [...nds, newNode])
     setSelectedNode(newNode)
-  }, [nextNodePosition, setNodes, t])
+    markScenarioChanged()
+  }, [markScenarioChanged, nextNodePosition, setNodes, t])
 
   const addPhoneTransferNode = useCallback(() => {
     const newNode: ScenarioNode = {
@@ -289,16 +309,15 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     }
     setNodes((nds) => [...nds, newNode])
     setSelectedNode(newNode)
-  }, [nextNodePosition, setNodes, t])
+    markScenarioChanged()
+  }, [markScenarioChanged, nextNodePosition, setNodes, t])
 
   const handleEdgeLabelUpdate = useCallback(
     (edgeId: string, label: string) => {
-      setEdges((eds) =>
-        eds.map((e) => (e.id === edgeId ? { ...e, label } : e))
-      )
-      setHasUndeployedChanges(true)
+      setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, label } : e)))
+      markScenarioChanged()
     },
-    [setEdges]
+    [markScenarioChanged, setEdges]
   )
 
   const handleNodeDelete = useCallback(
@@ -306,16 +325,14 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
       if (nodeId === PHONE_NODE_ID) return
       setNodes((nds) => nds.filter((n) => n.id !== nodeId))
       setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId))
+      markScenarioChanged()
     },
-    [setNodes, setEdges]
+    [markScenarioChanged, setNodes, setEdges]
   )
 
   const handleNodeUpdate = useCallback(
-    (
-      nodeId: string,
-      updates: Partial<ScenarioNode['data']> & { type?: ScenarioNode['type'] }
-    ) => {
-      setHasUndeployedChanges(true)
+    (nodeId: string, updates: Partial<ScenarioNode['data']> & { type?: ScenarioNode['type'] }) => {
+      markScenarioChanged()
       setNodes((nds) =>
         nds.map((n) => {
           if (n.id !== nodeId) return n
@@ -338,21 +355,33 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
         }
       })
     },
-    [setNodes]
+    [markScenarioChanged, setNodes]
   )
 
   const handleNameBlur = useCallback(async () => {
     setEditingName(false)
     const trimmed = scenarioName.trim()
-    if (!trimmed) { setScenarioName(scenario.name); return }
+    if (!trimmed) {
+      setScenarioName(scenario.name)
+      return
+    }
     if (trimmed === scenario.name) return
-    await updateScenario(scenario.id, savedNodes, edges, trimmed)
+    setHasUndeployedChanges(true)
+    await updateScenario(scenario.id, savedNodes, edges, trimmed, undefined, {
+      markUndeployed: true,
+    })
   }, [scenario.id, scenario.name, scenarioName, savedNodes, edges])
 
-  const handleNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') nameInputRef.current?.blur()
-    if (e.key === 'Escape') { setScenarioName(scenario.name); setEditingName(false) }
-  }, [scenario.name])
+  const handleNameKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') nameInputRef.current?.blur()
+      if (e.key === 'Escape') {
+        setScenarioName(scenario.name)
+        setEditingName(false)
+      }
+    },
+    [scenario.name]
+  )
 
   // Navigation guard: intercept link clicks, browser back/forward and close when changes are pending
   useEffect(() => {
@@ -422,7 +451,9 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     setShowLeaveConfirm(false)
     setDeploying(true)
     if (saveTimeout.current) clearTimeout(saveTimeout.current)
-    await updateScenario(scenario.id, savedNodes, edges)
+    await updateScenario(scenario.id, savedNodes, edges, undefined, undefined, {
+      markUndeployed: true,
+    })
     const { error } = await deployScenario(scenario.id)
     setDeploying(false)
     if (error) {
@@ -439,7 +470,9 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     setDeploying(true)
     if (saveTimeout.current) clearTimeout(saveTimeout.current)
     // Ensure latest changes are saved before deploying
-    await updateScenario(scenario.id, savedNodes, edges)
+    await updateScenario(scenario.id, savedNodes, edges, undefined, undefined, {
+      markUndeployed: true,
+    })
     const { error } = await deployScenario(scenario.id)
     setDeploying(false)
     if (error) {
@@ -659,7 +692,10 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
         voiceLanguage={scenario.voice_language}
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
-        onSettingsChange={() => router.refresh()}
+        onSettingsChange={(requiresApply) => {
+          if (requiresApply) setHasUndeployedChanges(true)
+          router.refresh()
+        }}
       />
 
       {/* Deploy history */}

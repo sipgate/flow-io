@@ -8,7 +8,10 @@ import {
 } from '@/lib/llm/tools/knowledge-base-tool'
 import { MCPToolExecutor, createMCPToolExecutor } from './mcp-tool-executor'
 import { isMCPTool } from '@/lib/mcp'
-import { WebhookToolExecutor, createWebhookToolExecutor } from '@/lib/llm/tools/webhook-tool-executor'
+import {
+  WebhookToolExecutor,
+  createWebhookToolExecutor,
+} from '@/lib/llm/tools/webhook-tool-executor'
 import { hesitateToolDefinition, isHesitateTool } from '@/lib/llm/tools/hesitate-tool'
 import { waitForTurnToolDefinition, isWaitForTurnTool } from '@/lib/llm/tools/wait-for-turn-tool'
 import { substitutePromptVariables, PromptVariableContext } from '@/lib/utils/prompt-variables'
@@ -59,14 +62,15 @@ export async function generateLLMResponse(params: {
   variableContext?: PromptVariableContext
   contextData?: Record<string, unknown> | null
   promptOverride?: string
-  variableCollectionPrompt?: string  // Persistent instruction for mandatory field collection
-  validationContext?: string          // Dynamic status updates injected each turn
-  scenarioTransferNodes?: ScenarioTransferNode[]  // Reachable agent nodes for scenario-based transfer
-  seamlessTransfer?: boolean  // When true, suppress self-introduction (caller doesn't know they were transferred)
-  disableHesitation?: boolean  // When true, skip hesitate tool (used for follow-up calls after hesitation)
-  priorHesitationMessage?: string  // When set, inject a fake hesitate tool-call + result into messages so the model knows to proceed to the real tool
-  rawHesitateContent?: unknown  // Raw Gemini Content from the hesitate call — restores thought_signature for Gemini 3 thinking models
-  disableWaitForTurn?: boolean  // When true, do not offer wait_for_turn (filler limit reached — force a response)
+  variableCollectionPrompt?: string // Persistent instruction for mandatory field collection
+  validationContext?: string // Dynamic status updates injected each turn
+  scenarioTransferNodes?: ScenarioTransferNode[] // Reachable agent nodes for scenario-based transfer
+  seamlessTransfer?: boolean // When true, suppress self-introduction (caller doesn't know they were transferred)
+  disableHesitation?: boolean // When true, skip hesitate tool (used for follow-up calls after hesitation)
+  priorHesitationMessage?: string // When set, inject a fake hesitate tool-call + result into messages so the model knows to proceed to the real tool
+  rawHesitateContent?: unknown // Raw Gemini Content from the hesitate call — restores thought_signature for Gemini 3 thinking models
+  disableWaitForTurn?: boolean // When true, do not offer wait_for_turn (filler limit reached — force a response)
+  configMode?: 'draft' | 'published' // Real phone calls use published snapshots; test/edit flows use drafts.
 }): Promise<LLMResponseResult> {
   const supabase = createServiceRoleClient()
   let mcpExecutor: MCPToolExecutor | null = null
@@ -74,28 +78,72 @@ export async function generateLLMResponse(params: {
 
   try {
     // Fetch assistant configuration
-    const { data: assistant, error: assistantError } = await supabase
+    const { data: assistantData, error: assistantError } = await supabase
       .from('assistants')
-      .select(`
+      .select(
+        `
         id,
         name,
         organization_id,
         llm_provider,
         llm_model,
         llm_temperature,
-        thinking_level,
-        system_prompt,
-        enable_kb_tool,
-        enable_hesitation,
+	        thinking_level,
+	        system_prompt,
+	        enable_kb_tool,
+	        enable_hesitation,
         enable_semantic_eot
-      `)
+      `
+      )
       .eq('id', params.assistantId)
       .single()
 
-    if (assistantError || !assistant) {
+    if (assistantError || !assistantData) {
       return {
         response: '',
         error: 'Assistant not found',
+      }
+    }
+
+    let assistant = assistantData as typeof assistantData & Record<string, unknown>
+    const configMode =
+      params.configMode ?? (params.sessionId && !params.testSessionId ? 'published' : 'draft')
+    if (configMode === 'published') {
+      const { data: versions } = await supabase
+        .from('assistant_versions')
+        .select(
+          `
+	          system_prompt,
+	          llm_provider,
+	          llm_model,
+	          llm_temperature,
+	          thinking_level,
+	          opening_message,
+	          enable_hesitation,
+	          enable_semantic_eot,
+	          stt_provider,
+	          stt_languages
+	        `
+        )
+        .eq('assistant_id', params.assistantId)
+        .order('version', { ascending: false })
+        .limit(1)
+
+      const version = (versions?.[0] as Record<string, unknown> | undefined) ?? null
+      if (version) {
+        assistant = {
+          ...assistant,
+          system_prompt: version.system_prompt as string | null,
+          llm_provider: version.llm_provider as string | null,
+          llm_model: version.llm_model as string | null,
+          llm_temperature: version.llm_temperature as number | null,
+          thinking_level: version.thinking_level as string | null,
+          opening_message: version.opening_message as string | null,
+          enable_hesitation: version.enable_hesitation as boolean | null,
+          enable_semantic_eot: version.enable_semantic_eot as boolean | null,
+          stt_provider: version.stt_provider as string | null,
+          stt_languages: version.stt_languages as string[] | null,
+        }
       }
     }
 
@@ -128,15 +176,14 @@ export async function generateLLMResponse(params: {
         // Merge webhook context data into custom variables
         custom: {
           ...params.variableContext?.custom,
-          ...(contextData ? Object.fromEntries(Object.entries(contextData).map(([k, v]) => [k, String(v)])) : {}),
+          ...(contextData
+            ? Object.fromEntries(Object.entries(contextData).map(([k, v]) => [k, String(v)]))
+            : {}),
         },
       }
 
       // Substitute variables in the system prompt
-      const processedPrompt = substitutePromptVariables(
-        basePrompt,
-        variableContext
-      )
+      const processedPrompt = substitutePromptVariables(basePrompt, variableContext)
 
       // Assemble the system prompt from all optional parts.
       // IMPORTANT: All parts must be in the initial system prompt, NOT as separate system messages.
@@ -204,7 +251,8 @@ export async function generateLLMResponse(params: {
       })
       messages.push({
         role: 'tool',
-        content: 'Announcement delivered to user. Now call the appropriate tool to fulfill the request.',
+        content:
+          'Announcement delivered to user. Now call the appropriate tool to fulfill the request.',
         tool_call_id: fakeHesitateCallId,
         name: 'hesitate',
       })
@@ -228,7 +276,17 @@ export async function generateLLMResponse(params: {
     }
 
     // Debug: Log messages being sent to LLM
-    debug('[LLM Service] Messages to LLM:', JSON.stringify(messages.map(m => ({ role: m.role, content: m.content.substring(0, 100) + (m.content.length > 100 ? '...' : '') })), null, 2))
+    debug(
+      '[LLM Service] Messages to LLM:',
+      JSON.stringify(
+        messages.map((m) => ({
+          role: m.role,
+          content: m.content.substring(0, 100) + (m.content.length > 100 ? '...' : ''),
+        })),
+        null,
+        2
+      )
+    )
     debug('[LLM Service] Total messages:', messages.length)
 
     // Create LLM provider with assistant's configuration
@@ -275,14 +333,19 @@ export async function generateLLMResponse(params: {
 
     // Initialize Webhook tools
     webhookExecutor = createWebhookToolExecutor()
-    const { tools: webhookTools, errors: webhookErrors } = await webhookExecutor.initialize(assistant.id)
+    const { tools: webhookTools, errors: webhookErrors } = await webhookExecutor.initialize(
+      assistant.id
+    )
     if (webhookErrors.length > 0) {
       console.warn('[LLM Service] Webhook tool initialization errors:', webhookErrors)
     }
     allTools.push(...webhookTools)
 
     // Add hesitate tool when enabled for this assistant and tools are present (KB or MCP or Webhook)
-    const hasTools = mcpTools.length > 0 || webhookTools.length > 0 || (hasKnowledgeBases && assistant.enable_kb_tool !== false)
+    const hasTools =
+      mcpTools.length > 0 ||
+      webhookTools.length > 0 ||
+      (hasKnowledgeBases && assistant.enable_kb_tool !== false)
     if (assistant.enable_hesitation && hasTools && !params.disableHesitation) {
       allTools.unshift(hesitateToolDefinition)
       debug('[LLM Service] Hesitate tool enabled')
@@ -301,13 +364,19 @@ export async function generateLLMResponse(params: {
     if (callToolConfig) {
       const callControlTools = buildCallControlTools(callToolConfig)
       allTools.push(...callControlTools)
-      debug('[LLM Service] Call control tools enabled:', callControlTools.map(t => t.function.name))
+      debug(
+        '[LLM Service] Call control tools enabled:',
+        callControlTools.map((t) => t.function.name)
+      )
     }
 
     // Add scenario transfer tool if running in scenario mode with reachable nodes
     if (params.scenarioTransferNodes && params.scenarioTransferNodes.length > 0) {
       allTools.push(buildScenarioTransferTool(params.scenarioTransferNodes))
-      debug('[LLM Service] Scenario transfer tool enabled for nodes:', params.scenarioTransferNodes.map(n => n.nodeId))
+      debug(
+        '[LLM Service] Scenario transfer tool enabled for nodes:',
+        params.scenarioTransferNodes.map((n) => n.nodeId)
+      )
     }
 
     debug('[LLM Service] Tools available:', {
@@ -321,7 +390,8 @@ export async function generateLLMResponse(params: {
 
     // Determine thinking level for Gemini models
     // Only Gemini 3 preview models support thinkingLevel (stable 2.5 versions do NOT)
-    const isGeminiThinkingModel = assistant.llm_model?.includes('gemini-3') && assistant.llm_model?.includes('preview')
+    const isGeminiThinkingModel =
+      assistant.llm_model?.includes('gemini-3') && assistant.llm_model?.includes('preview')
     let thinkingLevel: 'minimal' | 'low' | 'medium' | 'high' | undefined = undefined
 
     if (isGeminiThinkingModel) {
@@ -347,12 +417,23 @@ export async function generateLLMResponse(params: {
     // Handle tool calls (KB, MCP, and Call Control tools)
     if (llmResponse.tool_calls && llmResponse.tool_calls.length > 0) {
       // wait_for_turn tool: user has not finished speaking — signal caller to wait for more input.
-      const waitForTurnCall = llmResponse.tool_calls.find((tc) => isWaitForTurnTool(tc.function.name))
+      const waitForTurnCall = llmResponse.tool_calls.find((tc) =>
+        isWaitForTurnTool(tc.function.name)
+      )
       if (waitForTurnCall) {
-        const waitArgs = JSON.parse(waitForTurnCall.function.arguments || '{}') as { message?: string }
+        const waitArgs = JSON.parse(waitForTurnCall.function.arguments || '{}') as {
+          message?: string
+        }
         const filler = waitArgs.message?.trim() || undefined
-        debug('[LLM Service] wait_for_turn tool called — user utterance is incomplete', filler ? `filler: "${filler}"` : '(silent)')
-        return { response: filler ?? '', waitForTurn: true, ...(filler ? { waitForTurnFiller: filler } : {}) }
+        debug(
+          '[LLM Service] wait_for_turn tool called — user utterance is incomplete',
+          filler ? `filler: "${filler}"` : '(silent)'
+        )
+        return {
+          response: filler ?? '',
+          waitForTurn: true,
+          ...(filler ? { waitForTurnFiller: filler } : {}),
+        }
       }
 
       // Hesitate tool: LLM wants to announce what it's doing before calling the real tool.
@@ -371,7 +452,12 @@ export async function generateLLMResponse(params: {
       // Hesitation enforcement: model skipped the hesitate tool despite instructions.
       // Return an error for every tool call so the model is forced to call hesitate first.
       // Skip enforcement if all tool calls are call control actions or scenario transfers — those execute immediately without hesitation.
-      const hasNonCallControlCall = llmResponse.tool_calls!.some(tc => !isCallControlTool(tc.function.name) && !isScenarioTransferTool(tc.function.name) && !isWaitForTurnTool(tc.function.name))
+      const hasNonCallControlCall = llmResponse.tool_calls!.some(
+        (tc) =>
+          !isCallControlTool(tc.function.name) &&
+          !isScenarioTransferTool(tc.function.name) &&
+          !isWaitForTurnTool(tc.function.name)
+      )
       if (assistant.enable_hesitation && !params.disableHesitation && hasNonCallControlCall) {
         debug('[LLM Service] Enforcing hesitation — returning error for skipped hesitate tool')
         messages.push({
@@ -382,7 +468,8 @@ export async function generateLLMResponse(params: {
         for (const toolCall of llmResponse.tool_calls) {
           messages.push({
             role: 'tool',
-            content: 'Error: You must call the `hesitate` tool first before calling any other tool.',
+            content:
+              'Error: You must call the `hesitate` tool first before calling any other tool.',
             tool_call_id: toolCall.id,
             name: toolCall.function.name,
           })
@@ -441,11 +528,13 @@ export async function generateLLMResponse(params: {
                 type: 'hangup',
                 farewellMessage: hangupArgs.farewell_message,
               },
-              toolCalls: [{
-                name: toolCall.function.name,
-                arguments: args,
-                result: 'Call will be ended',
-              }],
+              toolCalls: [
+                {
+                  name: toolCall.function.name,
+                  arguments: args,
+                  result: 'Call will be ended',
+                },
+              ],
             }
           }
 
@@ -463,7 +552,7 @@ export async function generateLLMResponse(params: {
               })
             } else {
               return {
-                response: forwardArgs.handoff_message || 'I\'ll transfer you now.',
+                response: forwardArgs.handoff_message || "I'll transfer you now.",
                 callAction: {
                   type: 'forward',
                   targetPhoneNumber: callToolConfig.forward_phone_number,
@@ -471,11 +560,13 @@ export async function generateLLMResponse(params: {
                   callerIdNumber: callToolConfig.forward_caller_id_number || undefined,
                   handoffMessage: forwardArgs.handoff_message,
                 },
-                toolCalls: [{
-                  name: toolCall.function.name,
-                  arguments: args,
-                  result: `Transferring to ${callToolConfig.forward_phone_number}`,
-                }],
+                toolCalls: [
+                  {
+                    name: toolCall.function.name,
+                    arguments: args,
+                    result: `Transferring to ${callToolConfig.forward_phone_number}`,
+                  },
+                ],
               }
             }
           }
@@ -488,7 +579,9 @@ export async function generateLLMResponse(params: {
             if (params.sessionId) {
               // Get the last few messages for context
               const recentMessages = params.conversationHistory.slice(-3)
-              const context = recentMessages.map(m => `${m.role}: ${m.content.substring(0, 100)}`).join('\n')
+              const context = recentMessages
+                .map((m) => `${m.role}: ${m.content.substring(0, 100)}`)
+                .join('\n')
 
               const { error } = await createCallNote({
                 call_session_id: params.sessionId,
@@ -537,11 +630,13 @@ export async function generateLLMResponse(params: {
               targetNodeId: transferArgs.agent_node_id,
               handoffMessage: transferArgs.handoff_message,
             },
-            toolCalls: [{
-              name: toolCall.function.name,
-              arguments: transferArgs as unknown as Record<string, unknown>,
-              result: `Transferring to agent node ${transferArgs.agent_node_id}`,
-            }],
+            toolCalls: [
+              {
+                name: toolCall.function.name,
+                arguments: transferArgs as unknown as Record<string, unknown>,
+                result: `Transferring to agent node ${transferArgs.agent_node_id}`,
+              },
+            ],
             usage: llmResponse.usage
               ? {
                   promptTokens: llmResponse.usage.promptTokens,
