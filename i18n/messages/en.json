@@ -331,6 +331,7 @@
       "criteriaSection": "Call Criteria",
       "criteriaSectionHint": "Define quality criteria for automatic conversation evaluation",
       "saveFirst": "Save first",
+      "appliesImmediately": "Applies immediately",
       "experimental": "(experimental)",
       "unsavedChanges": {
         "title": "Unsaved Changes",

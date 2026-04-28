@@ -292,6 +292,7 @@
       "criteriaSection": "Criterios de Llamada",
       "criteriaSectionHint": "Defina criterios de calidad para la evaluación automática de conversaciones",
       "saveFirst": "Guardar primero",
+      "appliesImmediately": "Se aplica inmediatamente",
       "experimental": "(experimental)",
       "unsavedChanges": {
         "title": "Cambios No Guardados",

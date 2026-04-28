@@ -250,6 +250,17 @@ function PreviewChips({ items }: { items: string[] }) {
   )
 }
 
+function AppliesImmediatelyBadge({ label }: { label: string }) {
+  return (
+    <Badge
+      variant="outline"
+      className="border-sky-200 bg-sky-500/10 text-sky-700 dark:border-sky-800 dark:bg-sky-400/10 dark:text-sky-300"
+    >
+      {label}
+    </Badge>
+  )
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AssistantFormDefaults {
@@ -358,6 +369,13 @@ export function AssistantForm({
     setLlmProvider(provider)
     setLlmModel(getDefaultModel(provider as LLMProviderType))
   }
+
+  const renderImmediateHeaderExtra = (extra?: React.ReactNode) => (
+    <>
+      {extra}
+      <AppliesImmediatelyBadge label={t('appliesImmediately')} />
+    </>
+  )
 
   // ── Dirty tracking ──────────────────────────────────────────────────────────
   const initialValuesRef = useRef({
@@ -1341,6 +1359,7 @@ export function AssistantForm({
                       : '—'}
                   </PreviewText>
                 }
+                headerExtra={renderImmediateHeaderExtra()}
               >
                 {phonemeLoading ? (
                   <p className="text-sm text-muted-foreground">{t('phonemeSetsLoading')}</p>
@@ -1484,6 +1503,7 @@ export function AssistantForm({
               onToggle={toggleSection}
               className="border-t mt-4 pt-4"
               preview={<PreviewText>{bargeInSummary}</PreviewText>}
+              headerExtra={renderImmediateHeaderExtra()}
             >
               <BargeInSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setBargeInSummary} />
             </SectionCollapsible>
@@ -1510,9 +1530,9 @@ export function AssistantForm({
                 </PreviewText>
               }
               headerExtra={
-                assignedKBs.length > 0 ? (
+                renderImmediateHeaderExtra(assignedKBs.length > 0 ? (
                   <Badge variant="secondary">{assignedKBs.length} {t('assigned')}</Badge>
-                ) : undefined
+                ) : undefined)
               }
             >
               {assignedKBs.length > 0 && (
@@ -1578,9 +1598,9 @@ export function AssistantForm({
                 </PreviewText>
               }
               headerExtra={
-                assignedMCPServers.length > 0 ? (
+                renderImmediateHeaderExtra(assignedMCPServers.length > 0 ? (
                   <Badge variant="secondary">{assignedMCPServers.length} {t('connected')}</Badge>
-                ) : undefined
+                ) : undefined)
               }
             >
               {assignedMCPServers.length > 0 && (
@@ -1646,9 +1666,9 @@ export function AssistantForm({
                 </PreviewText>
               }
               headerExtra={
-                assignedWebhookTools.length > 0 ? (
+                renderImmediateHeaderExtra(assignedWebhookTools.length > 0 ? (
                   <Badge variant="secondary">{assignedWebhookTools.length} {t('connected')}</Badge>
-                ) : undefined
+                ) : undefined)
               }
             >
               <WebhookToolsSection
@@ -1668,6 +1688,7 @@ export function AssistantForm({
               onToggle={toggleSection}
               className="border-t mt-4 pt-4"
               preview={<PreviewText>{toolsSummary}</PreviewText>}
+              headerExtra={renderImmediateHeaderExtra()}
             >
               <CallToolsSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setToolsSummary} />
             </SectionCollapsible>
@@ -1681,6 +1702,7 @@ export function AssistantForm({
               onToggle={toggleSection}
               className="border-t mt-4 pt-4"
               preview={<PreviewText>{contextSummary}</PreviewText>}
+              headerExtra={renderImmediateHeaderExtra()}
             >
               <ContextWebhookSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setContextSummary} />
             </SectionCollapsible>
@@ -1699,6 +1721,7 @@ export function AssistantForm({
               open={openSections[SECTION_IDS.ANA_VARS]}
               onToggle={toggleSection}
               preview={<PreviewText>{varsSummary}</PreviewText>}
+              headerExtra={renderImmediateHeaderExtra()}
             >
               <VariableDefinitionsSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setVarsSummary} />
             </SectionCollapsible>
@@ -1712,6 +1735,7 @@ export function AssistantForm({
               onToggle={toggleSection}
               className="border-t mt-4 pt-4"
               preview={<PreviewText>{webhookSummary}</PreviewText>}
+              headerExtra={renderImmediateHeaderExtra()}
             >
               <WebhookConfigSection assistantId={assistant.id} organizationId={organizationId} onSummaryChange={setWebhookSummary} />
             </SectionCollapsible>
@@ -1725,6 +1749,7 @@ export function AssistantForm({
               onToggle={toggleSection}
               className="border-t mt-4 pt-4"
               preview={<PreviewText>{criteriaSummary}</PreviewText>}
+              headerExtra={renderImmediateHeaderExtra()}
             >
               <AssistantCriteriaList organizationId={organizationId} assistantId={assistant.id} onSummaryChange={setCriteriaSummary} />
             </SectionCollapsible>

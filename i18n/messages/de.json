@@ -331,6 +331,7 @@
       "criteriaSection": "Anrufkriterien",
       "criteriaSectionHint": "Definieren Sie Qualitätskriterien für die automatische Gesprächsbewertung",
       "saveFirst": "Zuerst speichern",
+      "appliesImmediately": "Gilt sofort",
       "experimental": "(experimentell)",
       "unsavedChanges": {
         "title": "Ungespeicherte Änderungen",
