@@ -354,6 +354,18 @@
         "historyTitle": "Anwenden-Verlauf",
         "historyEmpty": "Noch keine angewendete Version",
         "versionLabel": "Version {version}",
+        "initialApply": "Erstes Anwenden",
+        "restoredFrom": "Aus Version {version} wiederhergestellt",
+        "changedFields": "Geändert: {fields}",
+        "changeLabels": {
+          "initial": "Erstes Anwenden",
+          "instructions": "Anweisungen",
+          "model": "Modell",
+          "voice": "Stimme",
+          "openingMessage": "Begrüßung",
+          "turnTaking": "Turn-Taking",
+          "transcription": "Transkription"
+        },
         "leaveConfirmTitle": "Gespeicherte Änderungen nicht angewendet",
         "leaveConfirmDescription": "Du hast gespeicherte Änderungen, die noch nicht in Anrufen aktiv sind. Wenn du jetzt gehst, bleibt die aktuell angewendete Version live.",
         "leaveAndDeploy": "Anwenden & Verlassen",
@@ -1237,6 +1249,18 @@
     "historyEmpty": "Noch keine angewendete Version",
     "restoreVersion": "Wiederherstellen",
     "versionLabel": "Version {version}",
+    "initialApply": "Erstes Anwenden",
+    "restoredFrom": "Aus Version {version} wiederhergestellt",
+    "changedFields": "Geändert: {fields}",
+    "changeLabels": {
+      "initial": "Erstes Anwenden",
+      "assistant": "Assistent",
+      "instructions": "Anweisungen",
+      "routing": "Routing",
+      "nodes": "Knoten",
+      "voice": "Stimme",
+      "settings": "Einstellungen"
+    },
     "autoSaved": "Autom. gespeichert",
     "clickToRename": "Klicken zum Umbenennen",
     "node": {

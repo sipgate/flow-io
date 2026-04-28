@@ -354,6 +354,18 @@
         "historyTitle": "Apply History",
         "historyEmpty": "No applied versions yet",
         "versionLabel": "Version {version}",
+        "initialApply": "Initial apply",
+        "restoredFrom": "Restored from Version {version}",
+        "changedFields": "Changed: {fields}",
+        "changeLabels": {
+          "initial": "Initial apply",
+          "instructions": "Instructions",
+          "model": "Model",
+          "voice": "Voice",
+          "openingMessage": "Opening message",
+          "turnTaking": "Turn taking",
+          "transcription": "Transcription"
+        },
         "leaveConfirmTitle": "Saved Changes Not Applied",
         "leaveConfirmDescription": "You have saved changes that are not active in calls yet. If you leave now, the current applied version stays live.",
         "leaveAndDeploy": "Apply & Leave",
@@ -1237,6 +1249,18 @@
     "historyEmpty": "No applied versions yet",
     "restoreVersion": "Restore",
     "versionLabel": "Version {version}",
+    "initialApply": "Initial apply",
+    "restoredFrom": "Restored from Version {version}",
+    "changedFields": "Changed: {fields}",
+    "changeLabels": {
+      "initial": "Initial apply",
+      "assistant": "Assistant",
+      "instructions": "Instructions",
+      "routing": "Routing",
+      "nodes": "Nodes",
+      "voice": "Voice",
+      "settings": "Settings"
+    },
     "autoSaved": "Auto-saved",
     "clickToRename": "Click to rename",
     "node": {

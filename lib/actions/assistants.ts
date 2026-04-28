@@ -423,9 +423,216 @@ export interface AssistantVersion {
   version: number
   deployed_at: string
   created_by: string | null
+  restored_from_version: number | null
+  change_summary: AssistantVersionChange[]
 }
 
-export async function deployAssistant(id: string): Promise<{ error: string | null }> {
+export type AssistantVersionChange =
+  | 'initial'
+  | 'instructions'
+  | 'model'
+  | 'voice'
+  | 'opening_message'
+  | 'turn_taking'
+  | 'transcription'
+
+type AssistantVersionSnapshot = {
+  version: number
+  system_prompt: string | null
+  llm_provider: string | null
+  llm_model: string | null
+  llm_temperature: number | null
+  thinking_level: string | null
+  voice_provider: string | null
+  voice_id: string | null
+  voice_language: string | null
+  opening_message: string | null
+  enable_hesitation: boolean | null
+  enable_semantic_eot: boolean | null
+  stt_provider: string | null
+  stt_languages: string[] | null
+  restored_from_version?: number | null
+  change_summary?: string[] | null
+}
+
+const assistantVersionChanges: AssistantVersionChange[] = [
+  'initial',
+  'instructions',
+  'model',
+  'voice',
+  'opening_message',
+  'turn_taking',
+  'transcription',
+]
+
+function stableAssistantValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableAssistantValue)
+  if (value && typeof value === 'object') {
+    const input = value as Record<string, unknown>
+    return Object.keys(input)
+      .sort()
+      .reduce<Record<string, unknown>>((acc, key) => {
+        acc[key] = stableAssistantValue(input[key])
+        return acc
+      }, {})
+  }
+  return value ?? null
+}
+
+function sameAssistantValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(stableAssistantValue(left)) === JSON.stringify(stableAssistantValue(right))
+}
+
+function toAssistantSnapshot(row: Record<string, unknown>): AssistantVersionSnapshot {
+  return {
+    version: typeof row.version === 'number' ? row.version : 0,
+    system_prompt: (row.system_prompt as string | null) ?? null,
+    llm_provider: (row.llm_provider as string | null) ?? null,
+    llm_model: (row.llm_model as string | null) ?? null,
+    llm_temperature: (row.llm_temperature as number | null) ?? null,
+    thinking_level: (row.thinking_level as string | null) ?? null,
+    voice_provider: (row.voice_provider as string | null) ?? null,
+    voice_id: (row.voice_id as string | null) ?? null,
+    voice_language: (row.voice_language as string | null) ?? null,
+    opening_message: (row.opening_message as string | null) ?? null,
+    enable_hesitation: (row.enable_hesitation as boolean | null) ?? null,
+    enable_semantic_eot: (row.enable_semantic_eot as boolean | null) ?? null,
+    stt_provider: (row.stt_provider as string | null) ?? null,
+    stt_languages: Array.isArray(row.stt_languages) ? (row.stt_languages as string[]) : null,
+    restored_from_version:
+      typeof row.restored_from_version === 'number' ? row.restored_from_version : null,
+    change_summary: Array.isArray(row.change_summary) ? (row.change_summary as string[]) : [],
+  }
+}
+
+function summarizeAssistantVersionChange(
+  current: AssistantVersionSnapshot,
+  previous?: AssistantVersionSnapshot
+): AssistantVersionChange[] {
+  if (!previous) return ['initial']
+
+  const changes: AssistantVersionChange[] = []
+  if (!sameAssistantValue(current.system_prompt, previous.system_prompt)) {
+    changes.push('instructions')
+  }
+  if (
+    !sameAssistantValue(
+      {
+        llm_provider: current.llm_provider,
+        llm_model: current.llm_model,
+        llm_temperature: current.llm_temperature,
+        thinking_level: current.thinking_level,
+      },
+      {
+        llm_provider: previous.llm_provider,
+        llm_model: previous.llm_model,
+        llm_temperature: previous.llm_temperature,
+        thinking_level: previous.thinking_level,
+      }
+    )
+  ) {
+    changes.push('model')
+  }
+  if (
+    !sameAssistantValue(
+      {
+        voice_provider: current.voice_provider,
+        voice_id: current.voice_id,
+        voice_language: current.voice_language,
+      },
+      {
+        voice_provider: previous.voice_provider,
+        voice_id: previous.voice_id,
+        voice_language: previous.voice_language,
+      }
+    )
+  ) {
+    changes.push('voice')
+  }
+  if (!sameAssistantValue(current.opening_message, previous.opening_message)) {
+    changes.push('opening_message')
+  }
+  if (
+    !sameAssistantValue(
+      {
+        enable_hesitation: current.enable_hesitation,
+        enable_semantic_eot: current.enable_semantic_eot,
+      },
+      {
+        enable_hesitation: previous.enable_hesitation,
+        enable_semantic_eot: previous.enable_semantic_eot,
+      }
+    )
+  ) {
+    changes.push('turn_taking')
+  }
+  if (
+    !sameAssistantValue(
+      { stt_provider: current.stt_provider, stt_languages: current.stt_languages },
+      { stt_provider: previous.stt_provider, stt_languages: previous.stt_languages }
+    )
+  ) {
+    changes.push('transcription')
+  }
+  return changes
+}
+
+function normalizeAssistantChangeSummary(value: string[] | null | undefined) {
+  return (value ?? []).filter((change): change is AssistantVersionChange =>
+    assistantVersionChanges.includes(change as AssistantVersionChange)
+  )
+}
+
+function sameAssistantSnapshot(current: AssistantVersionSnapshot, previous: AssistantVersionSnapshot) {
+  return sameAssistantValue(
+    {
+      system_prompt: current.system_prompt,
+      llm_provider: current.llm_provider,
+      llm_model: current.llm_model,
+      llm_temperature: current.llm_temperature,
+      thinking_level: current.thinking_level,
+      voice_provider: current.voice_provider,
+      voice_id: current.voice_id,
+      voice_language: current.voice_language,
+      opening_message: current.opening_message,
+      enable_hesitation: current.enable_hesitation,
+      enable_semantic_eot: current.enable_semantic_eot,
+      stt_provider: current.stt_provider,
+      stt_languages: current.stt_languages,
+    },
+    {
+      system_prompt: previous.system_prompt,
+      llm_provider: previous.llm_provider,
+      llm_model: previous.llm_model,
+      llm_temperature: previous.llm_temperature,
+      thinking_level: previous.thinking_level,
+      voice_provider: previous.voice_provider,
+      voice_id: previous.voice_id,
+      voice_language: previous.voice_language,
+      opening_message: previous.opening_message,
+      enable_hesitation: previous.enable_hesitation,
+      enable_semantic_eot: previous.enable_semantic_eot,
+      stt_provider: previous.stt_provider,
+      stt_languages: previous.stt_languages,
+    }
+  )
+}
+
+function inferAssistantRestoredFromVersion(
+  current: AssistantVersionSnapshot,
+  previousVersions: AssistantVersionSnapshot[]
+) {
+  const candidates = previousVersions.filter((version) => version.version < current.version - 1)
+  for (const candidate of candidates.reverse()) {
+    if (sameAssistantSnapshot(current, candidate)) return candidate.version
+  }
+  return null
+}
+
+export async function deployAssistant(
+  id: string,
+  options?: { restoredFromVersion?: number | null }
+): Promise<{ error: string | null }> {
   const supabase = await createClient()
 
   const {
@@ -446,6 +653,18 @@ export async function deployAssistant(id: string): Promise<{ error: string | nul
   const raw = assistant as unknown as Record<string, unknown>
   const newVersion = ((raw.deployed_version as number) ?? 0) + 1
   const now = new Date().toISOString()
+  const currentSnapshot = toAssistantSnapshot({ ...raw, version: newVersion })
+  const { data: previousVersions } = await supabase
+    .from('assistant_versions')
+    .select(
+      'version, system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, enable_semantic_eot, stt_provider, stt_languages'
+    )
+    .eq('assistant_id', id)
+    .order('version', { ascending: false })
+    .limit(1)
+  const previousSnapshot = previousVersions?.[0]
+    ? toAssistantSnapshot(previousVersions[0] as unknown as Record<string, unknown>)
+    : undefined
 
   const { error: versionError } = await supabase.from('assistant_versions').insert({
     assistant_id: id,
@@ -465,6 +684,8 @@ export async function deployAssistant(id: string): Promise<{ error: string | nul
     stt_languages: raw.stt_languages as string[] | null,
     deployed_at: now,
     created_by: user.id,
+    change_summary: summarizeAssistantVersionChange(currentSnapshot, previousSnapshot),
+    restored_from_version: options?.restoredFromVersion ?? null,
   })
   if (versionError) return { error: versionError.message }
 
@@ -527,11 +748,35 @@ export async function getAssistantVersions(
 
   const { data, error } = await supabase
     .from('assistant_versions')
-    .select('id, version, deployed_at, created_by')
+    .select(
+      'id, version, deployed_at, created_by, system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, enable_semantic_eot, stt_provider, stt_languages, change_summary, restored_from_version'
+    )
     .eq('assistant_id', id)
-    .order('version', { ascending: false })
+    .order('version', { ascending: true })
 
-  return { versions: (data ?? []) as AssistantVersion[], error: error?.message || null }
+  const rows = (data ?? []) as unknown as Array<Record<string, unknown>>
+  const snapshots = rows.map(toAssistantSnapshot)
+  const versions = rows
+    .map((row, index): AssistantVersion => {
+      const snapshot = snapshots[index]
+      const storedChangeSummary = normalizeAssistantChangeSummary(snapshot.change_summary)
+      return {
+        id: row.id as string,
+        version: snapshot.version,
+        deployed_at: (row.deployed_at as string | null) ?? '',
+        created_by: (row.created_by as string | null) ?? null,
+        restored_from_version:
+          snapshot.restored_from_version ??
+          inferAssistantRestoredFromVersion(snapshot, snapshots.slice(0, index)),
+        change_summary:
+          storedChangeSummary.length > 0
+            ? storedChangeSummary
+            : summarizeAssistantVersionChange(snapshot, snapshots[index - 1]),
+      }
+    })
+    .reverse()
+
+  return { versions, error: error?.message || null }
 }
 
 export async function restoreAssistantVersion(
@@ -543,7 +788,7 @@ export async function restoreAssistantVersion(
   const { data: version, error: fetchError } = await supabase
     .from('assistant_versions')
     .select(
-      'system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, enable_semantic_eot, stt_provider, stt_languages'
+      'version, system_prompt, llm_provider, llm_model, llm_temperature, thinking_level, voice_provider, voice_id, voice_language, opening_message, enable_hesitation, enable_semantic_eot, stt_provider, stt_languages'
     )
     .eq('id', versionId)
     .single()
@@ -567,7 +812,9 @@ export async function restoreAssistantVersion(
     stt_languages: v.stt_languages as string[] | null | undefined,
   })
   if ('error' in result && result.error) return { error: result.error }
-  return deployAssistant(assistantId)
+  return deployAssistant(assistantId, {
+    restoredFromVersion: (version as unknown as Record<string, unknown>).version as number,
+  })
 }
 
 export async function deleteAssistant(assistantId: string) {

@@ -315,6 +315,18 @@
         "historyTitle": "Historial de aplicaciones",
         "historyEmpty": "Aún sin versiones aplicadas",
         "versionLabel": "Versión {version}",
+        "initialApply": "Primera aplicación",
+        "restoredFrom": "Restaurada desde Versión {version}",
+        "changedFields": "Cambiado: {fields}",
+        "changeLabels": {
+          "initial": "Primera aplicación",
+          "instructions": "Instrucciones",
+          "model": "Modelo",
+          "voice": "Voz",
+          "openingMessage": "Mensaje inicial",
+          "turnTaking": "Turnos",
+          "transcription": "Transcripción"
+        },
         "leaveConfirmTitle": "Cambios guardados sin aplicar",
         "leaveConfirmDescription": "Tienes cambios guardados que aún no están activos en llamadas. Si sales ahora, seguirá activa la versión aplicada actual.",
         "leaveAndDeploy": "Aplicar y salir",
@@ -1043,6 +1055,18 @@
     "historyEmpty": "Aún sin versiones aplicadas",
     "restoreVersion": "Restaurar",
     "versionLabel": "Versión {version}",
+    "initialApply": "Primera aplicación",
+    "restoredFrom": "Restaurada desde Versión {version}",
+    "changedFields": "Cambiado: {fields}",
+    "changeLabels": {
+      "initial": "Primera aplicación",
+      "assistant": "Asistente",
+      "instructions": "Instrucciones",
+      "routing": "Enrutamiento",
+      "nodes": "Nodos",
+      "voice": "Voz",
+      "settings": "Configuración"
+    },
     "autoSaved": "Guardado automáticamente",
     "clickToRename": "Haga clic para renombrar",
     "node": {

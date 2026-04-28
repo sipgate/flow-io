@@ -38,6 +38,43 @@ export function ScenarioHistorySheet({
   const [restoring, startRestore] = useTransition()
   const [confirmVersion, setConfirmVersion] = useState<ScenarioVersion | null>(null)
 
+  function changeLabel(change: ScenarioVersion['change_summary'][number]) {
+    switch (change) {
+      case 'assistant':
+        return t('changeLabels.assistant')
+      case 'instructions':
+        return t('changeLabels.instructions')
+      case 'routing':
+        return t('changeLabels.routing')
+      case 'nodes':
+        return t('changeLabels.nodes')
+      case 'voice':
+        return t('changeLabels.voice')
+      case 'settings':
+        return t('changeLabels.settings')
+      case 'initial':
+        return t('changeLabels.initial')
+    }
+  }
+
+  function renderVersionContext(version: ScenarioVersion) {
+    const changedLabels = version.change_summary
+      .filter((change) => change !== 'initial')
+      .map(changeLabel)
+
+    return (
+      <div className="mt-1 space-y-0.5 text-xs text-neutral-500">
+        {version.change_summary.includes('initial') && <p>{t('initialApply')}</p>}
+        {version.restored_from_version && (
+          <p>{t('restoredFrom', { version: version.restored_from_version })}</p>
+        )}
+        {changedLabels.length > 0 && (
+          <p>{t('changedFields', { fields: changedLabels.join(', ') })}</p>
+        )}
+      </div>
+    )
+  }
+
   useEffect(() => {
     if (!open) return
     async function loadVersions() {
@@ -93,13 +130,14 @@ export function ScenarioHistorySheet({
                   key={v.id}
                   className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3 dark:border-neutral-800"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium">
                       {t('versionLabel', { version: v.version })}
                     </p>
                     <p className="mt-0.5 text-xs text-neutral-500">
                       {new Date(v.published_at).toLocaleString()}
                     </p>
+                    {renderVersionContext(v)}
                   </div>
                   <Button
                     variant="outline"

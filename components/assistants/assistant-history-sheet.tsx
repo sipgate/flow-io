@@ -44,6 +44,43 @@ export function AssistantHistorySheet({
   const [restoring, startRestore] = useTransition()
   const [confirmVersion, setConfirmVersion] = useState<AssistantVersion | null>(null)
 
+  function changeLabel(change: AssistantVersion['change_summary'][number]) {
+    switch (change) {
+      case 'instructions':
+        return t('changeLabels.instructions')
+      case 'model':
+        return t('changeLabels.model')
+      case 'voice':
+        return t('changeLabels.voice')
+      case 'opening_message':
+        return t('changeLabels.openingMessage')
+      case 'turn_taking':
+        return t('changeLabels.turnTaking')
+      case 'transcription':
+        return t('changeLabels.transcription')
+      case 'initial':
+        return t('changeLabels.initial')
+    }
+  }
+
+  function renderVersionContext(version: AssistantVersion) {
+    const changedLabels = version.change_summary
+      .filter((change) => change !== 'initial')
+      .map(changeLabel)
+
+    return (
+      <div className="mt-1 space-y-0.5 text-xs text-neutral-500">
+        {version.change_summary.includes('initial') && <p>{t('initialApply')}</p>}
+        {version.restored_from_version && (
+          <p>{t('restoredFrom', { version: version.restored_from_version })}</p>
+        )}
+        {changedLabels.length > 0 && (
+          <p>{t('changedFields', { fields: changedLabels.join(', ') })}</p>
+        )}
+      </div>
+    )
+  }
+
   useEffect(() => {
     if (!open) return
     async function loadVersions() {
@@ -100,13 +137,14 @@ export function AssistantHistorySheet({
                 key={v.id}
                 className="flex items-center justify-between rounded-lg border border-neutral-200 dark:border-neutral-800 px-4 py-3"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium">
                     {t('versionLabel', { version: v.version })}
                   </p>
                   <p className="text-xs text-neutral-500 mt-0.5">
                     {new Date(v.deployed_at).toLocaleString()}
                   </p>
+                  {renderVersionContext(v)}
                 </div>
                 <Button
                   variant="outline"

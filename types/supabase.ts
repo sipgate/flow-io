@@ -180,6 +180,7 @@ export type Database = {
       }
       call_scenario_versions: {
         Row: {
+          change_summary: string[]
           created_at: string | null
           created_by: string | null
           edges: Json
@@ -187,10 +188,12 @@ export type Database = {
           id: string
           nodes: Json
           published_at: string | null
+          restored_from_version: number | null
           variables: Json | null
           version: number
         }
         Insert: {
+          change_summary?: string[]
           created_at?: string | null
           created_by?: string | null
           edges: Json
@@ -198,10 +201,12 @@ export type Database = {
           id?: string
           nodes: Json
           published_at?: string | null
+          restored_from_version?: number | null
           variables?: Json | null
           version: number
         }
         Update: {
+          change_summary?: string[]
           created_at?: string | null
           created_by?: string | null
           edges?: Json
@@ -209,6 +214,7 @@ export type Database = {
           id?: string
           nodes?: Json
           published_at?: string | null
+          restored_from_version?: number | null
           variables?: Json | null
           version?: number
         }

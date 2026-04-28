@@ -60,7 +60,18 @@ export interface ScenarioVersion {
   version: number
   published_at: string
   created_by: string | null
+  restored_from_version: number | null
+  change_summary: ScenarioVersionChange[]
 }
+
+export type ScenarioVersionChange =
+  | 'initial'
+  | 'assistant'
+  | 'instructions'
+  | 'routing'
+  | 'nodes'
+  | 'voice'
+  | 'settings'
 
 export interface ScenarioSummary {
   id: string
