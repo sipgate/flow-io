@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Bot, X, Sparkles, Loader2, Trash2, PhoneForwarded } from 'lucide-react'
+import { Bot, X, Sparkles, Loader2, Trash2, PhoneForwarded, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,6 +39,7 @@ interface ScenarioNodeConfigProps {
   edges: ScenarioEdge[]
   /** All scenario nodes — passed to dtmf_menu config to resolve target labels */
   nodes: ScenarioNode[]
+  orgSlug: string
   onUpdate: (nodeId: string, data: Partial<ScenarioNode['data']>) => void
   onDelete: (nodeId: string) => void
   onClose: () => void
@@ -49,6 +51,7 @@ export function ScenarioNodeConfig({
   assistants,
   edges,
   nodes,
+  orgSlug,
   onUpdate,
   onDelete,
   onClose,
@@ -109,7 +112,21 @@ export function ScenarioNodeConfig({
 
       {/* Assistant selector */}
       <div className="space-y-1.5">
-        <Label className="text-xs">{t('node.assistant')}</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">{t('node.assistant')}</Label>
+          {node.data.assistant_id && (
+            <Link
+              href={`/${orgSlug}/assistants/${node.data.assistant_id}/edit`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t('node.editAssistant')}
+              className="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              <Pencil className="h-3 w-3" />
+              {t('node.editAssistant')}
+            </Link>
+          )}
+        </div>
         <Select
           value={node.data.assistant_id || ''}
           onValueChange={(val) => {

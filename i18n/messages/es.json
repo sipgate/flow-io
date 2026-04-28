@@ -1075,6 +1075,7 @@
       "inheritsVoice": "Voz heredada",
       "deleteNode": "Eliminar nodo",
       "assistant": "Asistente",
+      "editAssistant": "Editar asistente",
       "selectAssistant": "Seleccionar asistente…",
       "transferInstruction": "Instrucción de transferencia",
       "transferInstructionPlaceholder": "¿Cuándo debe transferir el agente de entrada aquí?",

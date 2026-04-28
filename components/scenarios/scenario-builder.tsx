@@ -780,6 +780,7 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
               assistants={assistants}
               edges={edges}
               nodes={savedNodes}
+              orgSlug={orgSlug}
               onUpdate={handleNodeUpdate}
               onDelete={handleNodeDelete}
               onClose={() => setSelectedNode(null)}

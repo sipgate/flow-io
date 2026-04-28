@@ -1269,6 +1269,7 @@
       "inheritsVoice": "Inherits voice",
       "deleteNode": "Delete node",
       "assistant": "Assistant",
+      "editAssistant": "Edit assistant",
       "selectAssistant": "Select assistant…",
       "transferInstruction": "Transfer Instruction",
       "transferInstructionPlaceholder": "When should the entry agent transfer here? e.g. \"Transfer when caller wants to buy a product\"",

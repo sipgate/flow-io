@@ -1269,6 +1269,7 @@
       "inheritsVoice": "Stimme übernommen",
       "deleteNode": "Knoten löschen",
       "assistant": "Assistent",
+      "editAssistant": "Assistent bearbeiten",
       "selectAssistant": "Assistent auswählen…",
       "transferInstruction": "Weiterleitungsanweisung",
       "transferInstructionPlaceholder": "Wann soll der Einstiegs-Agent hierher weiterleiten? z.B. \"Weiterleiten wenn der Anrufer ein Produkt kaufen möchte\"",
