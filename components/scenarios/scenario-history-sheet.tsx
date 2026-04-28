@@ -4,12 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { History, RotateCcw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -22,13 +17,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { getScenarioVersions, restoreScenarioVersion } from '@/lib/actions/scenarios'
-import type { ScenarioVersion } from '@/types/scenarios'
+import type { ScenarioEdge, ScenarioNode, ScenarioVersion } from '@/types/scenarios'
 
 interface ScenarioHistorySheetProps {
   scenarioId: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  onRestore: () => void
+  onRestore: (restored: { nodes: ScenarioNode[]; edges: ScenarioEdge[] }) => void
 }
 
 export function ScenarioHistorySheet({
@@ -59,12 +54,12 @@ export function ScenarioHistorySheet({
     const versionToRestore = confirmVersion
     setConfirmVersion(null)
     startRestore(async () => {
-      const { error } = await restoreScenarioVersion(scenarioId, versionToRestore.id)
-      if (error) {
+      const result = await restoreScenarioVersion(scenarioId, versionToRestore.id)
+      if (result.error || !result.nodes || !result.edges) {
         toast.error(t('restoreError'))
       } else {
         toast.success(t('restoreSuccess'))
-        onRestore()
+        onRestore({ nodes: result.nodes, edges: result.edges })
         onOpenChange(false)
       }
     })
@@ -89,40 +84,44 @@ export function ScenarioHistorySheet({
             )}
 
             {!loading && versions.length === 0 && (
-              <p className="text-sm text-neutral-500 text-center py-8">
-                {t('historyEmpty')}
-              </p>
+              <p className="py-8 text-center text-sm text-neutral-500">{t('historyEmpty')}</p>
             )}
 
-            {!loading && versions.map((v) => (
-              <div
-                key={v.id}
-                className="flex items-center justify-between rounded-lg border border-neutral-200 dark:border-neutral-800 px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium">
-                    {t('versionLabel', { version: v.version })}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    {new Date(v.published_at).toLocaleString()}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConfirmVersion(v)}
-                  disabled={restoring}
+            {!loading &&
+              versions.map((v) => (
+                <div
+                  key={v.id}
+                  className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3 dark:border-neutral-800"
                 >
-                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                  {t('restoreVersion')}
-                </Button>
-              </div>
-            ))}
+                  <div>
+                    <p className="text-sm font-medium">
+                      {t('versionLabel', { version: v.version })}
+                    </p>
+                    <p className="mt-0.5 text-xs text-neutral-500">
+                      {new Date(v.published_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmVersion(v)}
+                    disabled={restoring}
+                  >
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                    {t('restoreVersion')}
+                  </Button>
+                </div>
+              ))}
           </div>
         </SheetContent>
       </Sheet>
 
-      <AlertDialog open={!!confirmVersion} onOpenChange={(o) => { if (!o) setConfirmVersion(null) }}>
+      <AlertDialog
+        open={!!confirmVersion}
+        onOpenChange={(o) => {
+          if (!o) setConfirmVersion(null)
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('restoreVersion')}</AlertDialogTitle>

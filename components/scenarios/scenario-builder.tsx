@@ -156,6 +156,25 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     setHasUndeployedChanges(true)
   }, [])
 
+  const replaceScenarioDraft = useCallback(
+    (restoredNodes: ScenarioNode[], restoredEdges: ScenarioEdge[]) => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current)
+      pendingSemanticSaveRef.current = false
+      const entryNode = restoredNodes.find((n) => n.type === 'entry_agent')
+      const nextNodes = scenario.phone_number
+        ? [buildPhoneNode(scenario.phone_number, entryNode), ...restoredNodes]
+        : restoredNodes
+      setNodes(nextNodes)
+      setEdges(restoredEdges)
+      setSelectedNode((prev) => {
+        if (!prev || prev.id === PHONE_NODE_ID) return null
+        return nextNodes.find((n) => n.id === prev.id && n.id !== PHONE_NODE_ID) ?? null
+      })
+      setHasUndeployedChanges(false)
+    },
+    [scenario.phone_number, setEdges, setNodes]
+  )
+
   // Auto-save on change (debounced 1.5s)
   const triggerAutoSave = useCallback(
     (updatedNodes: ScenarioNode[], updatedEdges: ScenarioEdge[], markUndeployed = false) => {
@@ -439,13 +458,22 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
     }
   }, [hasUndeployedChanges, router, orgSlug])
 
-  const handleLeaveWithoutDeploy = useCallback(() => {
+  const handleLeaveWithoutDeploy = useCallback(async () => {
     setShowLeaveConfirm(false)
+    if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    pendingSemanticSaveRef.current = false
+    const { error } = await updateScenario(scenario.id, savedNodes, edges, undefined, undefined, {
+      markUndeployed: true,
+    })
+    if (error) {
+      toast.error(t('saveError'))
+      return
+    }
     bypassGuardRef.current = true
     const target = pendingNavRef.current ?? `/${orgSlug}/scenarios`
     pendingNavRef.current = null
     router.push(target)
-  }, [router, orgSlug])
+  }, [edges, orgSlug, router, savedNodes, scenario.id, t])
 
   const handleLeaveAndDeploy = async () => {
     setShowLeaveConfirm(false)
@@ -487,13 +515,17 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
   const handleRevert = async () => {
     setReverting(true)
     setShowRevertConfirm(false)
-    const { error } = await revertScenario(scenario.id)
+    const result = await revertScenario(scenario.id)
     setReverting(false)
-    if (error) {
+    if (result.error) {
       toast.error(t('revertError'))
     } else {
       toast.success(t('revertSuccess'))
-      setHasUndeployedChanges(false)
+      if (result.nodes && result.edges) {
+        replaceScenarioDraft(result.nodes, result.edges)
+      } else {
+        setHasUndeployedChanges(false)
+      }
       router.refresh()
     }
   }
@@ -703,8 +735,8 @@ export function ScenarioBuilder({ scenario, assistants, orgSlug, toolModel }: Sc
         scenarioId={scenario.id}
         open={historyOpen}
         onOpenChange={setHistoryOpen}
-        onRestore={() => {
-          setHasUndeployedChanges(false)
+        onRestore={(restored) => {
+          replaceScenarioDraft(restored.nodes, restored.edges)
           router.refresh()
         }}
       />

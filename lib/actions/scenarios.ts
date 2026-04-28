@@ -255,7 +255,11 @@ export async function deployScenario(id: string): Promise<{ error: string | null
   return { error: error?.message || null }
 }
 
-export async function revertScenario(id: string): Promise<{ error: string | null }> {
+export async function revertScenario(id: string): Promise<{
+  error: string | null
+  nodes?: ScenarioNode[]
+  edges?: ScenarioEdge[]
+}> {
   const supabase = await createClient()
 
   const { data: latestVersion, error: fetchError } = await supabase
@@ -283,7 +287,15 @@ export async function revertScenario(id: string): Promise<{ error: string | null
     })
     .eq('id', id)
 
-  return { error: error?.message || null }
+  if (error) {
+    return { error: error.message }
+  }
+
+  return {
+    error: null,
+    nodes: latestVersion.nodes as unknown as ScenarioNode[],
+    edges: latestVersion.edges as unknown as ScenarioEdge[],
+  }
 }
 
 export async function getScenarioVersions(
@@ -303,7 +315,7 @@ export async function getScenarioVersions(
 export async function restoreScenarioVersion(
   scenarioId: string,
   versionId: string
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; nodes?: ScenarioNode[]; edges?: ScenarioEdge[] }> {
   const supabase = await createClient()
 
   const { data: version, error: fetchError } = await supabase
@@ -333,7 +345,16 @@ export async function restoreScenarioVersion(
     return { error: error.message }
   }
 
-  return deployScenario(scenarioId)
+  const deployResult = await deployScenario(scenarioId)
+  if (deployResult.error) {
+    return deployResult
+  }
+
+  return {
+    error: null,
+    nodes: version.nodes as unknown as ScenarioNode[],
+    edges: version.edges as unknown as ScenarioEdge[],
+  }
 }
 
 /**
