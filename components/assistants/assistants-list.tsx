@@ -240,66 +240,68 @@ function AssistantCard({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 text-sm border-t border-neutral-100 dark:border-neutral-800 pt-3">
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-              {t('card.voice')}
-            </p>
-            {assistant.voice_id ? (
-              <VoiceLabel
-                provider={assistant.voice_provider}
-                voiceId={assistant.voice_id}
-                language={assistant.voice_language}
-                variant="stacked"
-                showFlag
-                className="mt-0.5 block"
-              />
-            ) : (
-              <p className="mt-0.5 text-sm text-neutral-500">{t('card.notSet')}</p>
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-              {t('card.llm')}
-            </p>
-            {modelLabel ? (
-              <>
-                <p className="mt-0.5 text-sm font-medium truncate">{modelLabel}</p>
-                {llmProvider && (
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                    {llmProvider}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="mt-0.5 text-sm text-neutral-500">{t('card.notSet')}</p>
-            )}
-          </div>
         </div>
 
-        </div>
+        <div className="mt-auto space-y-4 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                {t('card.voice')}
+              </p>
+              {assistant.voice_id ? (
+                <VoiceLabel
+                  provider={assistant.voice_provider}
+                  voiceId={assistant.voice_id}
+                  language={assistant.voice_language}
+                  variant="stacked"
+                  showFlag
+                  className="mt-0.5 block"
+                />
+              ) : (
+                <p className="mt-0.5 text-sm text-neutral-500">{t('card.notSet')}</p>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                {t('card.llm')}
+              </p>
+              {modelLabel ? (
+                <>
+                  <p className="mt-0.5 text-sm font-medium truncate">{modelLabel}</p>
+                  {llmProvider && (
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                      {llmProvider}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="mt-0.5 text-sm text-neutral-500">{t('card.notSet')}</p>
+              )}
+            </div>
+          </div>
 
-        {canManage && (
-          <div
-            className="mt-auto flex items-center gap-2 pt-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Link href={`/${orgSlug}/agents/${assistant.id}/edit`}>
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                {tCommon('edit')}
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onDelete}
-              aria-label={tCommon('delete')}
+          {canManage && (
+            <div
+              className="flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
-          </div>
-        )}
+              <Link href={`/${orgSlug}/agents/${assistant.id}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  {tCommon('edit')}
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDelete}
+                aria-label={tCommon('delete')}
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
