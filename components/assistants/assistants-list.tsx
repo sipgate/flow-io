@@ -176,7 +176,7 @@ function AssistantCard({
       onClick={onClick}
     >
       <CardContent className="p-5 flex flex-col h-full">
-        <div className="space-y-4">
+        <div className="space-y-4 pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             {assistant.avatar_url ? (
