@@ -23,7 +23,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
-  Plus,
   Server,
   Settings,
   Trash2,
@@ -35,6 +34,7 @@ import {
 } from 'lucide-react'
 import { deleteMCPServer, testMCPServer } from '@/lib/actions/mcp-servers'
 import { useRouter } from 'next/navigation'
+import { MCPServerQuickAdd } from './mcp-server-quick-add'
 
 interface MCPServer {
   id: string
@@ -124,12 +124,7 @@ export function MCPServerList({
             {t('description')}
           </p>
         </div>
-        <Link href={`/${orgSlug}/mcp-servers/new`}>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('addServer')}
-          </Button>
-        </Link>
+        <MCPServerQuickAdd organizationId={organizationId} orgSlug={orgSlug} />
       </div>
 
       <div className="grid gap-4">
@@ -274,12 +269,7 @@ export function MCPServerList({
               <p className="text-sm text-neutral-500 mb-4">
                 {t('empty.description')}
               </p>
-              <Link href={`/${orgSlug}/mcp-servers/new`}>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('addServer')}
-                </Button>
-              </Link>
+              <MCPServerQuickAdd organizationId={organizationId} orgSlug={orgSlug} />
             </CardContent>
           </Card>
         )}

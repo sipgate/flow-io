@@ -77,7 +77,7 @@ export class MCPToolExecutor {
         id: string
         name: string
         url: string
-        auth_type: 'none' | 'bearer' | 'api_key'
+        auth_type: 'none' | 'bearer' | 'api_key' | 'oauth2'
         auth_config: Record<string, unknown>
         headers: Record<string, unknown>
         timeout_ms: number
@@ -99,6 +99,27 @@ export class MCPToolExecutor {
         authConfig: server.auth_config as MCPServerConfig['authConfig'],
         headers: server.headers as Record<string, string>,
         timeoutMs: server.timeout_ms,
+        onTokensRefreshed:
+          server.auth_type === 'oauth2'
+            ? async (tokens) => {
+                const merged = {
+                  ...(server.auth_config || {}),
+                  accessToken: tokens.accessToken,
+                  ...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
+                  expiresAt: tokens.expiresAt,
+                }
+                await (supabase.from('mcp_servers') as unknown as {
+                  update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> }
+                })
+                  .update({
+                    auth_config: merged,
+                    oauth_token_expires_at: tokens.expiresAt
+                      ? new Date(tokens.expiresAt).toISOString()
+                      : null,
+                  })
+                  .eq('id', server.id)
+              }
+            : undefined,
       }
 
       // Store config for later execution

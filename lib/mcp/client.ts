@@ -17,6 +17,7 @@ import type {
   MCPCapabilities,
 } from './types'
 import { checkRateLimit, getTimeoutConfig } from './validation'
+import { refreshAccessToken } from './oauth'
 
 export class MCPClient {
   private config: MCPServerConfig
@@ -48,8 +49,10 @@ export class MCPClient {
     // Don't send session ID on initialize - server will provide one
     const { result, responseSessionId } = await this.requestWithSession<MCPInitializeResult>('initialize', params as unknown as Record<string, unknown>)
 
-    // Use server-provided session ID, or generate one if not provided
-    this.sessionId = responseSessionId || crypto.randomUUID()
+    // Per MCP Streamable-HTTP spec: only adopt a session ID if the server provides one.
+    // Generating a random UUID as fallback breaks servers (e.g. Streamable-HTTP servers
+    // that don't use session tracking but reject unknown Mcp-Session-Id values).
+    this.sessionId = responseSessionId
     this.initialized = true
     this.capabilities = result.capabilities
 
@@ -147,7 +150,7 @@ export class MCPClient {
   /**
    * Make JSON-RPC request and return session ID from response
    */
-  private async requestWithSession<T>(method: string, params: Record<string, unknown>): Promise<{ result: T; responseSessionId: string | null }> {
+  private async requestWithSession<T>(method: string, params: Record<string, unknown>, isRetry = false): Promise<{ result: T; responseSessionId: string | null }> {
     const requestId = ++this.requestId
 
     const jsonrpcRequest: MCPJSONRPCRequest = {
@@ -157,24 +160,7 @@ export class MCPClient {
       params,
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json, text/event-stream',
-      ...this.config.headers,
-    }
-
-    // Add session header if we have one (not on first request)
-    if (this.sessionId) {
-      headers['Mcp-Session-Id'] = this.sessionId
-    }
-
-    // Add authentication
-    if (this.config.authType === 'bearer' && this.config.authConfig?.token) {
-      headers['Authorization'] = `Bearer ${this.config.authConfig.token}`
-    } else if (this.config.authType === 'api_key' && this.config.authConfig?.apiKey) {
-      const headerName = this.config.authConfig.headerName || 'X-API-Key'
-      headers[headerName] = this.config.authConfig.apiKey
-    }
+    const headers = this.buildHeaders()
 
     const timeoutConfig = getTimeoutConfig()
     const timeoutMs = this.config.timeoutMs || timeoutConfig.requestTimeoutMs
@@ -196,6 +182,14 @@ export class MCPClient {
 
       // Capture session ID from response headers (case-insensitive)
       const responseSessionId = response.headers.get('mcp-session-id') || response.headers.get('Mcp-Session-Id')
+
+      // OAuth: try to refresh once on 401 Unauthorized
+      if (response.status === 401 && !isRetry && this.config.authType === 'oauth2' && this.config.authConfig?.refreshToken) {
+        const refreshed = await this.tryRefreshToken()
+        if (refreshed) {
+          return this.requestWithSession<T>(method, params, true)
+        }
+      }
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error')
@@ -262,24 +256,6 @@ export class MCPClient {
    * Send JSON-RPC notification (no response expected)
    */
   private async notify(method: string, params: Record<string, unknown>): Promise<void> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json, text/event-stream',
-      ...this.config.headers,
-    }
-
-    if (this.sessionId) {
-      headers['Mcp-Session-Id'] = this.sessionId
-    }
-
-    // Add authentication
-    if (this.config.authType === 'bearer' && this.config.authConfig?.token) {
-      headers['Authorization'] = `Bearer ${this.config.authConfig.token}`
-    } else if (this.config.authType === 'api_key' && this.config.authConfig?.apiKey) {
-      const headerName = this.config.authConfig.headerName || 'X-API-Key'
-      headers[headerName] = this.config.authConfig.apiKey
-    }
-
     // Notifications don't have an id field
     const notification = {
       jsonrpc: '2.0',
@@ -290,7 +266,7 @@ export class MCPClient {
     try {
       await fetch(this.config.url, {
         method: 'POST',
-        headers,
+        headers: this.buildHeaders(),
         body: JSON.stringify(notification),
         redirect: 'error',
       })
@@ -298,6 +274,83 @@ export class MCPClient {
     } catch {
       // Notifications are fire-and-forget, log but don't throw
       console.warn('[MCP Client] Notification failed:', { method })
+    }
+  }
+
+  /**
+   * Build common HTTP headers (auth, session, custom headers).
+   */
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/event-stream',
+      ...this.config.headers,
+    }
+
+    if (this.sessionId) {
+      headers['Mcp-Session-Id'] = this.sessionId
+    }
+
+    if (this.config.authType === 'bearer' && this.config.authConfig?.token) {
+      headers['Authorization'] = `Bearer ${this.config.authConfig.token}`
+    } else if (this.config.authType === 'api_key' && this.config.authConfig?.apiKey) {
+      const headerName = this.config.authConfig.headerName || 'X-API-Key'
+      headers[headerName] = this.config.authConfig.apiKey
+    } else if (this.config.authType === 'oauth2' && this.config.authConfig?.accessToken) {
+      headers['Authorization'] = `Bearer ${this.config.authConfig.accessToken}`
+    }
+
+    return headers
+  }
+
+  /**
+   * Refresh OAuth access token using stored refresh_token.
+   * Updates this.config.authConfig in place and invokes the persistence callback.
+   * Returns true on success, false otherwise.
+   */
+  private async tryRefreshToken(): Promise<boolean> {
+    const cfg = this.config.authConfig
+    if (!cfg?.refreshToken || !cfg.tokenEndpoint || !cfg.clientId) {
+      return false
+    }
+
+    try {
+      const tokens = await refreshAccessToken(
+        {
+          issuer: '',
+          authorization_endpoint: '',
+          token_endpoint: cfg.tokenEndpoint,
+        },
+        {
+          refreshToken: cfg.refreshToken,
+          clientId: cfg.clientId,
+          clientSecret: cfg.clientSecret,
+          scope: cfg.scope,
+          resource: cfg.resource,
+        }
+      )
+
+      const expiresAt = tokens.expires_in
+        ? Date.now() + tokens.expires_in * 1000
+        : undefined
+
+      cfg.accessToken = tokens.access_token
+      if (tokens.refresh_token) cfg.refreshToken = tokens.refresh_token
+      cfg.expiresAt = expiresAt
+
+      if (this.config.onTokensRefreshed) {
+        await this.config.onTokensRefreshed({
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          expiresAt,
+        })
+      }
+
+      debug('[MCP Client] OAuth token refreshed:', { server: this.config.name, expiresAt })
+      return true
+    } catch (error) {
+      console.error('[MCP Client] OAuth token refresh failed:', { server: this.config.name, error: String(error) })
+      return false
     }
   }
 

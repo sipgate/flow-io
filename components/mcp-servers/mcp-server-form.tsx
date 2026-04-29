@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,12 +16,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ExternalLink, Check } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   createMCPServer,
   updateMCPServer,
   type MCPServerData,
 } from '@/lib/actions/mcp-servers'
+
+type AuthType = 'none' | 'bearer' | 'api_key' | 'oauth2'
 
 interface MCPServerFormProps {
   organizationId: string
@@ -35,6 +38,7 @@ export function MCPServerForm({
   server,
 }: MCPServerFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const t = useTranslations('mcpServers.form')
   const tCommon = useTranslations('common')
   const isEditing = !!server
@@ -43,8 +47,8 @@ export function MCPServerForm({
   const [name, setName] = useState(server?.name || '')
   const [description, setDescription] = useState(server?.description || '')
   const [url, setUrl] = useState(server?.url || '')
-  const [authType, setAuthType] = useState<'none' | 'bearer' | 'api_key'>(
-    (server?.auth_type as 'none' | 'bearer' | 'api_key') || 'none'
+  const [authType, setAuthType] = useState<AuthType>(
+    (server?.auth_type as AuthType) || 'none'
   )
   const [authToken, setAuthToken] = useState(
     (server?.auth_config as { token?: string })?.token || ''
@@ -58,6 +62,22 @@ export function MCPServerForm({
   const [timeoutMs, setTimeoutMs] = useState(server?.timeout_ms || 30000)
   const [isActive, setIsActive] = useState(server?.is_active ?? true)
 
+  // OAuth status from server record
+  const oauthAccessToken =
+    (server?.auth_config as { accessToken?: string } | undefined)?.accessToken
+  const oauthConnectedAt = (server as unknown as { oauth_connected_at?: string | null } | undefined)?.oauth_connected_at
+
+  // Surface success/error from OAuth callback redirect
+  useEffect(() => {
+    const success = searchParams.get('mcp_oauth')
+    const error = searchParams.get('mcp_oauth_error')
+    if (success === 'success') {
+      toast.success(t('oauth2Success'))
+    } else if (error) {
+      toast.error(t('oauth2Error', { code: error }))
+    }
+  }, [searchParams, t])
+
   // UI state
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -68,12 +88,16 @@ export function MCPServerForm({
     setIsLoading(true)
 
     // Build auth config based on auth type
+    const existingConfig = (server?.auth_config as Record<string, unknown> | undefined) || {}
     const authConfig: Record<string, unknown> = {}
     if (authType === 'bearer' && authToken) {
       authConfig.token = authToken
     } else if (authType === 'api_key' && apiKey) {
       authConfig.apiKey = apiKey
       authConfig.headerName = apiKeyHeader
+    } else if (authType === 'oauth2') {
+      // Preserve existing OAuth tokens/credentials when editing — they live in the same JSONB
+      Object.assign(authConfig, existingConfig)
     }
 
     const data = {
@@ -172,9 +196,7 @@ export function MCPServerForm({
           <Label htmlFor="authType">{t('authType')}</Label>
           <Select
             value={authType}
-            onValueChange={value =>
-              setAuthType(value as 'none' | 'bearer' | 'api_key')
-            }
+            onValueChange={value => setAuthType(value as AuthType)}
             disabled={isLoading}
           >
             <SelectTrigger id="authType">
@@ -184,6 +206,7 @@ export function MCPServerForm({
               <SelectItem value="none">{t('authNone')}</SelectItem>
               <SelectItem value="bearer">{t('authBearer')}</SelectItem>
               <SelectItem value="api_key">{t('authApiKey')}</SelectItem>
+              <SelectItem value="oauth2">{t('authOauth2')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -230,6 +253,46 @@ export function MCPServerForm({
               </p>
             </div>
           </>
+        )}
+
+        {authType === 'oauth2' && (
+          <div className="space-y-3 rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/40 p-4">
+            <p className="text-xs text-neutral-600 dark:text-neutral-400">
+              {t('oauth2Hint')}
+            </p>
+
+            {isEditing && oauthAccessToken ? (
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="font-medium">{t('oauth2Connected')}</span>
+                {oauthConnectedAt && (
+                  <span className="text-xs text-neutral-500">
+                    · {t('oauth2ConnectedSince', { date: new Date(oauthConnectedAt).toLocaleDateString() })}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-500">{t('oauth2NotConnected')}</p>
+            )}
+
+            <div className="flex gap-2">
+              {isEditing ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <a href={`/api/mcp/oauth/start?serverId=${server.id}&returnTo=/${orgSlug}/mcp-servers/${server.id}/edit`}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {oauthAccessToken ? t('oauth2Reconnect') : t('oauth2Connect')}
+                  </a>
+                </Button>
+              ) : (
+                <p className="text-xs text-neutral-500 italic">{t('oauth2SaveFirst')}</p>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

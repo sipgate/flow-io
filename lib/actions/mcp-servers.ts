@@ -4,6 +4,7 @@ import { debug } from '@/lib/utils/logger'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { createMCPClient, validateMCPServerURL } from '@/lib/mcp'
+import { deriveBrandName } from '@/lib/mcp/oauth'
 import type { MCPServerConfig } from '@/lib/mcp'
 
 // Types for MCP server data
@@ -13,7 +14,7 @@ export interface MCPServerData {
   name: string
   description: string | null
   url: string
-  auth_type: 'none' | 'bearer' | 'api_key'
+  auth_type: 'none' | 'bearer' | 'api_key' | 'oauth2'
   auth_config: Record<string, unknown>
   headers: Record<string, unknown>
   timeout_ms: number
@@ -100,7 +101,7 @@ export async function createMCPServer(data: {
   name: string
   description?: string
   url: string
-  authType?: 'none' | 'bearer' | 'api_key'
+  authType?: 'none' | 'bearer' | 'api_key' | 'oauth2'
   authConfig?: Record<string, unknown>
   headers?: Record<string, unknown>
   timeoutMs?: number
@@ -137,6 +138,47 @@ export async function createMCPServer(data: {
 }
 
 /**
+ * Create a minimal OAuth-typed MCP server from just a URL.
+ * Used by the quick-add popover: derives a sensible default name from
+ * the URL host, sets auth_type='oauth2', and returns the new server id
+ * so the caller can immediately start the OAuth flow.
+ */
+export async function createMCPServerForOAuth(data: {
+  organizationId: string
+  url: string
+}) {
+  const supabase = await createClient()
+
+  const urlValidation = validateMCPServerURL(data.url)
+  if (!urlValidation.valid || !urlValidation.sanitizedUrl) {
+    return { server: null, error: urlValidation.error || 'Invalid URL' }
+  }
+
+  const defaultName = deriveBrandName(urlValidation.sanitizedUrl)
+
+  const { data: server, error } = await supabase
+    .from('mcp_servers')
+    .insert({
+      organization_id: data.organizationId,
+      name: defaultName,
+      url: urlValidation.sanitizedUrl,
+      auth_type: 'oauth2',
+      auth_config: {},
+      headers: {},
+      timeout_ms: 30000,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating OAuth MCP server:', error)
+    return { server: null, error: error.message }
+  }
+
+  return { server: server as unknown as MCPServerData, error: null }
+}
+
+/**
  * Update an MCP server
  */
 export async function updateMCPServer(
@@ -145,7 +187,7 @@ export async function updateMCPServer(
     name?: string
     description?: string | null
     url?: string
-    authType?: 'none' | 'bearer' | 'api_key'
+    authType?: 'none' | 'bearer' | 'api_key' | 'oauth2'
     authConfig?: Record<string, unknown>
     headers?: Record<string, unknown>
     timeoutMs?: number
@@ -236,6 +278,27 @@ export async function testMCPServer(serverId: string) {
       authConfig: typedServer.auth_config as MCPServerConfig['authConfig'],
       headers: typedServer.headers as Record<string, string>,
       timeoutMs: typedServer.timeout_ms,
+      onTokensRefreshed:
+        typedServer.auth_type === 'oauth2'
+          ? async (tokens) => {
+              const merged = {
+                ...(typedServer.auth_config || {}),
+                accessToken: tokens.accessToken,
+                ...(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
+                expiresAt: tokens.expiresAt,
+              }
+              await (serviceClient.from('mcp_servers') as unknown as {
+                update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> }
+              })
+                .update({
+                  auth_config: merged,
+                  oauth_token_expires_at: tokens.expiresAt
+                    ? new Date(tokens.expiresAt).toISOString()
+                    : null,
+                })
+                .eq('id', typedServer.id)
+            }
+          : undefined,
     }
 
     const client = createMCPClient(config)
@@ -249,18 +312,46 @@ export async function testMCPServer(serverId: string) {
     // Close client
     await client.close()
 
-    // Update health status AND cache the tools
+    // Adopt server-supplied name if the user hasn't set their own.
+    // Quick-add seeds the name with the URL hostname; if the current name
+    // still matches that default, prefer the human-friendly name from the
+    // MCP server's initialize response.
+    const updatePayload: Record<string, unknown> = {
+      health_status: 'healthy',
+      last_health_check: new Date().toISOString(),
+      cached_tools: tools,
+      tools_fetched_at: new Date().toISOString(),
+    }
+
+    // MCP spec ≥ 2025-06-18 introduces serverInfo.title as a human-readable
+    // display name, separate from serverInfo.name (technical identifier).
+    // We only adopt `title` — never `name`, since that's typically a kebab-
+    // case slug like "craft-workflow-links" that doesn't belong in a UI label.
+    const serverTitle = initResult.serverInfo?.title?.trim()
+    if (serverTitle) {
+      let urlHost: string | null = null
+      try {
+        urlHost = new URL(typedServer.url).host
+      } catch {
+        // ignore — keep urlHost null
+      }
+      const brandDefault = deriveBrandName(typedServer.url)
+      const currentIsDefault =
+        !typedServer.name ||
+        typedServer.name === urlHost ||
+        typedServer.name === brandDefault ||
+        typedServer.name === typedServer.url
+      if (currentIsDefault && serverTitle !== typedServer.name) {
+        updatePayload.name = serverTitle
+      }
+    }
+
     await serviceClient
       .from('mcp_servers')
-      .update({
-        health_status: 'healthy',
-        last_health_check: new Date().toISOString(),
-        cached_tools: tools, // Cache the full tool definitions
-        tools_fetched_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', serverId)
 
-    debug(`[MCP] Cached ${tools.length} tools for server ${typedServer.name}`)
+    debug(`[MCP] Cached ${tools.length} tools for server ${updatePayload.name ?? typedServer.name}`)
 
     return {
       success: true,

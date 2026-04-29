@@ -9,14 +9,32 @@ export interface MCPServerConfig {
   id: string
   name: string
   url: string
-  authType: 'none' | 'bearer' | 'api_key'
+  authType: 'none' | 'bearer' | 'api_key' | 'oauth2'
   authConfig?: {
     token?: string
     apiKey?: string
     headerName?: string
+    // OAuth 2.1 fields (when authType === 'oauth2')
+    accessToken?: string
+    refreshToken?: string
+    clientId?: string
+    clientSecret?: string
+    tokenEndpoint?: string
+    scope?: string
+    resource?: string
+    expiresAt?: number // epoch ms
   }
   headers?: Record<string, string>
   timeoutMs?: number
+  /**
+   * Optional callback invoked when the OAuth access_token gets refreshed at runtime.
+   * Hook this up to persist the new tokens (and expiry) back into mcp_servers.auth_config.
+   */
+  onTokensRefreshed?: (tokens: {
+    accessToken: string
+    refreshToken?: string
+    expiresAt?: number
+  }) => Promise<void>
 }
 
 // JSON-RPC 2.0 types
@@ -75,8 +93,11 @@ export interface MCPInitializeResult {
   capabilities: MCPCapabilities
   serverInfo: {
     name: string
+    /** Human-readable display name (MCP spec ≥ 2025-06-18). Prefer for UI. */
+    title?: string
     version?: string
   }
+  instructions?: string
 }
 
 // Tool definitions
