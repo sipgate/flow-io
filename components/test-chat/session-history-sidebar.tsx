@@ -84,7 +84,7 @@ export function SessionHistorySidebar({
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm truncate">
                           {session.name ||
-                            t('chatWith', { name: session.assistants?.name || 'Assistant' })}
+                            t('chatWith', { name: session.assistants?.name || 'Agent' })}
                         </h4>
                         <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                           {formatDistanceToNow(

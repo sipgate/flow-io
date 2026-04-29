@@ -116,7 +116,7 @@ export function ScenarioNodeConfig({
           <Label className="text-xs">{t('node.assistant')}</Label>
           {node.data.assistant_id && (
             <Link
-              href={`/${orgSlug}/assistants/${node.data.assistant_id}/edit`}
+              href={`/${orgSlug}/agents/${node.data.assistant_id}/edit`}
               target="_blank"
               rel="noopener noreferrer"
               title={t('node.editAssistant')}

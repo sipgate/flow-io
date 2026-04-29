@@ -41,7 +41,7 @@ interface SidebarProps {
 
 const navigationItems = [
   { key: 'dashboard',      href: '/dashboard',  icon: LayoutDashboard },
-  { key: 'assistants',     href: '/assistants', icon: Bot },
+  { key: 'assistants',     href: '/agents',     icon: Bot },
   { key: 'flows',          href: '/scenarios',  icon: GitBranch },
   { key: 'knowledgeBase',  href: '/knowledge',  icon: Layers },
   { key: 'autotest',       href: '/autotest',   icon: FlaskConical },

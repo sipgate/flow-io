@@ -40,7 +40,7 @@
     "brandName": "Flow-IO",
     "expandSidebar": "Sidebar ausklappen",
     "dashboard": "Dashboard",
-    "assistants": "Assistenten",
+    "assistants": "Agenten",
     "flows": "Szenarien",
     "knowledgeBase": "Wissen & Tools",
     "chatSimulator": "Chat Simulator",
@@ -78,7 +78,7 @@
     },
     "signup": {
       "title": "Konto erstellen",
-      "description": "Starten Sie mit Ihrer KI-Sprachassistenten-Plattform",
+      "description": "Starten Sie mit Ihrer KI-Sprachagenten-Plattform",
       "fullName": "Vollständiger Name",
       "fullNamePlaceholder": "Max Mustermann",
       "email": "E-Mail",
@@ -112,13 +112,13 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Willkommen zurück! Hier ist der aktuelle Stand Ihrer KI-Assistenten.",
+    "welcome": "Willkommen zurück! Hier ist der aktuelle Stand Ihrer KI-Agenten.",
     "stats": {
       "activeCalls": "Aktive Anrufe",
       "callsToday": "Anrufe heute",
       "thisWeek": "Diese Woche",
       "avgDuration": "Durchschn. Dauer",
-      "assistants": "Assistenten",
+      "assistants": "Agenten",
       "phoneNumbers": "Telefonnummern",
       "knowledgeDocs": "Wissensdokumente",
       "variablesToday": "Variablen heute"
@@ -132,7 +132,7 @@
       "title": "Systemstatus",
       "phoneNumbers": "Telefonnummern",
       "connected": "{count} Rufnummern",
-      "noAssistants": "Noch keine Assistenten",
+      "noAssistants": "Noch keine Agenten",
       "api": "API",
       "operational": "Betriebsbereit"
     },
@@ -171,8 +171,8 @@
     },
     "quickActions": {
       "title": "Schnellaktionen",
-      "newAssistant": "Neuer Assistent",
-      "newAssistantDescription": "KI-Sprachassistenten erstellen",
+      "newAssistant": "Neuer Agent",
+      "newAssistantDescription": "KI-Sprachagenten erstellen",
       "addPhoneNumber": "Rufnummer hinzufügen",
       "addPhoneNumberDescription": "sipgate-Nummer verbinden",
       "uploadKnowledge": "Wissen hochladen",
@@ -182,43 +182,43 @@
     }
   },
   "assistants": {
-    "title": "Assistenten",
-    "description": "Erstellen und verwalten Sie Ihre KI-Sprachassistenten",
-    "createNew": "Neuer Assistent",
-    "backToList": "Zurück zu Assistenten",
+    "title": "Agenten",
+    "description": "Erstellen und verwalten Sie Ihre KI-Sprachagenten",
+    "createNew": "Neuer Agent",
+    "backToList": "Zurück zu Agenten",
     "new": {
-      "title": "KI-Assistent erstellen",
-      "description": "Konfigurieren Sie Ihren KI-Sprachassistenten mit benutzerdefinierten Einstellungen",
-      "aiWizardDescription": "Beschreiben Sie kurz Ihren Assistenten – die KI konfiguriert ihn automatisch für Sie"
+      "title": "KI-Agent erstellen",
+      "description": "Konfigurieren Sie Ihren KI-Sprachagenten mit benutzerdefinierten Einstellungen",
+      "aiWizardDescription": "Beschreiben Sie kurz Ihren Agenten – die KI konfiguriert ihn automatisch für Sie"
     },
     "aiWizard": {
-      "inputLabel": "Was soll Ihr Assistent tun?",
-      "inputPlaceholder": "z. B. \"Telefonsupport für heide.se\", \"Gartenhelfer für Fragen zu Pflanzen\", \"Elektrik-Rechner-Assistent\"",
+      "inputLabel": "Was soll Ihr Agent tun?",
+      "inputPlaceholder": "z. B. \"Telefonsupport für heide.se\", \"Gartenhelfer für Fragen zu Pflanzen\", \"Elektrik-Rechner-Agent\"",
       "inputHint": "Kurze Beschreibung reicht – die KI erledigt den Rest. Sie können auch eine URL einfügen.",
       "scrapeLabel": "Website analysieren und als Grundlage verwenden",
       "generateButton": "KI-Setup starten",
       "skipButton": "Überspringen",
-      "generating": "Assistent wird konfiguriert...",
+      "generating": "Agent wird konfiguriert...",
       "generationError": "KI-Konfiguration fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "previewTitle": "Konfiguration fertig",
-      "previewSubtitle": "So wird Ihr Assistent eingerichtet – Sie können alles noch anpassen",
+      "previewSubtitle": "So wird Ihr Agent eingerichtet – Sie können alles noch anpassen",
       "fieldName": "Name",
       "fieldDescription": "Beschreibung",
       "fieldVoice": "Stimme",
       "fieldOpeningMessage": "Eröffnungsnachricht",
       "fieldSystemPrompt": "System-Prompt",
-      "createButton": "Assistent erstellen",
+      "createButton": "Agent erstellen",
       "customizeButton": "Anpassen",
-      "createSuccess": "Assistent wurde erstellt",
-      "autoCreateScenario": "Gleichzeitig ein Szenario mit diesem Assistenten erstellen"
+      "createSuccess": "Agent wurde erstellt",
+      "autoCreateScenario": "Gleichzeitig ein Szenario mit diesem Agenten erstellen"
     },
     "edit": {
-      "title": "Assistent bearbeiten",
-      "description": "Aktualisieren Sie die Konfiguration Ihres KI-Assistenten"
+      "title": "Agent bearbeiten",
+      "description": "Aktualisieren Sie die Konfiguration Ihres KI-Agenten"
     },
     "empty": {
-      "title": "Noch keine Assistenten",
-      "description": "Erstellen Sie Ihren ersten KI-Assistenten, um zu beginnen"
+      "title": "Noch keine Agenten",
+      "description": "Erstellen Sie Ihren ersten KI-Agenten, um zu beginnen"
     },
     "status": {
       "active": "Aktiv",
@@ -241,11 +241,11 @@
       "name": "Name",
       "namePlaceholder": "Musterfirma Frontdesk - Phil",
       "description": "Beschreibung",
-      "descriptionPlaceholder": "Beschreiben Sie, was dieser Assistent macht",
+      "descriptionPlaceholder": "Beschreiben Sie, was dieser Agent macht",
       "basicInfo": "Grundinformationen",
       "activeCanReceiveCalls": "Aktiv (kann Anrufe empfangen)",
       "enableCsat": "Synthetische CSAT-Bewertung aktivieren",
-      "enableHesitation": "Tool-Ankündigung aktivieren (Assistent kündigt Suchen an)",
+      "enableHesitation": "Tool-Ankündigung aktivieren (Agent kündigt Suchen an)",
       "enableSemanticEot": "Semantische Turn-Erkennung aktivieren",
       "voiceSettings": "Sprachsynthese (TTS)",
       "voiceProvider": "Anbieter",
@@ -276,13 +276,13 @@
       "thinkingLevelHigh": "Hoch (Tiefes Reasoning)",
       "openingMessage": "Eröffnungsnachricht",
       "openingMessagePlaceholder": "Hallo! Wie kann ich Ihnen heute helfen?",
-      "openingMessageHint": "Das Erste, was der Assistent beim Annehmen eines Anrufs sagt",
+      "openingMessageHint": "Das Erste, was der Agent beim Annehmen eines Anrufs sagt",
       "systemPrompt": "System-Prompt",
-      "systemPromptPlaceholder": "Sie sind ein hilfreicher Kundenservice-Assistent...",
-      "systemPromptHint": "Anweisungen, die die Persönlichkeit, das Wissen und das Verhalten des Assistenten definieren",
+      "systemPromptPlaceholder": "Sie sind ein hilfreicher Kundenservice-Agent...",
+      "systemPromptHint": "Anweisungen, die die Persönlichkeit, das Wissen und das Verhalten des Agenten definieren",
       "extractionInstructions": "Extraktionsanweisungen",
       "knowledgeBase": "Wissensdatenbanken",
-      "knowledgeBaseHint": "Geben Sie diesem Assistenten Zugang zu benutzerdefinierten Informationen über RAG",
+      "knowledgeBaseHint": "Geben Sie diesem Agenten Zugang zu benutzerdefinierten Informationen über RAG",
       "selectKnowledgeBase": "Wissensdatenbank zum Hinzufügen auswählen...",
       "noKnowledgeBases": "Keine Wissensdatenbanken verfügbar.",
       "createKnowledgeBaseFirst": "Erstellen Sie zuerst Wissensdatenbanken im Wissensdatenbank-Bereich.",
@@ -294,7 +294,7 @@
       "assigned": "zugewiesen",
       "connected": "verbunden",
       "callTools": "Anruf-Aktionen",
-      "callToolsHint": "Aktivieren Sie Tools, die dem Assistenten ermöglichen, während Anrufen Aktionen durchzuführen",
+      "callToolsHint": "Aktivieren Sie Tools, die dem Agenten ermöglichen, während Anrufen Aktionen durchzuführen",
       "contextWebhooks": "Anruf-Kontext",
       "contextWebhooksHint": "Externe Daten beim Anrufstart abrufen, um das Gespräch zu personalisieren",
       "variables": "Variablen",
@@ -307,25 +307,25 @@
       "noVariables": "Noch keine Variablen definiert",
       "webhooks": "Webhooks",
       "webhookTools": "HTTP-Webhook-Tools",
-      "webhookToolsHint": "HTTP-Endpunkte, die der Assistent als Tools aufrufen kann, um Echtzeit-Daten abzurufen",
+      "webhookToolsHint": "HTTP-Endpunkte, die der Agent als Tools aufrufen kann, um Echtzeit-Daten abzurufen",
       "selectWebhookTool": "Webhook-Tool zum Hinzufügen auswählen...",
       "noWebhookTools": "Noch keine Webhook-Tools in dieser Organisation",
       "createWebhookToolFirst": "Zuerst ein Webhook-Tool unter Knowledge & Tools anlegen",
-      "createAssistant": "Assistent erstellen",
-      "autoCreateScenario": "Gleichzeitig ein Szenario mit diesem Assistenten erstellen",
+      "createAssistant": "Agent erstellen",
+      "autoCreateScenario": "Gleichzeitig ein Szenario mit diesem Agenten erstellen",
       "phonemeSets": "Wörterbücher",
       "phonemeSetsHint": "Wörterbücher für Spracherkennung und Aussprache. Erkennung boostet Wörter bei der Transkription, Aussprache ersetzt sie vor der Synthese.",
       "phonemeSetsLoading": "Wird geladen...",
       "phonemeSetsNone": "Keine Wörterbücher definiert. Erstellen Sie diese unter Einstellungen → Wörterbücher.",
       "phonemeSetsActiveEntries": "{count} aktive Einträge",
-      "phonemeSetsSaveFirst": "Speichern Sie den Assistenten zuerst, um Wörterbücher zuzuweisen.",
+      "phonemeSetsSaveFirst": "Speichern Sie den Agenten zuerst, um Wörterbücher zuzuweisen.",
       "featuresSection": "Funktionen",
-      "activeDescription": "Assistent nimmt Anrufe entgegen",
+      "activeDescription": "Agent nimmt Anrufe entgegen",
       "csatDescription": "Bewertet die Gesprächsqualität automatisch nach dem Anruf",
-      "hesitationDescription": "Assistent kündigt Suchvorgänge und Aktionen kurz an",
-      "semanticEotDescription": "Assistent wartet, bis der Satz vollständig gesprochen wurde, bevor er antwortet",
+      "hesitationDescription": "Agent kündigt Suchvorgänge und Aktionen kurz an",
+      "semanticEotDescription": "Agent wartet, bis der Satz vollständig gesprochen wurde, bevor er antwortet",
       "bargeInSection": "Gesprächsverhalten",
-      "bargeInSectionHint": "Steuern Sie, wie der Assistent auf Unterbrechungen reagiert",
+      "bargeInSectionHint": "Steuern Sie, wie der Agent auf Unterbrechungen reagiert",
       "dataTransfer": "Datenübertragung",
       "dataTransferHint": "Senden Sie extrahierte Variablen nach dem Anruf an externe Systeme",
       "criteriaSection": "Anrufkriterien",
@@ -342,7 +342,7 @@
         "discard": "Verwerfen"
       },
       "deploy": {
-        "deploySuccess": "Assistent für Anrufe angewendet",
+        "deploySuccess": "Agent für Anrufe angewendet",
         "deployError": "Anwenden für Anrufe fehlgeschlagen",
         "revertSuccess": "Auf zuletzt angewendete Version zurückgesetzt",
         "revertError": "Zurücksetzen fehlgeschlagen",
@@ -378,8 +378,8 @@
       }
     },
     "delete": {
-      "title": "Assistent löschen",
-      "description": "Sind Sie sicher, dass Sie diesen Assistenten löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
+      "title": "Agent löschen",
+      "description": "Sind Sie sicher, dass Sie diesen Agenten löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
     },
     "versionHistory": {
       "title": "Versionshistorie",
@@ -422,19 +422,19 @@
     "criteria": {
       "inheritedCriteria": "Geerbte Organisationskriterien",
       "orgLevel": "Org",
-      "assistantCriteria": "Assistenten-spezifische Kriterien",
-      "noAssistantCriteria": "Keine assistenten-spezifischen Kriterien definiert",
-      "addFirstAssistantCriterion": "Assistenten-spezifisches Kriterium hinzufügen",
-      "createAssistantCriterionDescription": "Erstellen Sie ein Kriterium speziell für diesen Assistenten"
+      "assistantCriteria": "Agenten-spezifische Kriterien",
+      "noAssistantCriteria": "Keine agenten-spezifischen Kriterien definiert",
+      "addFirstAssistantCriterion": "Agenten-spezifisches Kriterium hinzufügen",
+      "createAssistantCriterionDescription": "Erstellen Sie ein Kriterium speziell für diesen Agenten"
     }
   },
   "calls": {
     "title": "Anrufe",
     "description": "Alle Anrufsitzungen anzeigen und verwalten",
-    "noAssistant": "Kein Assistent",
+    "noAssistant": "Kein Agent",
     "table": {
       "caller": "Anrufer",
-      "assistant": "Assistent",
+      "assistant": "Agent",
       "phoneNumber": "Telefonnummer",
       "status": "Status",
       "criteria": "Kriterien",
@@ -459,7 +459,7 @@
       "unknown": "Unbekannt"
     },
     "filters": {
-      "searchPlaceholder": "Suche nach Anrufer, Assistent oder Sitzungs-ID...",
+      "searchPlaceholder": "Suche nach Anrufer, Agent oder Sitzungs-ID...",
       "allStatuses": "Alle Status"
     },
     "pagination": {
@@ -467,7 +467,7 @@
     },
     "empty": {
       "title": "Keine Anrufe gefunden",
-      "description": "Anrufe erscheinen hier, wenn Assistenten Anrufe erhalten"
+      "description": "Anrufe erscheinen hier, wenn Agenten Anrufe erhalten"
     },
     "details": {
       "title": "Anrufdetails",
@@ -476,7 +476,7 @@
       "callInfo": "Anrufinfo",
       "caller": "Anrufer",
       "status": "Status",
-      "assistant": "Assistent",
+      "assistant": "Agent",
       "none": "Keiner",
       "phone": "Telefon",
       "started": "Gestartet",
@@ -485,7 +485,7 @@
       "conversationTranscript": "Gesprächsprotokoll",
       "noTranscript": "Kein Transkript verfügbar",
       "user": "Benutzer",
-      "assistantLabel": "Assistent",
+      "assistantLabel": "Agent",
       "evaluate": "Bewerten",
       "reEvaluate": "Neu bewerten",
       "csatNotEvaluated": "Noch nicht bewertet",
@@ -551,7 +551,7 @@
   },
   "knowledge": {
     "title": "Wissen & Tools",
-    "description": "Wissensdatenbanken und externe MCP-Server für Ihre Assistenten verwalten",
+    "description": "Wissensdatenbanken und externe MCP-Server für Ihre Agenten verwalten",
     "tabKnowledge": "Wissensdatenbanken",
     "tabMcp": "MCP Server",
     "tabWebhooks": "Webhook Tools",
@@ -585,7 +585,7 @@
     },
     "createDialog": {
       "title": "Wissensdatenbank erstellen",
-      "description": "Erstellen Sie eine neue Wissensdatenbank, um Dokumente für Ihre Assistenten zu speichern"
+      "description": "Erstellen Sie eine neue Wissensdatenbank, um Dokumente für Ihre Agenten zu speichern"
     },
     "deleteKB": {
       "title": "Wissensdatenbank löschen?",
@@ -597,7 +597,7 @@
     },
     "stats": {
       "documentsCount": "{count, plural, one {# Dokument} other {# Dokumente}}",
-      "usedByAssistants": "Verwendet von {count} Assistent(en)",
+      "usedByAssistants": "Verwendet von {count} Agent(en)",
       "searches": "{count} Suche(n)",
       "calls": "{count} Anruf(e)",
       "lastUsed": "Zuletzt verwendet {date}"
@@ -605,28 +605,28 @@
   },
   "phoneNumbers": {
     "title": "Telefonnummern",
-    "description": "Verwalten Sie Telefonnummern, die Ihren Assistenten zugewiesen sind",
+    "description": "Verwalten Sie Telefonnummern, die Ihren Agenten zugewiesen sind",
     "activePhoneNumbers": "Aktive Telefonnummern",
     "stats": {
       "activePhoneNumbers": "Aktive Telefonnummern"
     },
     "table": {
       "phoneNumber": "Telefonnummer",
-      "assistant": "Assistent",
+      "assistant": "Agent",
       "assignedDate": "Zuweisungsdatum"
     },
     "empty": {
       "title": "Keine Telefonnummern zugewiesen",
-      "description": "Telefonnummern werden automatisch zugewiesen, wenn Sie einen Assistenten erstellen"
+      "description": "Telefonnummern werden automatisch zugewiesen, wenn Sie einen Agenten erstellen"
     },
-    "addNumber": "Weitere Telefonnummer diesem Assistenten zuweisen",
+    "addNumber": "Weitere Telefonnummer diesem Agenten zuweisen",
     "assignTo": "Nummer an {assistant} zuweisen",
     "noAvailable": "Keine verfügbaren Telefonnummern",
     "assignSuccess": "Telefonnummer zugewiesen",
     "assignError": "Verfügbare Nummern konnten nicht geladen werden",
-    "tabAssistant": "Assistent",
+    "tabAssistant": "Agent",
     "tabScenario": "Szenario",
-    "noAssistantsAvailable": "Keine Assistenten verfügbar",
+    "noAssistantsAvailable": "Keine Agenten verfügbar",
     "noScenariosAvailable": "Keine Szenarien verfügbar",
     "unassign": "Zuweisung aufheben",
     "cancel": "Abbrechen",
@@ -750,7 +750,7 @@
   },
   "analytics": {
     "title": "Analysen",
-    "description": "Einblicke und Metriken für Ihre KI-Assistenten",
+    "description": "Einblicke und Metriken für Ihre KI-Agenten",
     "overview": {
       "totalCalls": "Gesamtanrufe",
       "completed": "Abgeschlossen",
@@ -763,8 +763,8 @@
     "activeNow": "Jetzt aktiv",
     "callsOverTime": "Anrufe im Zeitverlauf",
     "noCallData": "Keine Anrufdaten für diesen Zeitraum",
-    "performanceByAssistant": "Leistung nach Assistent",
-    "noAssistants": "Keine Assistenten gefunden",
+    "performanceByAssistant": "Leistung nach Agent",
+    "noAssistants": "Keine Agenten gefunden",
     "calls": "Anrufe",
     "callsByHour": "Anrufe nach Stunde",
     "peakHours": "Spitzenzeiten",
@@ -790,9 +790,9 @@
       "overallPassRate": "Gesamterfolgsrate",
       "trendOverTime": "Kriterienverlauf",
       "byCriterion": "Leistung nach Kriterium",
-      "byAssistant": "Leistung nach Assistent",
+      "byAssistant": "Leistung nach Agent",
       "criterion": "Kriterium",
-      "assistant": "Assistent",
+      "assistant": "Agent",
       "passRate": "Erfolgsrate"
     },
     "csat": {
@@ -812,7 +812,7 @@
       "overview": "Übersicht",
       "patterns": "Muster",
       "performance": "Leistung",
-      "assistants": "Assistenten"
+      "assistants": "Agenten"
     },
     "heatmap": {
       "title": "Anrufaktivität Heatmap",
@@ -836,7 +836,7 @@
       "description": "Zeige {count} Anrufe für diesen Filter",
       "noCalls": "Keine Anrufe für diesen Filter gefunden",
       "caller": "Anrufer",
-      "assistant": "Assistent",
+      "assistant": "Agent",
       "status": "Status",
       "duration": "Dauer",
       "date": "Datum",
@@ -845,9 +845,9 @@
       "active": "Aktiv"
     },
     "assistantStats": {
-      "title": "Assistenten-Leistung",
-      "noData": "Keine Assistentendaten für diesen Zeitraum",
-      "assistant": "Assistent",
+      "title": "Agenten-Leistung",
+      "noData": "Keine Agentendaten für diesen Zeitraum",
+      "assistant": "Agent",
       "calls": "Anrufe",
       "completion": "Abschluss",
       "avgDuration": "Durchschn. Dauer",
@@ -889,7 +889,7 @@
     "welcome": "Willkommen bei Flow-IO!",
     "welcomeDescription": "Lassen Sie uns Ihre erste Organisation erstellen, um loszulegen",
     "title": "Organisation erstellen",
-    "description": "Ihre Organisation ist der Ort, an dem Sie Ihre KI-Assistenten und Anrufabläufe verwalten",
+    "description": "Ihre Organisation ist der Ort, an dem Sie Ihre KI-Agenten und Anrufabläufe verwalten",
     "orgName": "Organisationsname",
     "orgNamePlaceholder": "Acme GmbH",
     "orgUrl": "Organisations-URL",
@@ -906,7 +906,7 @@
     "backToList": "Zurück zu MCP-Servern",
     "new": {
       "title": "Neuer MCP-Server",
-      "description": "Verbinden Sie einen externen MCP-Server, um zusätzliche Tools für Ihre Assistenten zu aktivieren"
+      "description": "Verbinden Sie einen externen MCP-Server, um zusätzliche Tools für Ihre Agenten zu aktivieren"
     },
     "edit": {
       "title": "MCP-Server bearbeiten",
@@ -914,7 +914,7 @@
     },
     "empty": {
       "title": "Keine MCP-Server konfiguriert",
-      "description": "Fügen Sie Ihren ersten MCP-Server hinzu, um externe Tools für Ihre Assistenten zu aktivieren"
+      "description": "Fügen Sie Ihren ersten MCP-Server hinzu, um externe Tools für Ihre Agenten zu aktivieren"
     },
     "quickAdd": {
       "title": "MCP-Server schnell hinzufügen",
@@ -946,7 +946,7 @@
     "lastChecked": "Zuletzt geprüft",
     "delete": {
       "title": "MCP-Server löschen?",
-      "description": "Dieser MCP-Server wird dauerhaft gelöscht und von allen Assistenten entfernt. Diese Aktion kann nicht rückgängig gemacht werden."
+      "description": "Dieser MCP-Server wird dauerhaft gelöscht und von allen Agenten entfernt. Diese Aktion kann nicht rückgängig gemacht werden."
     },
     "form": {
       "basicInfo": "Grundinformationen",
@@ -985,33 +985,33 @@
       "timeout": "Anfrage-Zeitlimit (ms)",
       "timeoutHint": "Maximale Wartezeit auf eine Antwort (1000-120000ms)",
       "active": "Aktiv",
-      "activeHint": "Aktiv (Server kann von Assistenten verwendet werden)",
+      "activeHint": "Aktiv (Server kann von Agenten verwendet werden)",
       "createServer": "Server erstellen",
       "updateServer": "Server aktualisieren"
     }
   },
   "chatSimulator": {
     "title": "Chat-Simulator",
-    "description": "Testen Sie Ihre KI-Assistenten in einer Chat-Oberfläche, bevor Sie sie für Telefonanrufe einsetzen",
-    "selectAssistant": "Wählen Sie einen Assistenten zum Testen",
+    "description": "Testen Sie Ihre KI-Agenten in einer Chat-Oberfläche, bevor Sie sie für Telefonanrufe einsetzen",
+    "selectAssistant": "Wählen Sie einen Agenten zum Testen",
     "newChat": "Neuer Chat",
     "history": "Verlauf",
     "chatHistory": "Chat-Verlauf",
     "chatHistoryDescription": "Vorherige Testgespräche anzeigen und verwalten",
     "noHistory": "Noch kein Chat-Verlauf",
-    "noHistoryHint": "Starten Sie einen neuen Chat, um Ihren Assistenten zu testen",
+    "noHistoryHint": "Starten Sie einen neuen Chat, um Ihren Agenten zu testen",
     "chatWith": "Chat mit {name}",
     "welcome": "Willkommen im Chat-Simulator",
-    "welcomeHint": "Wählen Sie einen Assistenten und klicken Sie auf \"Neuer Chat\", um zu beginnen",
+    "welcomeHint": "Wählen Sie einen Agenten und klicken Sie auf \"Neuer Chat\", um zu beginnen",
     "noMessages": "Noch keine Nachrichten. Starten Sie ein Gespräch!",
     "inputPlaceholder": "Nachricht eingeben... (Enter zum Senden, Shift+Enter für neue Zeile)",
     "characters": "{count}/2000 Zeichen",
     "you": "Sie",
-    "assistant": "Assistent",
-    "assistantTyping": "Assistent schreibt...",
-    "assistantSpeaking": "Assistent spricht...",
+    "assistant": "Agent",
+    "assistantTyping": "Agent schreibt...",
+    "assistantSpeaking": "Agent spricht...",
     "errors": {
-      "selectAssistant": "Bitte wählen Sie zuerst einen Assistenten",
+      "selectAssistant": "Bitte wählen Sie zuerst einen Agenten",
       "createSession": "Chat-Sitzung konnte nicht erstellt werden",
       "sendMessage": "Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
       "maxLength": "Maximale Nachrichtenlänge beträgt 2000 Zeichen",
@@ -1023,7 +1023,7 @@
       "sessionLoaded": "Chat mit {name} geladen",
       "sessionDeleted": "Chat-Sitzung wurde gelöscht"
     },
-    "assistantsGroup": "Assistenten",
+    "assistantsGroup": "Agenten",
     "flowsGroup": "Flows",
     "promptTokens": "Prompt-Tokens",
     "completionTokens": "Completion-Tokens",
@@ -1053,7 +1053,7 @@
   },
   "autotest": {
     "title": "Autotest",
-    "description": "Testen Sie Ihre KI-Assistenten mit automatisierten Gesprächsabläufen",
+    "description": "Testen Sie Ihre KI-Agenten mit automatisierten Gesprächsabläufen",
     "createSuite": "Neue Test-Suite",
     "newSuite": "Neue Test-Suite",
     "newSuiteDescription": "Erstellen Sie eine Testsuite zur Organisation Ihrer Testfälle",
@@ -1064,14 +1064,14 @@
     "suiteNamePlaceholder": "z.B. Terminbuchungs-Tests",
     "suiteDescription": "Beschreibung",
     "suiteDescriptionPlaceholder": "Was überprüft diese Testsuite?",
-    "assistant": "Assistent",
-    "selectAssistant": "Wählen Sie einen Assistenten zum Testen",
-    "assistantRequired": "Bitte wählen Sie einen Assistenten",
-    "assistantCannotChange": "Assistent kann nach Erstellung nicht geändert werden",
+    "assistant": "Agent",
+    "selectAssistant": "Wählen Sie einen Agenten zum Testen",
+    "assistantRequired": "Bitte wählen Sie einen Agenten",
+    "assistantCannotChange": "Agent kann nach Erstellung nicht geändert werden",
     "nameRequired": "Name ist erforderlich",
     "createFailed": "Testsuite konnte nicht erstellt werden",
     "noSuites": "Noch keine Testsuites",
-    "noSuitesDescription": "Erstellen Sie Testsuites zur Organisation und Durchführung automatisierter Tests für Ihre KI-Assistenten.",
+    "noSuitesDescription": "Erstellen Sie Testsuites zur Organisation und Durchführung automatisierter Tests für Ihre KI-Agenten.",
     "createFirstSuite": "Neue Test-Suite",
     "testCases": "Testfälle",
     "passRate": "Erfolgsrate",
@@ -1108,24 +1108,24 @@
     "deleteTestConfirmTitle": "Testfall löschen?",
     "deleteTestConfirmDescription": "Dies löscht den Testfall und seinen gesamten Verlauf. Diese Aktion kann nicht rückgängig gemacht werden.",
     "newTestCase": "Neuer Testfall",
-    "newTestCaseDescription": "Definieren Sie einen Gesprächsablauf zum Testen Ihres Assistenten",
+    "newTestCaseDescription": "Definieren Sie einen Gesprächsablauf zum Testen Ihres Agenten",
     "editTestCase": "Testfall bearbeiten",
     "editTestCaseDescription": "Aktualisieren Sie Ihre Testfall-Konfiguration",
     "testDetails": "Testdetails",
     "conversationFlow": "Gesprächsablauf",
-    "conversationFlowDescription": "Definieren Sie die Gesprächszüge zwischen Benutzer und Assistent",
+    "conversationFlowDescription": "Definieren Sie die Gesprächszüge zwischen Benutzer und Agent",
     "turn": "Zug",
     "userMessage": "Benutzernachricht",
-    "assistantExpected": "Erwartetes Assistentenverhalten",
+    "assistantExpected": "Erwartetes Agentenverhalten",
     "userMessagePlaceholder": "Was der Benutzer sagt...",
-    "assistantExpectedPlaceholder": "Was der Assistent tun soll (keine exakten Worte)...",
+    "assistantExpectedPlaceholder": "Was der Agent tun soll (keine exakten Worte)...",
     "assistantExpectedHint": "Beschreiben Sie erwartetes Verhalten, nicht exakte Worte. z.B. \"Sollte begrüßen und nach Terminart fragen\"",
     "addUserTurn": "Benutzerzug hinzufügen",
-    "addAssistantTurn": "Assistentenzug hinzufügen",
-    "flowEditorHelp": "Fügen Sie Gesprächszüge hinzu, um das Testszenario zu definieren. Assistentenzüge definieren erwartetes Verhalten, keine exakten Antworten.",
+    "addAssistantTurn": "Agentenzug hinzufügen",
+    "flowEditorHelp": "Fügen Sie Gesprächszüge hinzu, um das Testszenario zu definieren. Agentenzüge definieren erwartetes Verhalten, keine exakten Antworten.",
     "overallEvaluationCriteria": "Gesamtbewertungskriterien",
     "overallEvaluationDescription": "Definieren Sie Kriterien zur Bestimmung, ob das gesamte Gespräch erfolgreich war",
-    "overallEvaluationPlaceholder": "z.B. Der Assistent sollte die Terminbuchung erfolgreich abschließen und alle Details bestätigen.",
+    "overallEvaluationPlaceholder": "z.B. Der Agent sollte die Terminbuchung erfolgreich abschließen und alle Details bestätigen.",
     "atLeastTwoTurns": "Mindestens zwei Gesprächszüge sind erforderlich",
     "createTest": "Test erstellen",
     "passed": "Bestanden",
@@ -1140,13 +1140,13 @@
     "expected": "Erwartet",
     "overallEvaluation": "Gesamtbewertung",
     "user": "Benutzer",
-    "assistantRole": "Assistent",
+    "assistantRole": "Agent",
     "never": "Nie",
     "justNow": "Gerade eben",
     "minutesAgo": "vor {count} Min.",
     "hoursAgo": "vor {count} Std.",
     "daysAgo": "vor {count} Tag(en)",
-    "generateDescription": "Verwenden Sie KI, um automatisch Testfälle basierend auf der Konfiguration Ihres Assistenten zu generieren.",
+    "generateDescription": "Verwenden Sie KI, um automatisch Testfälle basierend auf der Konfiguration Ihres Agenten zu generieren.",
     "numberOfTests": "Anzahl der zu generierenden Tests",
     "numberOfTestsHint": "Generieren Sie zwischen 1 und 10 Testfälle auf einmal",
     "generating": "Generiere...",
@@ -1171,7 +1171,7 @@
     "applied": "Übernommen",
     "promptApplied": "Prompt-Änderungen erfolgreich übernommen!",
     "testedWithCustomPrompt": "Mit angepasstem Prompt getestet",
-    "testedWithCustomPromptDescription": "Dieser Test wurde mit einem modifizierten Prompt durchgeführt. Sie können diesen Prompt auf den Assistenten anwenden, wenn die Ergebnisse zufriedenstellend sind.",
+    "testedWithCustomPromptDescription": "Dieser Test wurde mit einem modifizierten Prompt durchgeführt. Sie können diesen Prompt auf den Agenten anwenden, wenn die Ergebnisse zufriedenstellend sind.",
     "viewTestedPrompt": "Getesteten Prompt anzeigen",
     "applyTestedPrompt": "Diesen Prompt übernehmen",
     "applyingPrompt": "Übernehme...",
@@ -1275,7 +1275,7 @@
     "changedFields": "Geändert: {fields}",
     "changeLabels": {
       "initial": "Erstes Anwenden",
-      "assistant": "Assistent",
+      "assistant": "Agent",
       "instructions": "Anweisungen",
       "routing": "Routing",
       "nodes": "Knoten",
@@ -1289,18 +1289,18 @@
       "entryAgent": "Einstiegs-Agent",
       "inheritsVoice": "Stimme übernommen",
       "deleteNode": "Knoten löschen",
-      "assistant": "Assistent",
-      "editAssistant": "Assistent bearbeiten",
-      "selectAssistant": "Assistent auswählen…",
+      "assistant": "Agent",
+      "editAssistant": "Agent bearbeiten",
+      "selectAssistant": "Agent auswählen…",
       "transferInstruction": "Weiterleitungsanweisung",
       "transferInstructionPlaceholder": "Wann soll der Einstiegs-Agent hierher weiterleiten? z.B. \"Weiterleiten wenn der Anrufer ein Produkt kaufen möchte\"",
       "generate": "Generieren",
-      "autoGenerate": "Automatisch aus Assistenten-Prompt generieren",
+      "autoGenerate": "Automatisch aus Agenten-Prompt generieren",
       "inheritVoice": "Stimme vom Szenario übernehmen",
       "inheritVoiceDescription": "Dieselbe Stimme wie in den Szenario-Einstellungen konfiguriert",
       "sendGreeting": "Begrüßung bei Übergabe",
       "sendGreetingDescription": "Agent stellt sich vor wenn der Anruf ankommt",
-      "selectAssistantFirst": "Zuerst einen Assistenten auswählen",
+      "selectAssistantFirst": "Zuerst einen Agenten auswählen",
       "generateError": "Generierung fehlgeschlagen",
       "agentNode": "Agenten-Knoten",
       "dtmfCollect": "Zifferneingabe",
@@ -1357,9 +1357,9 @@
     "telephonyAccount": "Telefonie-Account",
     "telephonyAccountDescription": "Verbinde deinen sipgate-Account mit flow-io.",
     "phoneNumbers": "Rufnummern",
-    "phoneNumbersDescription": "Trage hier die Rufnummern ein, die du in sipgate Flow zugewiesen hast, und weise sie Assistenten oder Flows zu.",
+    "phoneNumbersDescription": "Trage hier die Rufnummern ein, die du in sipgate Flow zugewiesen hast, und weise sie Agenten oder Flows zu.",
     "step1Tooltip": "Melde dich mit deinem sipgate-Account an, um flow-io mit deiner Telefonanlage zu verbinden.",
-    "step2Tooltip": "Füge die Rufnummern hinzu, über die Anrufe bei flow-io eingehen sollen, und weise sie Assistenten zu.",
+    "step2Tooltip": "Füge die Rufnummern hinzu, über die Anrufe bei flow-io eingehen sollen, und weise sie Agenten zu.",
     "step3Tooltip": "Trage diese WebSocket-URL in sipgate Flow ein, damit eingehende Anrufe an flow-io weitergeleitet werden.",
     "webhookUrl": {
       "title": "WebSocket-URL für sipgate Flow",
@@ -1377,14 +1377,14 @@
       "cancel": "Abbrechen",
       "disconnect": "Trennen",
       "disconnected": "sipgate-Verbindung getrennt",
-      "phoneNumbersHint": "Rufnummern werden unten manuell eingetragen und können dort Assistenten oder Flows zugewiesen werden."
+      "phoneNumbersHint": "Rufnummern werden unten manuell eingetragen und können dort Agenten oder Flows zugewiesen werden."
     }
   },
   "settingsPage": {
     "phonemeSets": "Wörterbücher",
     "toolModel": {
       "title": "Tool-Modell",
-      "description": "Das KI-Modell, das für interne Hilfsfunktionen verwendet wird (z. B. Transfer-Instruction generieren, KI-Setup-Assistent).",
+      "description": "Das KI-Modell, das für interne Hilfsfunktionen verwendet wird (z. B. Transfer-Instruction generieren, KI-Setup-Agent).",
       "provider": "Anbieter",
       "model": "Modell",
       "saved": "Tool-Modell gespeichert",
@@ -1429,7 +1429,7 @@
     "setCreateFailed": "Wörterbuch konnte nicht erstellt werden",
     "entryAddFailed": "Eintrag konnte nicht hinzugefügt werden",
     "deleteSetTitle": "Wörterbuch löschen?",
-    "deleteSetDescription": "Dadurch wird \"{name}\" und alle zugehörigen Einträge dauerhaft gelöscht. Assistenten, die dieses Wörterbuch verwenden, verlieren es. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteSetDescription": "Dadurch wird \"{name}\" und alle zugehörigen Einträge dauerhaft gelöscht. Agenten, die dieses Wörterbuch verwenden, verlieren es. Diese Aktion kann nicht rückgängig gemacht werden.",
     "deleteEntryTitle": "Eintrag löschen?",
     "deleteEntryDescription": "Den Eintrag für \"{word}\" entfernen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "confirmDelete": "Löschen",
@@ -1637,7 +1637,7 @@
   },
   "webhookTools": {
     "title": "HTTP-Webhook-Tools",
-    "description": "Definieren Sie HTTP-Endpunkte, die der Assistent während eines Gesprächs als Tools aufrufen kann.",
+    "description": "Definieren Sie HTTP-Endpunkte, die der Agent während eines Gesprächs als Tools aufrufen kann.",
     "loading": "Laden...",
     "empty": "Noch keine Webhook-Tools konfiguriert.",
     "newTool": "New Webhook Tool",
@@ -1665,7 +1665,7 @@
     "authApiKeyPlaceholder": "API Key",
     "fieldParameters": "Parameter",
     "addParameter": "Parameter hinzufügen",
-    "noParameters": "Keine Parameter – der Assistent ruft das Tool ohne Argumente auf",
+    "noParameters": "Keine Parameter – der Agent ruft das Tool ohne Argumente auf",
     "paramName": "Name",
     "paramDescription": "Beschreibung",
     "paramRequired": "Pflicht",
@@ -1675,7 +1675,7 @@
     "testSuccess": "Erfolgreich ({status})",
     "testFailed": "Fehlgeschlagen: {statusText}",
     "deleteTitle": "Webhook-Tool löschen",
-    "deleteDescription": "Dieses Tool wird von allen Assistenten entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteDescription": "Dieses Tool wird von allen Agenten entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
     "cancel": "Abbrechen",
     "save": "Speichern",
     "update": "Aktualisieren",
@@ -1688,44 +1688,44 @@
     "saved": "Gespeichert",
     "endCall": {
       "title": "Anruf beenden",
-      "description": "Erlaubt dem Assistenten aufzulegen, wenn das Gespräch abgeschlossen ist",
+      "description": "Erlaubt dem Agenten aufzulegen, wenn das Gespräch abgeschlossen ist",
       "instructionsLabel": "Wann verwenden (optional)",
       "instructionsPlaceholder": "z.B. Wenn der Anrufer sich verabschiedet, wenn alle Fragen beantwortet wurden, oder wenn du nicht weiterhelfen kannst"
     },
     "transferCall": {
       "title": "Anruf weiterleiten",
-      "description": "Erlaubt dem Assistenten Anrufe an einen menschlichen Agenten weiterzuleiten",
+      "description": "Erlaubt dem Agenten Anrufe an einen menschlichen Agenten weiterzuleiten",
       "phoneLabel": "Weiterleiten an Telefonnummer *",
       "phonePlaceholder": "+49301234567",
       "phoneHint": "E.164-Format empfohlen (z.B. +49301234567)",
       "callerIdName": "Anrufer-ID Name",
-      "callerIdNamePlaceholder": "Support Assistent",
+      "callerIdNamePlaceholder": "Support Agent",
       "callerIdNumber": "Anrufer-ID Nummer",
       "instructionsLabel": "Wann weiterleiten (optional)",
       "instructionsPlaceholder": "z.B. Wenn der Anrufer explizit einen menschlichen Agenten anfordert, oder wenn das Problem zu komplex ist"
     },
     "takeNotes": {
       "title": "Notizen machen",
-      "description": "Erlaubt dem Assistenten wichtige Notizen während der Anrufe zu speichern",
+      "description": "Erlaubt dem Agenten wichtige Notizen während der Anrufe zu speichern",
       "instructionsLabel": "Wann Notizen machen (optional)",
       "instructionsPlaceholder": "z.B. Wenn der Anrufer Aufgaben, Beschwerden oder wichtige Informationen erwähnt, die nachverfolgt werden müssen"
     },
     "bargeIn": {
       "title": "Anrufer-Unterbrechungen (Barge-In)",
-      "description": "Steuere ob und wie Anrufer den Assistenten unterbrechen können, während er spricht",
+      "description": "Steuere ob und wie Anrufer den Agenten unterbrechen können, während er spricht",
       "strategyLabel": "Strategie",
       "immediate": "Sofort (Spracherkennung)",
       "minimumCharacters": "Automatisch (Spracherkennung)",
       "manual": "Manuell (nur per API)",
       "none": "Deaktiviert (keine Unterbrechungen)",
       "immediateDescription": "Unterbricht sofort wenn der Anrufer zu sprechen beginnt — schnellste Reaktion mittels Sprachaktivitätserkennung",
-      "minimumCharactersDescription": "Erkennt automatisch wenn der Anrufer spricht und unterbricht den Assistenten",
+      "minimumCharactersDescription": "Erkennt automatisch wenn der Anrufer spricht und unterbricht den Agenten",
       "manualDescription": "Unterbrechungen werden nur über die API ausgelöst, nicht durch Anrufergespräch",
-      "noneDescription": "Der Assistent kann nicht unterbrochen werden — Audio spielt vollständig ohne Unterbrechung",
+      "noneDescription": "Der Agent kann nicht unterbrochen werden — Audio spielt vollständig ohne Unterbrechung",
       "minCharsLabel": "Mindestzeichen",
       "minCharsHint": "Wie viele Zeichen der Anrufer sprechen muss, bevor die Unterbrechung ausgelöst wird",
       "protectionPeriodLabel": "Schutzperiode",
-      "protectionPeriodHint": "Verzögerung bevor Barge-In erlaubt ist, nachdem der Assistent zu sprechen beginnt"
+      "protectionPeriodHint": "Verzögerung bevor Barge-In erlaubt ist, nachdem der Agent zu sprechen beginnt"
     }
   },
   "landing": {

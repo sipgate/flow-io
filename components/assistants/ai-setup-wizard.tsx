@@ -105,7 +105,7 @@ export function AISetupWizard({ organizationId, orgSlug, toolModel }: AISetupWiz
 
     // Navigate immediately without resetting state — revalidatePath in the server action
     // would otherwise re-render this component before router.push takes effect
-    router.push(`/${orgSlug}/assistants/${result.assistant?.id}/edit`)
+    router.push(`/${orgSlug}/agents/${result.assistant?.id}/edit`)
   }
 
   const handleCustomize = () => {

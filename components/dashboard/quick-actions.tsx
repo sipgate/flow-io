@@ -25,7 +25,7 @@ export function QuickActions({ orgSlug }: QuickActionsProps) {
       label: t('newAssistant'),
       description: t('newAssistantDescription'),
       icon: Bot,
-      href: `/${orgSlug}/assistants/new`,
+      href: `/${orgSlug}/agents/new`,
       color: 'text-indigo-500',
       bgColor: 'bg-indigo-500/10 hover:bg-indigo-500/20',
     },

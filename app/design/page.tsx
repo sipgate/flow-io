@@ -494,7 +494,7 @@ export default function DesignSystemPage() {
               <div className="space-y-4">
                 <ShowcaseBlock
                   title="All Variants"
-                  code={`<Button>New Assistant</Button>
+                  code={`<Button>New Agent</Button>
 <Button variant="outline" size="sm">Edit</Button>
 <Button variant="outline" size="sm">
   <Trash2 className="h-4 w-4 mr-2 text-red-500" />Delete
@@ -506,7 +506,7 @@ export default function DesignSystemPage() {
                   <div className="flex flex-wrap gap-3 items-center">
                     <button className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium h-9 px-4 py-2 bg-neutral-900 dark:bg-neutral-50 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors duration-[120ms]">
                       <Plus className="h-4 w-4" />
-                      New Assistant
+                      New Agent
                     </button>
                     <button className="inline-flex items-center gap-2 rounded-md text-[13px] font-medium h-8 px-3 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-[120ms]">
                       <Pencil className="h-3.5 w-3.5" />
@@ -734,7 +734,7 @@ export default function DesignSystemPage() {
                   {/* Input */}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                      Assistant Name
+                      Agent Name
                     </label>
                     <input
                       type="text"
@@ -766,7 +766,7 @@ export default function DesignSystemPage() {
                     </label>
                     <textarea
                       rows={4}
-                      placeholder="You are a helpful assistant..."
+                      placeholder="You are a helpful agent..."
                       className="w-full rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-[13px] font-mono text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-neutral-100 resize-none"
                     />
                   </div>
@@ -858,7 +858,7 @@ export default function DesignSystemPage() {
                     <tbody>
                       {[
                         { name: "Support Bot DE", status: "Active", provider: "GPT-4o", created: "Mar 15" },
-                        { name: "Sales Assistant", status: "Active", provider: "Gemini 2.0", created: "Mar 10" },
+                        { name: "Sales Agent", status: "Active", provider: "Gemini 2.0", created: "Mar 10" },
                         { name: "Fallback Bot", status: "Inactive", provider: "GPT-4o Mini", created: "Feb 28" },
                       ].map((row, i, arr) => (
                         <tr key={row.name} className={cn("hover:bg-neutral-50 dark:hover:bg-neutral-900/30 transition-colors", i < arr.length - 1 && "border-b border-neutral-100 dark:border-neutral-800/50")}>
@@ -910,7 +910,7 @@ export default function DesignSystemPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { icon: Bot, title: "No assistants yet", desc: "Create your first AI assistant to start handling calls automatically.", cta: "New Assistant" },
+                  { icon: Bot, title: "No agents yet", desc: "Create your first AI agent to start handling calls automatically.", cta: "New Agent" },
                   { icon: Phone, title: "No phone numbers connected", desc: "Connect a sipgate number to start receiving calls.", cta: null },
                   { icon: Search, title: "No results found", desc: "Try adjusting your search or filters.", cta: null },
                   { icon: FlaskConical, title: "No test suites yet", desc: "Create a test suite to automate quality testing.", cta: "New Test Suite" },
@@ -955,7 +955,7 @@ export default function DesignSystemPage() {
                     <nav className="flex-1 p-2.5 space-y-0.5 overflow-y-auto">
                       {[
                         { icon: LayoutDashboard, label: "Dashboard", active: false },
-                        { icon: Bot, label: "Assistants", active: true },
+                        { icon: Bot, label: "Agents", active: true },
                         { icon: GitBranch, label: "Scenarios", active: false },
                         { icon: Layers, label: "Knowledge", active: false },
                         { icon: MessageSquare, label: "Chat", active: false },

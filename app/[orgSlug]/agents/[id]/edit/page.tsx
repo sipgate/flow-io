@@ -27,13 +27,13 @@ export default async function EditAssistantPage({
   const canManage = ['owner', 'admin'].includes(mem.role)
 
   if (!canManage) {
-    redirect(`/${orgSlug}/assistants`)
+    redirect(`/${orgSlug}/agents`)
   }
 
   const { assistant } = await getAssistant(id)
 
   if (!assistant) {
-    redirect(`/${orgSlug}/assistants`)
+    redirect(`/${orgSlug}/agents`)
   }
 
   const [t, scenarioLinks] = await Promise.all([
@@ -70,7 +70,7 @@ export default async function EditAssistantPage({
     <div className="p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <Link href={`/${orgSlug}/assistants`}>
+          <Link href={`/${orgSlug}/agents`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               {t('backToList')}

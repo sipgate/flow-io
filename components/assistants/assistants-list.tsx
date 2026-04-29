@@ -100,7 +100,7 @@ export function AssistantsList({
           </p>
         </div>
         {canManage && (
-          <Link href={`/${orgSlug}/assistants/new`}>
+          <Link href={`/${orgSlug}/agents/new`}>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
               {t('createNew')}
@@ -116,7 +116,7 @@ export function AssistantsList({
             <h3 className="font-medium mb-1">{t('empty.title')}</h3>
             <p className="text-sm text-neutral-500 mb-4">{t('empty.description')}</p>
             {canManage && (
-              <Link href={`/${orgSlug}/assistants/new`}>
+              <Link href={`/${orgSlug}/agents/new`}>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   {t('createNew')}
@@ -131,7 +131,7 @@ export function AssistantsList({
             <Card
               key={assistant.id}
               className="cursor-pointer hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors duration-[120ms]"
-              onClick={() => router.push(`/${orgSlug}/assistants/${assistant.id}/edit`)}
+              onClick={() => router.push(`/${orgSlug}/agents/${assistant.id}/edit`)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -194,7 +194,7 @@ export function AssistantsList({
                     className="flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Link href={`/${orgSlug}/assistants/${assistant.id}/edit`}>
+                    <Link href={`/${orgSlug}/agents/${assistant.id}/edit`}>
                       <Button variant="outline" size="sm">
                         <Edit className="h-4 w-4 mr-2" />
                         {tCommon('edit')}

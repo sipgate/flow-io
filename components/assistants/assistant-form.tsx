@@ -523,7 +523,7 @@ export function AssistantForm({
   const handleLeaveWithoutDeploy = () => {
     setShowLeaveConfirm(false)
     bypassGuardRef.current = true
-    const target = pendingNavRef.current ?? `/${orgSlug}/assistants`
+    const target = pendingNavRef.current ?? `/${orgSlug}/agents`
     pendingNavRef.current = null
     router.push(target)
   }
@@ -559,7 +559,7 @@ export function AssistantForm({
       toast.error(tDeploy('deployError'))
     } else {
       bypassGuardRef.current = true
-      const target = pendingNavRef.current ?? `/${orgSlug}/assistants`
+      const target = pendingNavRef.current ?? `/${orgSlug}/agents`
       pendingNavRef.current = null
       router.push(target)
     }
@@ -855,7 +855,7 @@ export function AssistantForm({
         router.refresh()
         setTimeout(() => setSaveSuccess(false), 2000)
       } else {
-        router.push(`/${orgSlug}/assistants`)
+        router.push(`/${orgSlug}/agents`)
         router.refresh()
       }
     }
@@ -1974,7 +1974,7 @@ export function AssistantForm({
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push(`/${orgSlug}/assistants`)}
+              onClick={() => router.push(`/${orgSlug}/agents`)}
               disabled={isLoading}
             >
               {tCommon('cancel')}

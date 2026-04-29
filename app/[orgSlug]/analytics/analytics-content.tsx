@@ -156,7 +156,7 @@ export function AnalyticsContent({ organizationId, orgSlug }: AnalyticsContentPr
   const handleAssistantClick = (assistantId: string) => {
     const assistant = enhancedAssistantStats.find(a => a.id === assistantId)
     setDrillDownFilters({ assistantId })
-    setDrillDownTitle(`Calls for ${assistant?.name || 'Assistant'}`)
+    setDrillDownTitle(`Calls for ${assistant?.name || 'Agent'}`)
     setDrillDownOpen(true)
   }
 

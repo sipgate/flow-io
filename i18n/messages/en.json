@@ -40,7 +40,7 @@
     "brandName": "Flow-IO",
     "expandSidebar": "Expand sidebar",
     "dashboard": "Dashboard",
-    "assistants": "Assistants",
+    "assistants": "Agents",
     "flows": "Scenarios",
     "knowledgeBase": "Knowledge & Tools",
     "chatSimulator": "Chat Simulator",
@@ -78,7 +78,7 @@
     },
     "signup": {
       "title": "Create an account",
-      "description": "Get started with your AI voice assistant platform",
+      "description": "Get started with your AI voice agent platform",
       "fullName": "Full Name",
       "fullNamePlaceholder": "John Doe",
       "email": "Email",
@@ -112,13 +112,13 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome back! Here's what's happening with your AI assistants.",
+    "welcome": "Welcome back! Here's what's happening with your AI agents.",
     "stats": {
       "activeCalls": "Active Calls",
       "callsToday": "Calls Today",
       "thisWeek": "This Week",
       "avgDuration": "Avg Duration",
-      "assistants": "Assistants",
+      "assistants": "Agents",
       "phoneNumbers": "Phone Numbers",
       "knowledgeDocs": "Knowledge Docs",
       "variablesToday": "Variables Today"
@@ -132,7 +132,7 @@
       "title": "System Status",
       "phoneNumbers": "Phone Numbers",
       "connected": "{count} numbers",
-      "noAssistants": "No assistants yet",
+      "noAssistants": "No agents yet",
       "api": "API",
       "operational": "Operational"
     },
@@ -171,8 +171,8 @@
     },
     "quickActions": {
       "title": "Quick Actions",
-      "newAssistant": "New Assistant",
-      "newAssistantDescription": "Create an AI voice assistant",
+      "newAssistant": "New Agent",
+      "newAssistantDescription": "Create an AI voice agent",
       "addPhoneNumber": "Add Phone Number",
       "addPhoneNumberDescription": "Connect a sipgate number",
       "uploadKnowledge": "Upload Knowledge",
@@ -182,43 +182,43 @@
     }
   },
   "assistants": {
-    "title": "Assistants",
-    "description": "Create and manage your AI voice assistants",
-    "createNew": "New Assistant",
-    "backToList": "Back to Assistants",
+    "title": "Agents",
+    "description": "Create and manage your AI voice agents",
+    "createNew": "New Agent",
+    "backToList": "Back to Agents",
     "new": {
-      "title": "Create AI Assistant",
-      "description": "Configure your voice AI assistant with custom settings",
-      "aiWizardDescription": "Briefly describe your assistant – the AI will configure it automatically for you"
+      "title": "Create AI Agent",
+      "description": "Configure your voice AI agent with custom settings",
+      "aiWizardDescription": "Briefly describe your agent – the AI will configure it automatically for you"
     },
     "aiWizard": {
-      "inputLabel": "What should your assistant do?",
-      "inputPlaceholder": "e.g. \"Phone support for heide.se\", \"Garden helper for plant questions\", \"Electrical calculator assistant\"",
+      "inputLabel": "What should your agent do?",
+      "inputPlaceholder": "e.g. \"Phone support for heide.se\", \"Garden helper for plant questions\", \"Electrical calculator agent\"",
       "inputHint": "A short description is enough – the AI handles the rest. You can also paste a URL.",
       "scrapeLabel": "Analyze website and use as a basis",
       "generateButton": "Start AI Setup",
       "skipButton": "Skip",
-      "generating": "Configuring assistant...",
+      "generating": "Configuring agent...",
       "generationError": "AI configuration failed. Please try again.",
       "previewTitle": "Configuration ready",
-      "previewSubtitle": "This is how your assistant will be set up – you can still customize everything",
+      "previewSubtitle": "This is how your agent will be set up – you can still customize everything",
       "fieldName": "Name",
       "fieldDescription": "Description",
       "fieldVoice": "Voice",
       "fieldOpeningMessage": "Opening Message",
       "fieldSystemPrompt": "System Prompt",
-      "createButton": "Create Assistant",
+      "createButton": "Create Agent",
       "customizeButton": "Customize",
-      "createSuccess": "Assistant created successfully",
-      "autoCreateScenario": "Also create a scenario with this assistant"
+      "createSuccess": "Agent created successfully",
+      "autoCreateScenario": "Also create a scenario with this agent"
     },
     "edit": {
-      "title": "Edit Assistant",
-      "description": "Update your AI assistant configuration"
+      "title": "Edit Agent",
+      "description": "Update your AI agent configuration"
     },
     "empty": {
-      "title": "No assistants yet",
-      "description": "Create your first AI assistant to get started"
+      "title": "No agents yet",
+      "description": "Create your first AI agent to get started"
     },
     "status": {
       "active": "Active",
@@ -241,11 +241,11 @@
       "name": "Name",
       "namePlaceholder": "Acme Support - Phil",
       "description": "Description",
-      "descriptionPlaceholder": "Describe what this assistant does",
+      "descriptionPlaceholder": "Describe what this agent does",
       "basicInfo": "Basic Information",
       "activeCanReceiveCalls": "Active (can receive calls)",
       "enableCsat": "Enable synthetic CSAT scoring",
-      "enableHesitation": "Enable tool hesitation (assistant announces lookups before running them)",
+      "enableHesitation": "Enable tool hesitation (agent announces lookups before running them)",
       "enableSemanticEot": "Enable semantic end-of-turn detection",
       "voiceSettings": "Speech Synthesis (TTS)",
       "voiceProvider": "Provider",
@@ -276,13 +276,13 @@
       "thinkingLevelHigh": "High (Deep reasoning)",
       "openingMessage": "Opening Message",
       "openingMessagePlaceholder": "Hello! How can I help you today?",
-      "openingMessageHint": "The first thing the assistant says when answering a call",
+      "openingMessageHint": "The first thing the agent says when answering a call",
       "systemPrompt": "System Prompt",
-      "systemPromptPlaceholder": "You are a helpful customer support assistant...",
-      "systemPromptHint": "Instructions that define the assistant's personality, knowledge, and behavior",
+      "systemPromptPlaceholder": "You are a helpful customer support agent...",
+      "systemPromptHint": "Instructions that define the agent's personality, knowledge, and behavior",
       "extractionInstructions": "Extraction Instructions",
       "knowledgeBase": "Knowledge Bases",
-      "knowledgeBaseHint": "Give this assistant access to custom information via RAG",
+      "knowledgeBaseHint": "Give this agent access to custom information via RAG",
       "selectKnowledgeBase": "Select knowledge base to add...",
       "noKnowledgeBases": "No knowledge bases available.",
       "createKnowledgeBaseFirst": "Create knowledge bases in the Knowledge Base section first.",
@@ -294,7 +294,7 @@
       "assigned": "assigned",
       "connected": "connected",
       "callTools": "Call Actions",
-      "callToolsHint": "Enable tools that allow the assistant to perform actions during calls",
+      "callToolsHint": "Enable tools that allow the agent to perform actions during calls",
       "contextWebhooks": "Call Context",
       "contextWebhooksHint": "Fetch external data when a call starts to personalize the conversation",
       "variables": "Variables",
@@ -307,25 +307,25 @@
       "noVariables": "No variables defined yet",
       "webhooks": "Webhooks",
       "webhookTools": "HTTP Webhook Tools",
-      "webhookToolsHint": "HTTP endpoints the assistant can call as tools to fetch real-time data",
+      "webhookToolsHint": "HTTP endpoints the agent can call as tools to fetch real-time data",
       "selectWebhookTool": "Select a webhook tool to add...",
       "noWebhookTools": "No webhook tools in this organization yet",
       "createWebhookToolFirst": "Create a webhook tool under Knowledge & Tools first",
-      "createAssistant": "Create Assistant",
-      "autoCreateScenario": "Also create a scenario with this assistant",
+      "createAssistant": "Create Agent",
+      "autoCreateScenario": "Also create a scenario with this agent",
       "phonemeSets": "Dictionaries",
       "phonemeSetsHint": "Dictionaries for speech recognition and pronunciation. Recognition boosts words during transcription, pronunciation replaces them before TTS synthesis.",
       "phonemeSetsLoading": "Loading...",
       "phonemeSetsNone": "No dictionaries defined. Create them in Settings → Dictionaries.",
       "phonemeSetsActiveEntries": "{count} active entries",
-      "phonemeSetsSaveFirst": "Save the assistant first to assign dictionaries.",
+      "phonemeSetsSaveFirst": "Save the agent first to assign dictionaries.",
       "featuresSection": "Features",
-      "activeDescription": "Assistant accepts incoming calls",
+      "activeDescription": "Agent accepts incoming calls",
       "csatDescription": "Automatically rates conversation quality after each call",
-      "hesitationDescription": "Assistant briefly announces searches and actions",
-      "semanticEotDescription": "Assistant waits for the user to finish their sentence before responding",
+      "hesitationDescription": "Agent briefly announces searches and actions",
+      "semanticEotDescription": "Agent waits for the user to finish their sentence before responding",
       "bargeInSection": "Conversation Behavior",
-      "bargeInSectionHint": "Control how the assistant responds to interruptions",
+      "bargeInSectionHint": "Control how the agent responds to interruptions",
       "dataTransfer": "Data Transfer",
       "dataTransferHint": "Send extracted variables to external systems after each call",
       "criteriaSection": "Call Criteria",
@@ -342,8 +342,8 @@
         "discard": "Discard"
       },
       "deploy": {
-        "deploySuccess": "Assistant applied to calls",
-        "deployError": "Failed to apply assistant to calls",
+        "deploySuccess": "Agent applied to calls",
+        "deployError": "Failed to apply agent to calls",
         "revertSuccess": "Reverted to last applied version",
         "revertError": "Failed to revert",
         "revertConfirmTitle": "Revert to last applied version?",
@@ -378,8 +378,8 @@
       }
     },
     "delete": {
-      "title": "Delete Assistant",
-      "description": "Are you sure you want to delete this assistant? This action cannot be undone."
+      "title": "Delete Agent",
+      "description": "Are you sure you want to delete this agent? This action cannot be undone."
     },
     "versionHistory": {
       "title": "Version History",
@@ -422,19 +422,19 @@
     "criteria": {
       "inheritedCriteria": "Inherited Organization Criteria",
       "orgLevel": "Org",
-      "assistantCriteria": "Assistant-Specific Criteria",
-      "noAssistantCriteria": "No assistant-specific criteria defined",
-      "addFirstAssistantCriterion": "Add assistant-specific criterion",
-      "createAssistantCriterionDescription": "Create a criterion specific to this assistant"
+      "assistantCriteria": "Agent-Specific Criteria",
+      "noAssistantCriteria": "No agent-specific criteria defined",
+      "addFirstAssistantCriterion": "Add agent-specific criterion",
+      "createAssistantCriterionDescription": "Create a criterion specific to this agent"
     }
   },
   "calls": {
     "title": "Calls",
     "description": "View and manage all call sessions",
-    "noAssistant": "No assistant",
+    "noAssistant": "No agent",
     "table": {
       "caller": "Caller",
-      "assistant": "Assistant",
+      "assistant": "Agent",
       "phoneNumber": "Phone Number",
       "status": "Status",
       "criteria": "Criteria",
@@ -459,7 +459,7 @@
       "unknown": "Unknown"
     },
     "filters": {
-      "searchPlaceholder": "Search by caller, assistant, or session ID...",
+      "searchPlaceholder": "Search by caller, agent, or session ID...",
       "allStatuses": "All Statuses"
     },
     "pagination": {
@@ -467,7 +467,7 @@
     },
     "empty": {
       "title": "No calls found",
-      "description": "Calls will appear here when assistants receive calls"
+      "description": "Calls will appear here when agents receive calls"
     },
     "details": {
       "title": "Call Details",
@@ -476,7 +476,7 @@
       "callInfo": "Call Info",
       "caller": "Caller",
       "status": "Status",
-      "assistant": "Assistant",
+      "assistant": "Agent",
       "none": "None",
       "phone": "Phone",
       "started": "Started",
@@ -485,7 +485,7 @@
       "conversationTranscript": "Conversation Transcript",
       "noTranscript": "No transcript available",
       "user": "User",
-      "assistantLabel": "Assistant",
+      "assistantLabel": "Agent",
       "evaluate": "Evaluate",
       "reEvaluate": "Re-evaluate",
       "csatNotEvaluated": "Not evaluated yet",
@@ -551,7 +551,7 @@
   },
   "knowledge": {
     "title": "Knowledge & Tools",
-    "description": "Manage knowledge bases and external MCP servers for your assistants",
+    "description": "Manage knowledge bases and external MCP servers for your agents",
     "tabKnowledge": "Knowledge Bases",
     "tabMcp": "MCP Servers",
     "tabWebhooks": "Webhook Tools",
@@ -585,7 +585,7 @@
     },
     "createDialog": {
       "title": "Create Knowledge Base",
-      "description": "Create a new knowledge base to store documents for your assistants"
+      "description": "Create a new knowledge base to store documents for your agents"
     },
     "deleteKB": {
       "title": "Delete Knowledge Base?",
@@ -597,7 +597,7 @@
     },
     "stats": {
       "documentsCount": "{count, plural, one {# Document} other {# Documents}}",
-      "usedByAssistants": "Used by {count} assistant(s)",
+      "usedByAssistants": "Used by {count} agent(s)",
       "searches": "{count} search(es)",
       "calls": "{count} call(s)",
       "lastUsed": "Last used {date}"
@@ -605,28 +605,28 @@
   },
   "phoneNumbers": {
     "title": "Phone Numbers",
-    "description": "Manage phone numbers assigned to your assistants",
+    "description": "Manage phone numbers assigned to your agents",
     "activePhoneNumbers": "Active Phone Numbers",
     "stats": {
       "activePhoneNumbers": "Active Phone Numbers"
     },
     "table": {
       "phoneNumber": "Phone Number",
-      "assistant": "Assistant",
+      "assistant": "Agent",
       "assignedDate": "Assigned Date"
     },
     "empty": {
       "title": "No phone numbers assigned",
-      "description": "Phone numbers are automatically assigned when you create an assistant"
+      "description": "Phone numbers are automatically assigned when you create an agent"
     },
-    "addNumber": "Add another phone number to this assistant",
-    "assignTo": "Assign number to {assistant}",
+    "addNumber": "Add another phone number to this agent",
+    "assignTo": "Assign number to {agent}",
     "noAvailable": "No available phone numbers",
     "assignSuccess": "Phone number assigned",
     "assignError": "Failed to load available numbers",
-    "tabAssistant": "Assistant",
+    "tabAssistant": "Agent",
     "tabScenario": "Scenario",
-    "noAssistantsAvailable": "No assistants available",
+    "noAssistantsAvailable": "No agents available",
     "noScenariosAvailable": "No scenarios available",
     "unassign": "Unassign",
     "cancel": "Cancel",
@@ -750,7 +750,7 @@
   },
   "analytics": {
     "title": "Analytics",
-    "description": "Insights and metrics for your AI assistants",
+    "description": "Insights and metrics for your AI agents",
     "overview": {
       "totalCalls": "Total Calls",
       "completed": "Completed",
@@ -763,8 +763,8 @@
     "activeNow": "Active Now",
     "callsOverTime": "Calls Over Time",
     "noCallData": "No call data for this period",
-    "performanceByAssistant": "Performance by Assistant",
-    "noAssistants": "No assistants found",
+    "performanceByAssistant": "Performance by Agent",
+    "noAssistants": "No agents found",
     "calls": "calls",
     "callsByHour": "Calls by Hour",
     "peakHours": "Peak activity hours",
@@ -790,9 +790,9 @@
       "overallPassRate": "Overall Pass Rate",
       "trendOverTime": "Criteria Trend Over Time",
       "byCriterion": "Performance by Criterion",
-      "byAssistant": "Performance by Assistant",
+      "byAssistant": "Performance by Agent",
       "criterion": "Criterion",
-      "assistant": "Assistant",
+      "assistant": "Agent",
       "passRate": "Pass Rate"
     },
     "csat": {
@@ -812,7 +812,7 @@
       "overview": "Overview",
       "patterns": "Patterns",
       "performance": "Performance",
-      "assistants": "Assistants"
+      "assistants": "Agents"
     },
     "heatmap": {
       "title": "Call Activity Heatmap",
@@ -836,7 +836,7 @@
       "description": "Showing {count} calls matching the filter",
       "noCalls": "No calls found for this filter",
       "caller": "Caller",
-      "assistant": "Assistant",
+      "assistant": "Agent",
       "status": "Status",
       "duration": "Duration",
       "date": "Date",
@@ -845,9 +845,9 @@
       "active": "Active"
     },
     "assistantStats": {
-      "title": "Assistant Performance",
-      "noData": "No assistant data for this period",
-      "assistant": "Assistant",
+      "title": "Agent Performance",
+      "noData": "No agent data for this period",
+      "assistant": "Agent",
       "calls": "Calls",
       "completion": "Completion",
       "avgDuration": "Avg Duration",
@@ -889,7 +889,7 @@
     "welcome": "Welcome to Flow-IO!",
     "welcomeDescription": "Let's create your first organization to get started",
     "title": "Create your organization",
-    "description": "Your organization is where you'll manage your AI assistants and call flows",
+    "description": "Your organization is where you'll manage your AI agents and call flows",
     "orgName": "Organization Name",
     "orgNamePlaceholder": "Acme Inc.",
     "orgUrl": "Organization URL",
@@ -906,7 +906,7 @@
     "backToList": "Back to MCP Servers",
     "new": {
       "title": "New MCP Server",
-      "description": "Connect an external MCP server to enable additional tools for your assistants"
+      "description": "Connect an external MCP server to enable additional tools for your agents"
     },
     "edit": {
       "title": "Edit MCP Server",
@@ -914,7 +914,7 @@
     },
     "empty": {
       "title": "No MCP servers configured",
-      "description": "Add your first MCP server to enable external tools for your assistants"
+      "description": "Add your first MCP server to enable external tools for your agents"
     },
     "quickAdd": {
       "title": "Quick add MCP server",
@@ -946,7 +946,7 @@
     "lastChecked": "Last checked",
     "delete": {
       "title": "Delete MCP Server?",
-      "description": "This will permanently delete this MCP server and remove it from all assistants. This action cannot be undone."
+      "description": "This will permanently delete this MCP server and remove it from all agents. This action cannot be undone."
     },
     "form": {
       "basicInfo": "Basic Information",
@@ -985,33 +985,33 @@
       "timeout": "Request Timeout (ms)",
       "timeoutHint": "Maximum time to wait for a response (1000-120000ms)",
       "active": "Active",
-      "activeHint": "Active (server can be used by assistants)",
+      "activeHint": "Active (server can be used by agents)",
       "createServer": "Create Server",
       "updateServer": "Update Server"
     }
   },
   "chatSimulator": {
     "title": "Chat Simulator",
-    "description": "Test your AI assistants in a chat interface before deploying them to phone calls",
-    "selectAssistant": "Select an assistant to test",
+    "description": "Test your AI agents in a chat interface before deploying them to phone calls",
+    "selectAssistant": "Select an agent to test",
     "newChat": "New Chat",
     "history": "History",
     "chatHistory": "Chat History",
     "chatHistoryDescription": "View and manage your previous test conversations",
     "noHistory": "No chat history yet",
-    "noHistoryHint": "Start a new chat to begin testing your assistant",
+    "noHistoryHint": "Start a new chat to begin testing your agent",
     "chatWith": "Chat with {name}",
     "welcome": "Welcome to Chat Simulator",
-    "welcomeHint": "Select an assistant and click \"New Chat\" to start testing",
+    "welcomeHint": "Select an agent and click \"New Chat\" to start testing",
     "noMessages": "No messages yet. Start a conversation!",
     "inputPlaceholder": "Type your message... (Press Enter to send, Shift+Enter for new line)",
     "characters": "{count}/2000 characters",
     "you": "You",
-    "assistant": "Assistant",
-    "assistantTyping": "Assistant is typing...",
-    "assistantSpeaking": "Assistant is speaking...",
+    "assistant": "Agent",
+    "assistantTyping": "Agent is typing...",
+    "assistantSpeaking": "Agent is speaking...",
     "errors": {
-      "selectAssistant": "Please select an assistant first",
+      "selectAssistant": "Please select an agent first",
       "createSession": "Failed to create new chat session",
       "sendMessage": "Failed to send message. Please try again.",
       "maxLength": "Maximum message length is 2000 characters",
@@ -1023,7 +1023,7 @@
       "sessionLoaded": "Loaded chat with {name}",
       "sessionDeleted": "Chat session has been deleted"
     },
-    "assistantsGroup": "Assistants",
+    "assistantsGroup": "Agents",
     "flowsGroup": "Flows",
     "promptTokens": "Prompt Tokens",
     "completionTokens": "Completion Tokens",
@@ -1053,7 +1053,7 @@
   },
   "autotest": {
     "title": "Autotest",
-    "description": "Test your AI assistants with automated conversation flows",
+    "description": "Test your AI agents with automated conversation flows",
     "createSuite": "New Test Suite",
     "newSuite": "New Test Suite",
     "newSuiteDescription": "Create a test suite to organize your test cases",
@@ -1064,14 +1064,14 @@
     "suiteNamePlaceholder": "e.g., Appointment Booking Tests",
     "suiteDescription": "Description",
     "suiteDescriptionPlaceholder": "What does this test suite verify?",
-    "assistant": "Assistant",
-    "selectAssistant": "Select an assistant to test",
-    "assistantRequired": "Please select an assistant",
-    "assistantCannotChange": "Assistant cannot be changed after creation",
+    "assistant": "Agent",
+    "selectAssistant": "Select an agent to test",
+    "assistantRequired": "Please select an agent",
+    "assistantCannotChange": "Agent cannot be changed after creation",
     "nameRequired": "Name is required",
     "createFailed": "Failed to create test suite",
     "noSuites": "No test suites yet",
-    "noSuitesDescription": "Create test suites to organize and run automated tests for your AI assistants.",
+    "noSuitesDescription": "Create test suites to organize and run automated tests for your AI agents.",
     "createFirstSuite": "New Test Suite",
     "testCases": "Test Cases",
     "passRate": "Pass Rate",
@@ -1108,24 +1108,24 @@
     "deleteTestConfirmTitle": "Delete Test Case?",
     "deleteTestConfirmDescription": "This will delete the test case and all its run history. This action cannot be undone.",
     "newTestCase": "New Test Case",
-    "newTestCaseDescription": "Define a conversation flow to test your assistant",
+    "newTestCaseDescription": "Define a conversation flow to test your agent",
     "editTestCase": "Edit Test Case",
     "editTestCaseDescription": "Update your test case configuration",
     "testDetails": "Test Details",
     "conversationFlow": "Conversation Flow",
-    "conversationFlowDescription": "Define the conversation turns between user and assistant",
+    "conversationFlowDescription": "Define the conversation turns between user and agent",
     "turn": "Turn",
     "userMessage": "User Message",
-    "assistantExpected": "Expected Assistant Behavior",
+    "assistantExpected": "Expected Agent Behavior",
     "userMessagePlaceholder": "What the user says...",
-    "assistantExpectedPlaceholder": "What the assistant should do (not exact words)...",
+    "assistantExpectedPlaceholder": "What the agent should do (not exact words)...",
     "assistantExpectedHint": "Describe expected behavior, not exact wording. e.g., \"Should greet and ask for appointment type\"",
     "addUserTurn": "Add User Turn",
-    "addAssistantTurn": "Add Assistant Turn",
-    "flowEditorHelp": "Add conversation turns to define the test scenario. Assistant turns define expected behaviors, not exact responses.",
+    "addAssistantTurn": "Add Agent Turn",
+    "flowEditorHelp": "Add conversation turns to define the test scenario. Agent turns define expected behaviors, not exact responses.",
     "overallEvaluationCriteria": "Overall Evaluation Criteria",
     "overallEvaluationDescription": "Define criteria for determining if the entire conversation was successful",
-    "overallEvaluationPlaceholder": "e.g., The assistant should successfully complete the appointment booking and confirm all details.",
+    "overallEvaluationPlaceholder": "e.g., The agent should successfully complete the appointment booking and confirm all details.",
     "atLeastTwoTurns": "At least two conversation turns are required",
     "createTest": "Create Test",
     "passed": "Passed",
@@ -1140,13 +1140,13 @@
     "expected": "Expected",
     "overallEvaluation": "Overall Evaluation",
     "user": "User",
-    "assistantRole": "Assistant",
+    "assistantRole": "Agent",
     "never": "Never",
     "justNow": "Just now",
     "minutesAgo": "{count} min ago",
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago",
-    "generateDescription": "Use AI to automatically generate test cases based on your assistant's configuration.",
+    "generateDescription": "Use AI to automatically generate test cases based on your agent's configuration.",
     "numberOfTests": "Number of tests to generate",
     "numberOfTestsHint": "Generate between 1 and 10 test cases at a time",
     "generating": "Generating...",
@@ -1171,7 +1171,7 @@
     "applied": "Applied",
     "promptApplied": "Prompt changes applied successfully!",
     "testedWithCustomPrompt": "Tested with Custom Prompt",
-    "testedWithCustomPromptDescription": "This test was run with a modified prompt. You can apply this prompt to the assistant if the results are satisfactory.",
+    "testedWithCustomPromptDescription": "This test was run with a modified prompt. You can apply this prompt to the agent if the results are satisfactory.",
     "viewTestedPrompt": "View Tested Prompt",
     "applyTestedPrompt": "Apply This Prompt",
     "applyingPrompt": "Applying...",
@@ -1275,7 +1275,7 @@
     "changedFields": "Changed: {fields}",
     "changeLabels": {
       "initial": "Initial apply",
-      "assistant": "Assistant",
+      "assistant": "Agent",
       "instructions": "Instructions",
       "routing": "Routing",
       "nodes": "Nodes",
@@ -1289,18 +1289,18 @@
       "entryAgent": "Entry Agent",
       "inheritsVoice": "Inherits voice",
       "deleteNode": "Delete node",
-      "assistant": "Assistant",
-      "editAssistant": "Edit assistant",
-      "selectAssistant": "Select assistant…",
+      "assistant": "Agent",
+      "editAssistant": "Edit agent",
+      "selectAssistant": "Select agent…",
       "transferInstruction": "Transfer Instruction",
       "transferInstructionPlaceholder": "When should the entry agent transfer here? e.g. \"Transfer when caller wants to buy a product\"",
       "generate": "Generate",
-      "autoGenerate": "Auto-generate from assistant prompt",
+      "autoGenerate": "Auto-generate from agent prompt",
       "inheritVoice": "Inherit voice from Scenario",
       "inheritVoiceDescription": "Use the same voice as configured in the scenario settings",
       "sendGreeting": "Send greeting on transfer",
       "sendGreetingDescription": "Agent introduces itself when the call arrives",
-      "selectAssistantFirst": "Select an assistant first",
+      "selectAssistantFirst": "Select an agent first",
       "generateError": "Failed to generate",
       "agentNode": "Agent Node",
       "dtmfCollect": "Digit Input",
@@ -1357,9 +1357,9 @@
     "telephonyAccount": "Telephony Account",
     "telephonyAccountDescription": "Connect your sipgate account with flow-io.",
     "phoneNumbers": "Phone Numbers",
-    "phoneNumbersDescription": "Enter the phone numbers you have assigned in sipgate Flow and assign them to assistants or flows.",
+    "phoneNumbersDescription": "Enter the phone numbers you have assigned in sipgate Flow and assign them to agents or flows.",
     "step1Tooltip": "Sign in with your sipgate account to connect flow-io with your phone system.",
-    "step2Tooltip": "Add the phone numbers that should receive calls in flow-io and assign them to assistants.",
+    "step2Tooltip": "Add the phone numbers that should receive calls in flow-io and assign them to agents.",
     "step3Tooltip": "Enter this WebSocket URL in sipgate Flow so that incoming calls are routed to flow-io.",
     "webhookUrl": {
       "title": "WebSocket URL for sipgate Flow",
@@ -1377,7 +1377,7 @@
       "cancel": "Cancel",
       "disconnect": "Disconnect",
       "disconnected": "sipgate connection disconnected",
-      "phoneNumbersHint": "Phone numbers are entered manually below and can be assigned to assistants or flows there."
+      "phoneNumbersHint": "Phone numbers are entered manually below and can be assigned to agents or flows there."
     }
   },
   "settingsPage": {
@@ -1429,7 +1429,7 @@
     "setCreateFailed": "Failed to create dictionary",
     "entryAddFailed": "Failed to add entry",
     "deleteSetTitle": "Delete Dictionary?",
-    "deleteSetDescription": "This will permanently delete \"{name}\" and all its entries. Any assistants using this dictionary will lose it. This action cannot be undone.",
+    "deleteSetDescription": "This will permanently delete \"{name}\" and all its entries. Any agents using this dictionary will lose it. This action cannot be undone.",
     "deleteEntryTitle": "Delete Entry?",
     "deleteEntryDescription": "Remove the entry for \"{word}\"? This action cannot be undone.",
     "confirmDelete": "Delete",
@@ -1637,7 +1637,7 @@
   },
   "webhookTools": {
     "title": "HTTP Webhook Tools",
-    "description": "Define HTTP endpoints the assistant can call as tools during a conversation.",
+    "description": "Define HTTP endpoints the agent can call as tools during a conversation.",
     "loading": "Loading...",
     "empty": "No webhook tools configured yet.",
     "newTool": "New Webhook Tool",
@@ -1665,7 +1665,7 @@
     "authApiKeyPlaceholder": "API Key",
     "fieldParameters": "Parameters",
     "addParameter": "Add Parameter",
-    "noParameters": "No parameters – the assistant calls the tool without arguments",
+    "noParameters": "No parameters – the agent calls the tool without arguments",
     "paramName": "Name",
     "paramDescription": "Description",
     "paramRequired": "Required",
@@ -1675,7 +1675,7 @@
     "testSuccess": "Successful ({status})",
     "testFailed": "Failed: {statusText}",
     "deleteTitle": "Delete Webhook Tool",
-    "deleteDescription": "This tool will be removed from all assistants. This action cannot be undone.",
+    "deleteDescription": "This tool will be removed from all agents. This action cannot be undone.",
     "cancel": "Cancel",
     "save": "Save",
     "update": "Update",
@@ -1688,44 +1688,44 @@
     "saved": "Saved",
     "endCall": {
       "title": "End Call",
-      "description": "Allow the assistant to hang up when the conversation is complete",
+      "description": "Allow the agent to hang up when the conversation is complete",
       "instructionsLabel": "When to use (optional)",
       "instructionsPlaceholder": "e.g., When the caller says goodbye, when all questions have been answered, or when you cannot help further"
     },
     "transferCall": {
       "title": "Transfer Call",
-      "description": "Allow the assistant to transfer calls to a human agent",
+      "description": "Allow the agent to transfer calls to a human agent",
       "phoneLabel": "Transfer to phone number *",
       "phonePlaceholder": "+49301234567",
       "phoneHint": "E.164 format recommended (e.g., +49301234567)",
       "callerIdName": "Caller ID Name",
-      "callerIdNamePlaceholder": "Support Assistant",
+      "callerIdNamePlaceholder": "Support Agent",
       "callerIdNumber": "Caller ID Number",
       "instructionsLabel": "When to transfer (optional)",
       "instructionsPlaceholder": "e.g., When the caller explicitly requests a human agent, or when the issue is too complex"
     },
     "takeNotes": {
       "title": "Take Notes",
-      "description": "Allow the assistant to save important notes during calls",
+      "description": "Allow the agent to save important notes during calls",
       "instructionsLabel": "When to take notes (optional)",
       "instructionsPlaceholder": "e.g., When the caller mentions action items, complaints, or important information that needs follow-up"
     },
     "bargeIn": {
       "title": "Caller Interruptions (Barge-In)",
-      "description": "Control if and how callers can interrupt the assistant while it is speaking",
+      "description": "Control if and how callers can interrupt the agent while it is speaking",
       "strategyLabel": "Strategy",
       "immediate": "Immediate (voice detection)",
       "minimumCharacters": "Automatic (speech detection)",
       "manual": "Manual (API-only)",
       "none": "Disabled (no interruptions)",
       "immediateDescription": "Interrupts immediately when the caller starts speaking — fastest response using voice activity detection",
-      "minimumCharactersDescription": "Automatically detects when the caller speaks and interrupts the assistant",
+      "minimumCharactersDescription": "Automatically detects when the caller speaks and interrupts the agent",
       "manualDescription": "Interruptions are only triggered via the API, not by caller speech",
-      "noneDescription": "The assistant cannot be interrupted — audio plays fully without interruption",
+      "noneDescription": "The agent cannot be interrupted — audio plays fully without interruption",
       "minCharsLabel": "Minimum characters",
       "minCharsHint": "How many characters the caller must speak before the interruption triggers",
       "protectionPeriodLabel": "Protection period",
-      "protectionPeriodHint": "Delay before barge-in is allowed after the assistant starts speaking"
+      "protectionPeriodHint": "Delay before barge-in is allowed after the agent starts speaking"
     }
   },
   "landing": {
