@@ -4,6 +4,7 @@ import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { useTranslations } from 'next-intl'
 import { Bot, Phone, Hash, ListTree, Mic, RefreshCw, PhoneForwarded } from 'lucide-react'
+import { PhoneNumber } from '@/components/ui/phone-number'
 import type { ScenarioNode } from '@/types/scenarios'
 
 export const PhoneNumberNodeComponent = memo(function PhoneNumberNodeComponent({
@@ -13,9 +14,10 @@ export const PhoneNumberNodeComponent = memo(function PhoneNumberNodeComponent({
   return (
     <div className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 shadow-sm">
       <Phone className="h-4 w-4 text-neutral-400 flex-shrink-0" />
-      <span className="text-xs font-mono text-neutral-600 dark:text-neutral-300 whitespace-nowrap">
-        {phoneData.phone_number}
-      </span>
+      <PhoneNumber
+        value={phoneData.phone_number}
+        className="text-xs text-neutral-600 dark:text-neutral-300 whitespace-nowrap"
+      />
       <Handle
         type="source"
         position={Position.Bottom}
@@ -161,9 +163,9 @@ export const PhoneTransferNodeComponent = memo(function PhoneTransferNodeCompone
         </div>
 
         {data.target_phone_number && (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
             <Phone className="h-3 w-3" />
-            {data.target_phone_number}
+            <PhoneNumber value={data.target_phone_number} />
           </span>
         )}
 

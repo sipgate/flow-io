@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { CallDetailsModal } from './call-details-modal'
-import { formatPhoneNumber } from '@/lib/utils/format-phone'
+import { PhoneNumber } from '@/components/ui/phone-number'
 import { debug } from '@/lib/utils/logger'
 import { createClient } from '@/lib/supabase/client'
 
@@ -264,9 +264,7 @@ export function CallsTable({ calls }: CallsTableProps) {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-neutral-400" />
-                          <span className="font-mono text-sm">
-                            {formatPhoneNumber(call.caller_number)}
-                          </span>
+                          <PhoneNumber value={call.caller_number} className="text-sm" />
                         </div>
                       </TableCell>
                       <TableCell>
@@ -280,8 +278,8 @@ export function CallsTable({ calls }: CallsTableProps) {
                           <span>{call.assistants?.name || t('noAssistant')}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {formatPhoneNumber(call.phone_numbers?.phone_number)}
+                      <TableCell>
+                        <PhoneNumber value={call.phone_numbers?.phone_number} className="text-sm" />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

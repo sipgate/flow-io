@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { createClient } from '@/lib/supabase/client'
-import { formatPhoneNumber } from '@/lib/utils/format-phone'
+import { PhoneNumber } from '@/components/ui/phone-number'
 import type { RecentCall } from '@/lib/actions/dashboard'
 
 interface RecentCallsCardProps {
@@ -143,9 +143,7 @@ export function RecentCallsCard({ initialCalls, organizationId, orgSlug }: Recen
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-medium">
-                        {formatPhoneNumber(call.caller_number)}
-                      </span>
+                      <PhoneNumber value={call.caller_number} className="text-sm font-medium" />
                       {getStatusBadge(call.status)}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400 mt-1">

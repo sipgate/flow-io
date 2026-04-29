@@ -5,6 +5,7 @@ import { getAssistant, getAssistantScenarioLinks } from '@/lib/actions/assistant
 import { AssistantForm } from '@/components/assistants/assistant-form'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { PhoneNumber } from '@/components/ui/phone-number'
 import Link from 'next/link'
 import { ArrowLeft, Phone } from 'lucide-react'
 
@@ -85,7 +86,18 @@ export default async function EditAssistantPage({
               <Link key={link.scenarioId} href={`/${orgSlug}/scenarios/${link.scenarioId}`}>
                 <Badge variant="secondary" className="text-sm gap-1.5 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700">
                   <Phone className="h-3.5 w-3.5" />
-                  <span className="font-mono">{link.phoneNumbers.join(', ') || '—'}</span>
+                  {link.phoneNumbers.length > 0 ? (
+                    <span className="inline-flex flex-wrap items-center gap-1">
+                      {link.phoneNumbers.map((number, idx) => (
+                        <span key={number}>
+                          <PhoneNumber value={number} />
+                          {idx < link.phoneNumbers.length - 1 && ', '}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="font-mono">—</span>
+                  )}
                   <span className="text-muted-foreground font-normal">· {link.scenarioName}</span>
                 </Badge>
               </Link>

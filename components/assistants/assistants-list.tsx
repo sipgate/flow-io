@@ -23,7 +23,7 @@ import { Bot, Edit, Phone, Plus, Trash2 } from 'lucide-react'
 import { deleteAssistant } from '@/lib/actions/assistants'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { formatPhoneNumber } from '@/lib/utils/format-phone'
+import { PhoneNumber } from '@/components/ui/phone-number'
 import { toast } from 'sonner'
 
 interface Assistant {
@@ -183,9 +183,7 @@ export function AssistantsList({
                         <Phone className="h-3 w-3" />
                         {t('card.phone')}
                       </span>
-                      <span className="font-mono text-sm font-medium">
-                        {formatPhoneNumber(assistant.phone_number)}
-                      </span>
+                      <PhoneNumber value={assistant.phone_number} className="text-sm font-medium" />
                     </div>
                   )}
                 </div>

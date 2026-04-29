@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { formatPhoneNumber } from '@/lib/utils/format-phone'
+import { PhoneNumber } from '@/components/ui/phone-number'
 
 interface PhoneNumberEntry {
   id: string
@@ -42,9 +42,10 @@ export function PhoneNumbersCard({ phoneNumbers, orgSlug }: PhoneNumbersCardProp
                 key={pn.id}
                 className="flex items-center justify-between py-2 text-sm"
               >
-                <span className="font-mono text-neutral-700 dark:text-neutral-300">
-                  {formatPhoneNumber(pn.phone_number)}
-                </span>
+                <PhoneNumber
+                  value={pn.phone_number}
+                  className="text-neutral-700 dark:text-neutral-300"
+                />
                 <Badge variant="secondary" className="flex items-center gap-1.5 font-normal">
                   <GitBranch className="h-3 w-3" />
                   {name}

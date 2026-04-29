@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { AlertTriangle, Phone, Clock, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { formatPhoneNumber } from '@/lib/utils/format-phone'
+import { PhoneNumber } from '@/components/ui/phone-number'
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -63,11 +63,11 @@ export function StaleCallsAlert({ calls, isPending, onMarkFailed, onDismiss }: S
                 >
                   <div className="flex items-center gap-3 text-sm text-amber-900 dark:text-amber-200 min-w-0">
                     <Phone className="h-3.5 w-3.5 shrink-0" />
-                    <span className="font-medium">
-                      {call.caller_number
-                        ? formatPhoneNumber(call.caller_number)
-                        : t('unknownCaller')}
-                    </span>
+                    <PhoneNumber
+                      value={call.caller_number}
+                      fallback={t('unknownCaller')}
+                      className="font-medium"
+                    />
                     {call.assistants && (
                       <span className="text-amber-700 dark:text-amber-400 truncate">
                         · {call.assistants.name}

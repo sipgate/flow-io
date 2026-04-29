@@ -29,7 +29,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Phone, Pencil, Loader2, GitBranch, X, Plus, Trash2, ChevronRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
-import { formatPhoneNumber } from '@/lib/utils/format-phone'
+import { PhoneNumber } from '@/components/ui/phone-number'
 import { addPhoneNumber, addPhoneNumberBlock, deletePhoneNumber, deletePhoneNumberBlock, assignPhoneNumberToFlow, unassignPhoneNumber, getSipgateNumbersForSelection } from '@/lib/actions/phone-numbers'
 import { getScenarios } from '@/lib/actions/scenarios'
 import type { ScenarioSummary } from '@/types/scenarios'
@@ -663,7 +663,7 @@ export function PhoneNumbersList({
                           <ChevronRight
                             className={`h-3.5 w-3.5 text-neutral-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                           />
-                          <span className="font-mono font-medium">{formatPhoneNumber(item.prefix)}</span>
+                          <PhoneNumber value={item.prefix} className="font-medium" />
                           <span className="text-xs text-neutral-500 bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded">
                             {item.blockLabel}
                           </span>
@@ -697,9 +697,10 @@ export function PhoneNumbersList({
                 return (
                   <TableRow key={phoneNumber.id} className={isBlockRow ? 'border-l-2 border-l-neutral-200 dark:border-l-neutral-700' : undefined}>
                     <TableCell>
-                      <span className={`font-mono font-medium ${isBlockRow ? 'pl-6 text-sm' : ''}`}>
-                        {formatPhoneNumber(phoneNumber.phone_number)}
-                      </span>
+                      <PhoneNumber
+                        value={phoneNumber.phone_number}
+                        className={`font-medium ${isBlockRow ? 'pl-6 text-sm' : ''}`}
+                      />
                     </TableCell>
                     <TableCell>
                       {phoneNumber.call_scenarios ? (

@@ -20,7 +20,7 @@ import { getCallSession } from '@/lib/actions/calls'
 import { getCallNotes } from '@/lib/actions/call-tools'
 import { getCallCriteriaResults, triggerCallEvaluation, triggerCSATEvaluation } from '@/lib/actions/call-criteria'
 import { getCallExtractedVariables, triggerVariableReextraction } from '@/lib/actions/variables'
-import { formatPhoneNumber } from '@/lib/utils/format-phone'
+import { PhoneNumber } from '@/components/ui/phone-number'
 import { ExtractedVariablesDisplay } from '@/components/variables/extracted-variables-display'
 import { createClient } from '@/lib/supabase/client'
 import { findVoiceName } from '@/lib/constants/voices'
@@ -568,7 +568,7 @@ export function CallDetailsModal({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-neutral-500">{t('caller')}</span>
-                      <span className="font-mono text-sm">{formatPhoneNumber(session.caller_number)}</span>
+                      <PhoneNumber value={session.caller_number} className="text-sm" />
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-neutral-500">{t('status')}</span>
@@ -580,7 +580,7 @@ export function CallDetailsModal({
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-neutral-500">{t('phone')}</span>
-                      <span className="font-mono text-sm">{formatPhoneNumber(session.phone_numbers?.phone_number)}</span>
+                      <PhoneNumber value={session.phone_numbers?.phone_number} className="text-sm" />
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-neutral-500">{t('started')}</span>
