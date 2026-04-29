@@ -150,6 +150,105 @@ export async function getAssistantScenarioLinks(
   }))
 }
 
+export interface AssistantWithLinks extends Assistant {
+  scenarioLinks: AssistantScenarioLink[]
+}
+
+/**
+ * List all assistants in an organization with their scenario / phone-number
+ * links pre-joined. Avoids the N+1 that calling `getAssistantScenarioLinks`
+ * per row would cause.
+ */
+export async function getOrganizationAssistantsWithLinks(orgId: string): Promise<{
+  assistants: AssistantWithLinks[]
+}> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { assistants: [] }
+
+  const { data: membership } = await supabase
+    .from('organization_members')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('user_id', user.id)
+    .single()
+  if (!membership) return { assistants: [] }
+
+  const [assistantsResult, scenariosResult] = await Promise.all([
+    supabase
+      .from('assistants')
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('call_scenarios')
+      .select('id, name, nodes')
+      .eq('organization_id', orgId)
+      .not('nodes', 'eq', '[]'),
+  ])
+
+  const assistants = (assistantsResult.data ?? []) as unknown as Assistant[]
+  if (assistants.length === 0) return { assistants: [] }
+
+  const scenarios =
+    (scenariosResult.data ?? []) as Array<{ id: string; name: string; nodes: unknown }>
+
+  // assistantId → array of { scenarioId, scenarioName }
+  const scenarioByAssistant = new Map<string, Array<{ scenarioId: string; scenarioName: string }>>()
+  const matchingScenarioIds = new Set<string>()
+  for (const sc of scenarios) {
+    const nodes = Array.isArray(sc.nodes)
+      ? (sc.nodes as Array<{ type?: string; data?: { assistant_id?: string } }>)
+      : []
+    const seen = new Set<string>()
+    for (const n of nodes) {
+      const aid = n?.data?.assistant_id
+      if (!aid) continue
+      if (n.type !== 'agent' && n.type !== 'entry_agent') continue
+      if (seen.has(aid)) continue
+      seen.add(aid)
+      const existing = scenarioByAssistant.get(aid) ?? []
+      existing.push({ scenarioId: sc.id, scenarioName: sc.name })
+      scenarioByAssistant.set(aid, existing)
+      matchingScenarioIds.add(sc.id)
+    }
+  }
+
+  // Single phone-number lookup for every matching scenario.
+  const phonesByScenario = new Map<string, string[]>()
+  if (matchingScenarioIds.size > 0) {
+    const { data: phoneRows } = await supabase
+      .from('phone_numbers')
+      .select('phone_number, scenario_id')
+      .in('scenario_id', Array.from(matchingScenarioIds))
+      .eq('is_active', true)
+      .order('phone_number')
+    for (const p of phoneRows ?? []) {
+      const sid = p.scenario_id as string
+      const list = phonesByScenario.get(sid) ?? []
+      list.push(p.phone_number as string)
+      phonesByScenario.set(sid, list)
+    }
+  }
+
+  return {
+    assistants: assistants.map((a) => {
+      const links = scenarioByAssistant.get(a.id) ?? []
+      return {
+        ...a,
+        scenarioLinks: links.map((l) => ({
+          scenarioId: l.scenarioId,
+          scenarioName: l.scenarioName,
+          phoneNumbers: phonesByScenario.get(l.scenarioId) ?? [],
+        })),
+      }
+    }),
+  }
+}
+
 export async function createAssistant(
   orgId: string,
   data: {
