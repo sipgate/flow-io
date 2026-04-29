@@ -172,10 +172,11 @@ function AssistantCard({
 
   return (
     <Card
-      className="group cursor-pointer transition-colors duration-[120ms] hover:border-neutral-300 dark:hover:border-neutral-700"
+      className="group h-full cursor-pointer transition-colors duration-[120ms] hover:border-neutral-300 dark:hover:border-neutral-700"
       onClick={onClick}
     >
-      <CardContent className="p-5 space-y-4">
+      <CardContent className="p-5 flex flex-col h-full">
+        <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             {assistant.avatar_url ? (
@@ -276,9 +277,11 @@ function AssistantCard({
           </div>
         </div>
 
+        </div>
+
         {canManage && (
           <div
-            className="flex items-center gap-2 pt-1"
+            className="mt-auto flex items-center gap-2 pt-4"
             onClick={(e) => e.stopPropagation()}
           >
             <Link href={`/${orgSlug}/agents/${assistant.id}/edit`}>
