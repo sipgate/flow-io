@@ -224,6 +224,73 @@
       "active": "Active",
       "inactive": "Inactive"
     },
+    "overview": {
+      "delete": "Delete agent",
+      "testInChat": "Test in chat",
+      "viewCalls": "View calls",
+      "edit": "Edit",
+      "undeployedHint": "Saved changes not applied to calls yet",
+      "kpis": {
+        "calls": "Calls (30d)",
+        "successRate": "Success rate",
+        "avgDuration": "Avg. duration",
+        "avgCsat": "Avg. CSAT",
+        "noData": "—",
+        "callsBreakdown": "{completed} completed · {failed} failed",
+        "ratingsCount": "{count, plural, one {# rating} other {# ratings}}"
+      },
+      "setup": {
+        "title": "Setup",
+        "openEditor": "Open editor",
+        "voice": "Voice",
+        "llm": "Model",
+        "stt": "Speech recognition",
+        "behavior": "Behavior",
+        "hesitation": "Tool hesitation",
+        "semanticEot": "Semantic end-of-turn",
+        "openingMessage": "Opening message",
+        "systemPrompt": "System prompt",
+        "promptEmpty": "No system prompt set yet",
+        "promptLines": "{count, plural, one {# line} other {# lines}}",
+        "notSet": "Not set",
+        "temperature": "Temp {value}",
+        "thinkingLevel": "Thinking: {level}"
+      },
+      "activity": {
+        "title": "Activity",
+        "lastDeployedAt": "Last applied",
+        "lastDeployedNever": "Never applied",
+        "currentVersion": "Version {version}",
+        "openHistory": "Open apply history"
+      },
+      "connections": {
+        "title": "Connections",
+        "scenarios": "Scenarios",
+        "knowledgeBases": "Knowledge bases",
+        "mcpServers": "MCP servers",
+        "webhookTools": "Webhook tools",
+        "variables": "Variables",
+        "callTools": "Call actions",
+        "contextWebhook": "Context webhook",
+        "variableWebhook": "Variable webhook",
+        "phonemeSets": "Dictionaries",
+        "count": "{count, plural, one {# item} other {# items}}",
+        "enabledCount": "{count, plural, one {# enabled} other {# enabled}}",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "recentCalls": {
+        "title": "Recent calls",
+        "viewAll": "View all",
+        "empty": "No calls yet",
+        "noCaller": "Unknown caller",
+        "csatScore": "CSAT {score}",
+        "statusCompleted": "Completed",
+        "statusFailed": "Failed",
+        "statusActive": "Active",
+        "statusUnknown": "Unknown"
+      }
+    },
     "card": {
       "status": "Status",
       "voice": "Voice",

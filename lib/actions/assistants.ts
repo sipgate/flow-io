@@ -861,3 +861,260 @@ export async function deleteAssistant(assistantId: string) {
   revalidatePath('/', 'layout')
   return { success: true }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Assistant Overview (single-page summary used by `/[orgSlug]/agents/[id]`)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface AssistantOverviewLink {
+  id: string
+  name: string
+}
+
+export interface AssistantOverviewStats {
+  totalCalls30d: number
+  completedCalls30d: number
+  failedCalls30d: number
+  successRate: number | null
+  avgDurationSeconds: number
+  avgCsat: number | null
+  csatCount: number
+}
+
+export interface AssistantOverviewRecentCall {
+  id: string
+  caller_number: string | null
+  started_at: string | null
+  duration_seconds: number | null
+  csat_score: number | null
+  status: string
+}
+
+export interface AssistantOverview {
+  scenarioLinks: AssistantScenarioLink[]
+  stats: AssistantOverviewStats
+  latestVersion: { version: number } | null
+  knowledgeBases: AssistantOverviewLink[]
+  mcpServers: AssistantOverviewLink[]
+  webhookTools: AssistantOverviewLink[]
+  variableCount: number
+  callToolsEnabled: number
+  contextWebhook: { active: boolean } | null
+  variableWebhook: { active: boolean } | null
+  phonemeSetsCount: number
+  recentCalls: AssistantOverviewRecentCall[]
+}
+
+const EMPTY_OVERVIEW: AssistantOverview = {
+  scenarioLinks: [],
+  stats: {
+    totalCalls30d: 0,
+    completedCalls30d: 0,
+    failedCalls30d: 0,
+    successRate: null,
+    avgDurationSeconds: 0,
+    avgCsat: null,
+    csatCount: 0,
+  },
+  latestVersion: null,
+  knowledgeBases: [],
+  mcpServers: [],
+  webhookTools: [],
+  variableCount: 0,
+  callToolsEnabled: 0,
+  contextWebhook: null,
+  variableWebhook: null,
+  phonemeSetsCount: 0,
+  recentCalls: [],
+}
+
+export async function getAssistantOverview(assistantId: string): Promise<AssistantOverview> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return EMPTY_OVERVIEW
+
+  // Confirm membership + get organization_id once.
+  const { data: assistantRow } = await supabase
+    .from('assistants')
+    .select('id, organization_id')
+    .eq('id', assistantId)
+    .single()
+  if (!assistantRow) return EMPTY_OVERVIEW
+
+  const { data: membership } = await supabase
+    .from('organization_members')
+    .select('id')
+    .eq('organization_id', assistantRow.organization_id)
+    .eq('user_id', user.id)
+    .single()
+  if (!membership) return EMPTY_OVERVIEW
+
+  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const [
+    scenarioLinks,
+    callsResult,
+    latestVersionResult,
+    kbResult,
+    mcpResult,
+    webhookToolsResult,
+    variableDefsResult,
+    callToolConfigResult,
+    contextWebhookResult,
+    variableWebhookResult,
+    phonemeSetsCountResult,
+    recentCallsResult,
+  ] = await Promise.all([
+    getAssistantScenarioLinks(assistantId),
+    supabase
+      .from('call_sessions')
+      .select('status, duration_seconds, csat_score')
+      .eq('assistant_id', assistantId)
+      .gte('started_at', since30d),
+    supabase
+      .from('assistant_versions')
+      .select('version')
+      .eq('assistant_id', assistantId)
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('assistant_knowledge_bases')
+      .select('knowledge_bases(id, name)')
+      .eq('assistant_id', assistantId),
+    supabase
+      .from('assistant_mcp_servers')
+      .select('mcp_servers(id, name)')
+      .eq('assistant_id', assistantId),
+    supabase
+      .from('assistant_webhook_tools')
+      .select('webhook_tools(id, name)')
+      .eq('assistant_id', assistantId),
+    supabase
+      .from('variable_definitions')
+      .select('id', { count: 'exact', head: true })
+      .eq('assistant_id', assistantId),
+    supabase
+      .from('call_tool_configs')
+      .select('hangup_enabled, forward_enabled, note_enabled')
+      .eq('assistant_id', assistantId)
+      .maybeSingle(),
+    supabase
+      .from('context_webhooks')
+      .select('enabled')
+      .eq('assistant_id', assistantId)
+      .maybeSingle(),
+    supabase
+      .from('variable_webhooks')
+      .select('enabled')
+      .eq('assistant_id', assistantId),
+    supabase
+      .from('assistant_phoneme_sets')
+      .select('id', { count: 'exact', head: true })
+      .eq('assistant_id', assistantId),
+    supabase
+      .from('call_sessions')
+      .select('id, caller_number, started_at, duration_seconds, csat_score, status')
+      .eq('assistant_id', assistantId)
+      .order('started_at', { ascending: false })
+      .limit(5),
+  ])
+
+  const calls = callsResult.data ?? []
+  const totalCalls30d = calls.length
+  const completedCalls30d = calls.filter((c) => c.status === 'completed').length
+  const failedCalls30d = calls.filter((c) => c.status === 'failed').length
+  const decidedCalls = completedCalls30d + failedCalls30d
+  const successRate =
+    decidedCalls > 0 ? Math.round((completedCalls30d / decidedCalls) * 100) : null
+
+  const durationsSum = calls.reduce(
+    (sum, c) => sum + (typeof c.duration_seconds === 'number' ? c.duration_seconds : 0),
+    0,
+  )
+  const avgDurationSeconds = totalCalls30d > 0 ? Math.round(durationsSum / totalCalls30d) : 0
+
+  const csatValues = calls
+    .map((c) => c.csat_score)
+    .filter((v): v is number => typeof v === 'number')
+  const csatCount = csatValues.length
+  const avgCsat = csatCount > 0 ? csatValues.reduce((sum, v) => sum + v, 0) / csatCount : null
+
+  // Junction-table joins return the related row nested under the FK target's
+  // table name. Narrow at the boundary — Supabase types these as `unknown[]`.
+  const flattenLinks = (rows: unknown, key: string): AssistantOverviewLink[] => {
+    if (!Array.isArray(rows)) return []
+    const links: AssistantOverviewLink[] = []
+    for (const row of rows as Array<Record<string, unknown>>) {
+      const target = row[key]
+      if (target && typeof target === 'object') {
+        const t = target as { id?: unknown; name?: unknown }
+        if (typeof t.id === 'string' && typeof t.name === 'string') {
+          links.push({ id: t.id, name: t.name })
+        }
+      }
+    }
+    return links
+  }
+
+  const callToolConfig = callToolConfigResult.data as
+    | {
+        hangup_enabled: boolean | null
+        forward_enabled: boolean | null
+        note_enabled: boolean | null
+      }
+    | null
+  const callToolsEnabled = callToolConfig
+    ? [
+        callToolConfig.hangup_enabled,
+        callToolConfig.forward_enabled,
+        callToolConfig.note_enabled,
+      ].filter(Boolean).length
+    : 0
+
+  const variableWebhookRows = (variableWebhookResult.data ?? []) as Array<{ enabled: boolean | null }>
+  const variableWebhook =
+    variableWebhookRows.length > 0
+      ? { active: variableWebhookRows.some((r) => r.enabled === true) }
+      : null
+
+  const contextWebhookRow = contextWebhookResult.data as { enabled: boolean | null } | null
+  const contextWebhook = contextWebhookRow ? { active: contextWebhookRow.enabled === true } : null
+
+  const recentCalls: AssistantOverviewRecentCall[] = (recentCallsResult.data ?? []).map((c) => ({
+    id: c.id as string,
+    caller_number: (c.caller_number as string | null) ?? null,
+    started_at: (c.started_at as string | null) ?? null,
+    duration_seconds: (c.duration_seconds as number | null) ?? null,
+    csat_score: (c.csat_score as number | null) ?? null,
+    status: (c.status as string | null) ?? 'unknown',
+  }))
+
+  return {
+    scenarioLinks,
+    stats: {
+      totalCalls30d,
+      completedCalls30d,
+      failedCalls30d,
+      successRate,
+      avgDurationSeconds,
+      avgCsat,
+      csatCount,
+    },
+    latestVersion: latestVersionResult.data
+      ? { version: (latestVersionResult.data as { version: number }).version }
+      : null,
+    knowledgeBases: flattenLinks(kbResult.data, 'knowledge_bases'),
+    mcpServers: flattenLinks(mcpResult.data, 'mcp_servers'),
+    webhookTools: flattenLinks(webhookToolsResult.data, 'webhook_tools'),
+    variableCount: variableDefsResult.count ?? 0,
+    callToolsEnabled,
+    contextWebhook,
+    variableWebhook,
+    phonemeSetsCount: phonemeSetsCountResult.count ?? 0,
+    recentCalls,
+  }
+}

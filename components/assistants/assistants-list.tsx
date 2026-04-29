@@ -24,6 +24,7 @@ import { deleteAssistant } from '@/lib/actions/assistants'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PhoneNumber } from '@/components/ui/phone-number'
+import { VoiceLabel } from '@/components/ui/voice-label'
 import { toast } from 'sonner'
 
 interface Assistant {
@@ -131,7 +132,7 @@ export function AssistantsList({
             <Card
               key={assistant.id}
               className="cursor-pointer hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors duration-[120ms]"
-              onClick={() => router.push(`/${orgSlug}/agents/${assistant.id}/edit`)}
+              onClick={() => router.push(`/${orgSlug}/agents/${assistant.id}`)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -165,10 +166,17 @@ export function AssistantsList({
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex items-center gap-3">
                     <span className="text-neutral-500 dark:text-neutral-400 w-16 shrink-0">{t('card.voice')}</span>
-                    <span className="font-medium capitalize">
-                      {assistant.voice_provider || t('card.notSet')} •{' '}
-                      {assistant.voice_id || 'N/A'}
-                    </span>
+                    {assistant.voice_id ? (
+                      <VoiceLabel
+                        provider={assistant.voice_provider}
+                        voiceId={assistant.voice_id}
+                        language={assistant.voice_language}
+                        showFlag
+                        className="font-medium"
+                      />
+                    ) : (
+                      <span className="font-medium">{t('card.notSet')}</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-neutral-500 dark:text-neutral-400 w-16 shrink-0">{t('card.llm')}</span>

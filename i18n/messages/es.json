@@ -188,6 +188,73 @@
       "active": "Activo",
       "inactive": "Inactivo"
     },
+    "overview": {
+      "delete": "Eliminar agente",
+      "testInChat": "Probar en chat",
+      "viewCalls": "Ver llamadas",
+      "edit": "Editar",
+      "undeployedHint": "Los cambios guardados aún no se han aplicado",
+      "kpis": {
+        "calls": "Llamadas (30d)",
+        "successRate": "Tasa de éxito",
+        "avgDuration": "Duración media",
+        "avgCsat": "CSAT medio",
+        "noData": "—",
+        "callsBreakdown": "{completed} completadas · {failed} fallidas",
+        "ratingsCount": "{count, plural, one {# valoración} other {# valoraciones}}"
+      },
+      "setup": {
+        "title": "Configuración",
+        "openEditor": "Abrir editor",
+        "voice": "Voz",
+        "llm": "Modelo",
+        "stt": "Reconocimiento de voz",
+        "behavior": "Comportamiento",
+        "hesitation": "Anuncio de herramientas",
+        "semanticEot": "Fin de turno semántico",
+        "openingMessage": "Mensaje de apertura",
+        "systemPrompt": "Prompt del sistema",
+        "promptEmpty": "Aún no se ha definido un prompt",
+        "promptLines": "{count, plural, one {# línea} other {# líneas}}",
+        "notSet": "No definido",
+        "temperature": "Temp {value}",
+        "thinkingLevel": "Thinking: {level}"
+      },
+      "activity": {
+        "title": "Actividad",
+        "lastDeployedAt": "Última aplicación",
+        "lastDeployedNever": "Nunca aplicado",
+        "currentVersion": "Versión {version}",
+        "openHistory": "Abrir historial"
+      },
+      "connections": {
+        "title": "Conexiones",
+        "scenarios": "Escenarios",
+        "knowledgeBases": "Bases de conocimiento",
+        "mcpServers": "Servidores MCP",
+        "webhookTools": "Webhooks",
+        "variables": "Variables",
+        "callTools": "Acciones en llamada",
+        "contextWebhook": "Webhook de contexto",
+        "variableWebhook": "Webhook de variables",
+        "phonemeSets": "Diccionarios",
+        "count": "{count, plural, one {# elemento} other {# elementos}}",
+        "enabledCount": "{count, plural, one {# activo} other {# activos}}",
+        "active": "Activo",
+        "inactive": "Inactivo"
+      },
+      "recentCalls": {
+        "title": "Llamadas recientes",
+        "viewAll": "Ver todas",
+        "empty": "Aún no hay llamadas",
+        "noCaller": "Llamante desconocido",
+        "csatScore": "CSAT {score}",
+        "statusCompleted": "Completada",
+        "statusFailed": "Fallida",
+        "statusActive": "Activa",
+        "statusUnknown": "Desconocida"
+      }
+    },
     "card": {
       "status": "Estado",
       "voice": "Voz",

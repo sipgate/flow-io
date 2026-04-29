@@ -224,6 +224,73 @@
       "active": "Aktiv",
       "inactive": "Inaktiv"
     },
+    "overview": {
+      "delete": "Agent löschen",
+      "testInChat": "Im Chat testen",
+      "viewCalls": "Anrufe ansehen",
+      "edit": "Bearbeiten",
+      "undeployedHint": "Gespeicherte Änderungen sind noch nicht aktiv",
+      "kpis": {
+        "calls": "Anrufe (30T)",
+        "successRate": "Erfolgsquote",
+        "avgDuration": "Ø Dauer",
+        "avgCsat": "Ø CSAT",
+        "noData": "—",
+        "callsBreakdown": "{completed} abgeschlossen · {failed} fehlgeschlagen",
+        "ratingsCount": "{count, plural, one {# Bewertung} other {# Bewertungen}}"
+      },
+      "setup": {
+        "title": "Einrichtung",
+        "openEditor": "Editor öffnen",
+        "voice": "Stimme",
+        "llm": "Modell",
+        "stt": "Spracherkennung",
+        "behavior": "Verhalten",
+        "hesitation": "Tool-Ankündigung",
+        "semanticEot": "Semantisches Satzende",
+        "openingMessage": "Begrüßung",
+        "systemPrompt": "System-Prompt",
+        "promptEmpty": "Noch kein System-Prompt gesetzt",
+        "promptLines": "{count, plural, one {# Zeile} other {# Zeilen}}",
+        "notSet": "Nicht gesetzt",
+        "temperature": "Temp {value}",
+        "thinkingLevel": "Thinking: {level}"
+      },
+      "activity": {
+        "title": "Aktivität",
+        "lastDeployedAt": "Zuletzt aktiviert",
+        "lastDeployedNever": "Noch nie aktiviert",
+        "currentVersion": "Version {version}",
+        "openHistory": "Verlauf öffnen"
+      },
+      "connections": {
+        "title": "Verbindungen",
+        "scenarios": "Scenarios",
+        "knowledgeBases": "Wissensdatenbanken",
+        "mcpServers": "MCP-Server",
+        "webhookTools": "Webhook-Tools",
+        "variables": "Variablen",
+        "callTools": "Anruf-Aktionen",
+        "contextWebhook": "Context-Webhook",
+        "variableWebhook": "Variablen-Webhook",
+        "phonemeSets": "Wörterbücher",
+        "count": "{count, plural, one {# Element} other {# Elemente}}",
+        "enabledCount": "{count, plural, one {# aktiv} other {# aktiv}}",
+        "active": "Aktiv",
+        "inactive": "Inaktiv"
+      },
+      "recentCalls": {
+        "title": "Letzte Anrufe",
+        "viewAll": "Alle anzeigen",
+        "empty": "Noch keine Anrufe",
+        "noCaller": "Unbekannter Anrufer",
+        "csatScore": "CSAT {score}",
+        "statusCompleted": "Abgeschlossen",
+        "statusFailed": "Fehlgeschlagen",
+        "statusActive": "Aktiv",
+        "statusUnknown": "Unbekannt"
+      }
+    },
     "card": {
       "status": "Status",
       "voice": "Stimme",
