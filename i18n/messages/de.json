@@ -1862,5 +1862,24 @@
     "imprint": "Impressum",
     "privacy": "Datenschutz",
     "copyright": "© {year} sipgate GmbH"
+  },
+  "notFound": {
+    "brandName": "flow-io",
+    "eyebrow": "Fehler 404 · Verbindung abgebrochen",
+    "headline1": "Sieht aus, als wäre die Leitung",
+    "headline2": "verstummt.",
+    "description": "Die Seite, die du gewählt hast, ist nicht erreichbar. Keine Sorge — dein Voice-Agent formuliert bereits eine höfliche Entschuldigung.",
+    "redial": "Zurück zur Startseite",
+    "goBack": "Auflegen & zurück",
+    "liveCall": "Im Gespräch",
+    "callEnded": "Verbindung beendet",
+    "transcriptLabel": "Live-Transkript",
+    "agent": "Agent",
+    "caller": "Du",
+    "line1": "Hi — ich wollte eigentlich auf diese Seite?",
+    "line2": "Einen Moment, ich schaue kurz für dich nach…",
+    "line3": "Hmm, ich suche, aber ich kann sie nirgends finden.",
+    "line4": "Tut mir leid — die Seite scheint nicht zu existieren. Code 404.",
+    "disconnectedAt": "Anruf beendet um {time}"
   }
 }

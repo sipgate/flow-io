@@ -1862,5 +1862,24 @@
     "imprint": "Imprint",
     "privacy": "Privacy",
     "copyright": "© {year} sipgate GmbH"
+  },
+  "notFound": {
+    "brandName": "flow-io",
+    "eyebrow": "Error 404 · Call dropped",
+    "headline1": "Looks like the line",
+    "headline2": "went silent.",
+    "description": "The page you dialed isn't in service. Don't worry — your voice agent is already drafting a polite apology.",
+    "redial": "Redial home",
+    "goBack": "Hang up & go back",
+    "liveCall": "On call",
+    "callEnded": "Disconnected",
+    "transcriptLabel": "Live transcript",
+    "agent": "Agent",
+    "caller": "You",
+    "line1": "Hey — I was trying to reach this page?",
+    "line2": "One moment, let me check that for you…",
+    "line3": "Hmm, I'm searching but I can't find it anywhere.",
+    "line4": "Sorry — that page doesn't seem to exist. Code 404.",
+    "disconnectedAt": "Call ended at {time}"
   }
 }

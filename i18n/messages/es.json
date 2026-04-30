@@ -1668,5 +1668,24 @@
     "imprint": "Aviso legal",
     "privacy": "Privacidad",
     "copyright": "© {year} sipgate GmbH"
+  },
+  "notFound": {
+    "brandName": "flow-io",
+    "eyebrow": "Error 404 · Llamada interrumpida",
+    "headline1": "Parece que la línea",
+    "headline2": "se quedó en silencio.",
+    "description": "La página que marcaste no está disponible. Tranquilo — tu agente de voz ya está redactando una disculpa educada.",
+    "redial": "Volver al inicio",
+    "goBack": "Colgar y volver",
+    "liveCall": "En llamada",
+    "callEnded": "Desconectado",
+    "transcriptLabel": "Transcripción en vivo",
+    "agent": "Agente",
+    "caller": "Tú",
+    "line1": "Hola — quería entrar a esta página…",
+    "line2": "Un momento, déjame comprobarlo…",
+    "line3": "Hmm, estoy buscando pero no la encuentro por ningún lado.",
+    "line4": "Lo siento — esa página no parece existir. Código 404.",
+    "disconnectedAt": "Llamada finalizada a las {time}"
   }
 }
