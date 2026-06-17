@@ -103,7 +103,7 @@
     "vitest": "^4.0.15"
   },
   "overrides": {
-    "dompurify": "^3.4.1",
+    "dompurify": "^3.4.10",
     "@xmldom/xmldom": "^0.8.13"
   }
 }
