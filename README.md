@@ -1,5 +1,8 @@
 # Flow-IO
 
+> [!Note]
+> Flow-IO is an experimental client for the __sipgate Flow API__ - it is not officially supported by sipgate - check the [sipgate Flow landing page](https://www.sipgate.de/flow) if you want to build your own client.
+
 **Build production-ready AI phone assistants in minutes — not months.**
 
 Flow-IO connects your sipgate phone numbers to AI agents with custom prompts, knowledge bases, multi-step call flows, and full analytics. Open-source, self-hostable, European infrastructure.
